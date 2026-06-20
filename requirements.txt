@@ -1,0 +1,9 @@
+# CORE / LIVE lane — the minimal deps the in-browser (Pyodide) or always-on engine needs.
+#
+# TEMPLATE — do not ship as-is. When you instantiate this product:
+#   • Keep this list SMALL: every wheel here must exist for Pyodide if any tier runs live.
+#   • PIN each to the exact version you installed AND verified imports+runs (e.g. `numpy==2.4.6`).
+#   • Document each non-obvious dep in docs/frameworks/<tool>/.
+#
+# Example (uncomment + pin to your verified version):
+# numpy==X.Y.Z          # array core; available as a Pyodide wheel

@@ -1,0 +1,5 @@
+# DEV lane — lint + test only.
+#
+# TEMPLATE — pin each to the version you installed + verified when you instantiate. Recommended tools:
+# ruff==X.Y.Z           # linter/formatter
+# pytest==X.Y.Z         # test runner
