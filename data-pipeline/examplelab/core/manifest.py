@@ -18,13 +18,14 @@ def build_case_manifest(
     case: Any,
     params: Any,
     seed: int,
-    run_ms: float,
     artifact_rel: str,
     trace_bytes: int,
     gate: dict,
     flags: list[dict],
     metrics: dict,
 ) -> dict:
+    # Deterministic: a pure function of (params, seed). No wall-clock here (would dirty git on re-run) — the
+    # lane/gate verdict + budgets carry the lane decision; live timing is measured in the browser, not committed.
     return {
         "schema": MANIFEST_SCHEMA,
         "case_id": case.id,
@@ -39,7 +40,6 @@ def build_case_manifest(
         "gate": gate,
         "flags": flags,
         "metrics": metrics,
-        "run_ms": round(run_ms, 2),
     }
 
 

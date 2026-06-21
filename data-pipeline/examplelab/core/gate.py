@@ -21,15 +21,19 @@ def classify_lane(*, pure_python: bool, wheels: set[str], run_ms: float, trace_b
         reasons.append(f"wheels not Pyodide-safe: {sorted(extra)}")
     if run_ms > RUN_MS_GATE:
         live = False
-        reasons.append(f"run_ms {run_ms:.0f} > {RUN_MS_GATE:.0f}")
+        reasons.append(f"runtime exceeds the {RUN_MS_GATE:.0f}ms budget")
     if trace_bytes > TRACE_BYTES_GATE:
         live = False
         reasons.append(f"trace_bytes {trace_bytes} > {TRACE_BYTES_GATE}")
+    # NOTE: the raw measured run_ms is used for the DECISION but deliberately NOT stored — the committed manifest
+    # must be a pure function of (params, seed); wall-clock would dirty git on every re-run. We record the verdict
+    # + the (deterministic) budgets instead. The live runtime is measured separately, live, in the browser.
     return {
         "lane": "live" if live else "precompute",
         "pure_python": pure_python,
         "wheels": sorted(wheels),
-        "run_ms": round(run_ms, 2),
         "trace_bytes": trace_bytes,
+        "run_ms_budget": RUN_MS_GATE,
+        "trace_bytes_budget": TRACE_BYTES_GATE,
         "reasons": reasons,
     }

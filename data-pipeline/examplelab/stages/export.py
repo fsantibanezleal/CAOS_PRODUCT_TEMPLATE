@@ -29,7 +29,7 @@ def run(
     trace_bytes = write_json(Path(derived_dir) / artifact_rel, trace)
     gate = classify_lane(pure_python=True, wheels={"numpy"}, run_ms=run_ms, trace_bytes=trace_bytes)
     manifest = build_case_manifest(
-        case=case, params=params, seed=seed, run_ms=run_ms,
+        case=case, params=params, seed=seed,
         artifact_rel=artifact_rel, trace_bytes=trace_bytes, gate=gate, flags=flags, metrics=metrics,
     )
     write_json(Path(manifests_dir) / f"{case.id}.json", manifest)

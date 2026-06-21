@@ -29,8 +29,9 @@ export interface GateVerdict {
   lane: string;
   pure_python: boolean;
   wheels: string[];
-  run_ms: number;
   trace_bytes: number;
+  run_ms_budget: number;
+  trace_bytes_budget: number;
   reasons: string[];
 }
 
@@ -48,7 +49,6 @@ export interface CaseManifest {
   gate: GateVerdict;
   flags: Array<Record<string, string>>;
   metrics: Record<string, number>;
-  run_ms: number;
 }
 
 export interface CaseIndexEntry {
