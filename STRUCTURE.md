@@ -3,6 +3,12 @@
 This is the agreed shape of a REAL product repo. Every requirement Felipe raised is captured here. Nothing is
 built against it until the shape is approved, so we don't build-then-redo.
 
+> **Blueprint names → shipped tree (read this first).** This blueprint predates the built template and uses
+> generic names. In the tree actually shipped: **`productlab/` = `data-pipeline/examplelab/`** (the Python
+> package lives INSIDE `data-pipeline/`; on instantiation rename `examplelab` → `<slug>lab`), **`web/` =
+> `frontend/`**, and **`api/` = `app/`** (the dormant FastAPI module). The stage/contract/lane semantics below
+> are unchanged — only the paths differ. When in doubt, the shipped tree + `docs/guides/00_instantiate.md` win.
+
 ## Three execution lanes + a replay fallback — SEPARATE dependencies AND implementation
 
 A product can run in up to three lanes. They do **not** share one engine by default: the offline engine is the

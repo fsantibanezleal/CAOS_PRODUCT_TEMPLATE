@@ -27,7 +27,7 @@ It is modelled on the validated exemplar **CAOS_SIMLAB** (`simlab/pipeline.py`, 
 
 A product is only real if data flows through **two enforced contracts**:
 
-1. **Ingestion contract — `raw → processing`.** `productlab/io/contract.py` defines the required schema (columns,
+1. **Ingestion contract — `raw → processing`.** `data-pipeline/<slug>lab/io/contract.py` (shipped as `examplelab`) defines the required schema (columns,
    units, ranges) of an input dataset and an explicit **outlier policy** (reject / clip / flag). This is the
    *"bring your own data"* gate: a user's dataset is accepted iff it satisfies the contract. Documented in
    [docs/data-contract.md](docs/data-contract.md).
@@ -56,7 +56,8 @@ cd web && npm install && node copy-data.mjs && npm run dev
 ## How to instantiate this template for a NEW product
 
 See [docs/guides/00_instantiate.md](docs/guides/00_instantiate.md). In short: copy this tree, rename the
-`productlab` package to `<slug>lab`, **replace the EXAMPLE engine** (`productlab/stages/process.py`) with your
+`examplelab` package (in `data-pipeline/`) to `<slug>lab`, **replace the EXAMPLE engine** (the SIR model in
+`data-pipeline/<slug>lab/model/` + `stages/`) with your
 product's research-chosen SOTA engine (the one documented in `docs/frameworks/`, pinned in
 `requirements-precompute.txt` — e.g. Yade/Chrono for DEM, OR-Tools for dispatch, MintPy for InSAR), write your
 ingestion contract + cases, and fill the `docs/` wiki **as you build, not at the end** (ADR-0056).
@@ -66,7 +67,7 @@ ingestion contract + cases, and fill the `docs/` wiki **as you build, not at the
 - **The deep research is binding, not decoration.** Every engine/solver/library the research selected lives in
   `docs/frameworks/<tool>/` *and* `requirements-precompute.txt`, and the pipeline actually uses it. No hand-rolled
   substitute for a SOTA engine the research prescribed.
-- **Standard formats end-to-end** (`productlab/io/formats.py`): domain-standard in, compact-standard out.
+- **Standard formats end-to-end** (`data-pipeline/<slug>lab/io/formats.py`): domain-standard in, compact-standard out.
 - **Reproducible**: pinned requirements per need; `scripts/setup`; CI installs them and runs a pipeline smoke.
 - **Applicable to new data**: the ingestion contract is the bring-your-own-data door.
 - **Versioned** (X.XX.XXX, CHANGELOG + tags from day 1) with **license/attribution hygiene**.
