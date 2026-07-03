@@ -1,5 +1,17 @@
 # CAOS product template — a REAL product repo (not a demo)
 
+<!-- BADGE HEADER (ADR-0065) — copy this block to the top of an instantiated product README.
+     Replace <OWNER>/<REPO> and the CI workflow filename. Every badge here is auto-updating and truthful.
+     Allowed: CI (from Actions), license, latest version/tag, live demo, and arXiv ONLY once a real preprint exists.
+     FORBIDDEN: hand-typed count/claim badges (tests N passing, languages N, coverage unless from CI, agents N, ...)
+     and supply-chain-security theater (OpenSSF Scorecard, SLSA, VirusTotal) unless the repo actually ships signed
+     installable binaries. A badge that states something a tool does not verify live is vanity — do not add it.
+[![CI](https://img.shields.io/github/actions/workflow/status/<OWNER>/<REPO>/ci.yml?branch=main&label=CI)](https://github.com/<OWNER>/<REPO>/actions)
+[![License](https://img.shields.io/github/license/<OWNER>/<REPO>)](LICENSE)
+[![Version](https://img.shields.io/github/v/tag/<OWNER>/<REPO>?label=version&sort=semver)](https://github.com/<OWNER>/<REPO>/tags)
+[![Live demo](https://img.shields.io/badge/demo-live-2ea44f)](https://<SLUG>.fasl-work.com)
+-->
+
 This is the **canonical template** every Faena/CAOS data-product repo is instantiated from. It exists because
 ad-hoc products (bespoke scripts, baked cases, no reproducible env, no data contract) kept shipping — they
 *look* done but **cannot be applied to new data**, so they are demos, not tools. This template makes the standard
