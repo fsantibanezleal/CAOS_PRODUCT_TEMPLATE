@@ -1,4 +1,4 @@
-"""Stage 5 — evaluate (the TEST stage): held-out surrogate-vs-engine error. Leakage-safe — the holdout params are
+"""Stage 5, evaluate (the TEST stage): held-out surrogate-vs-engine error. Leakage-safe, the holdout params are
 a disjoint synthetic draw, never the training params. Returns R2 + RMSE on the peak-infected fraction (RMSE, not
 MAPE: MAPE blows up on the near-zero peak fractions of sub-critical cases and would be misleading)."""
 from __future__ import annotations

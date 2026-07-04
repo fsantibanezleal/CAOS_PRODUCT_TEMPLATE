@@ -1,4 +1,4 @@
-"""CONTRACT 1 — ingestion (raw -> pipeline). The *bring-your-own-data* gate.
+"""CONTRACT 1, ingestion (raw -> pipeline). The *bring-your-own-data* gate.
 
 Declares the required schema (columns, units, ranges) of an input parameter table and an EXPLICIT outlier policy.
 A dataset is ACCEPTED iff it passes; bad rows are REJECTED with a reason (never silently coerced); plausible-but-

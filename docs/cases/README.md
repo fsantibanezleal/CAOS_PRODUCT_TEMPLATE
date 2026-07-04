@@ -5,7 +5,7 @@ params, an expected band (what a domain expert should see), and a real|synthetic
 groups them. The **App shows ONE selected case**; **Experiments/Benchmark show cross-case summaries by category**
 (never mixed into the App).
 
-## Coverage matrix (EXAMPLE — SIR; replace with your real, varied matrix)
+## Coverage matrix (EXAMPLE, SIR; replace with your real, varied matrix)
 
 | id | category | expected band | real/synthetic |
 |---|---|---|---|

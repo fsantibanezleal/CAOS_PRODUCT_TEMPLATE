@@ -1,6 +1,6 @@
-"""Stage 3 — train (OFFLINE): fit a tiny surrogate (numpy least-squares) mapping R0 -> peak-infected fraction,
+"""Stage 3, train (OFFLINE): fit a tiny surrogate (numpy least-squares) mapping R0 -> peak-infected fraction,
 using the SIR engine as ground truth on the TRAINING params. Saves coeffs to models/surrogate.json. Skippable for
-products with no learned tier. (EXAMPLE — a real product trains its research-chosen model here, exporting ONNX.)"""
+products with no learned tier. (EXAMPLE, a real product trains its research-chosen model here, exporting ONNX.)"""
 from __future__ import annotations
 
 import math

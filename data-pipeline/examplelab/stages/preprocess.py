@@ -1,4 +1,4 @@
-"""Stage 1 — preprocess: read the raw parameter table and apply CONTRACT 1 (schema + outlier policy).
+"""Stage 1, preprocess: read the raw parameter table and apply CONTRACT 1 (schema + outlier policy).
 Output = a ContractReport (accepted SIRParams + rejected rows + flags). The bring-your-own-data entry point."""
 from __future__ import annotations
 

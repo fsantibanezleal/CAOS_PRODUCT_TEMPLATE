@@ -1,4 +1,4 @@
-"""Stage 2 — feature_extraction: validated params -> feature rows for the surrogate (deterministic)."""
+"""Stage 2, feature_extraction: validated params -> feature rows for the surrogate (deterministic)."""
 from __future__ import annotations
 
 import math

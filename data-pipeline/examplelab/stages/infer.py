@@ -1,4 +1,4 @@
-"""Stage 4 — infer: run the (research-chosen) engine for a case's params. EXAMPLE = the SIR simulate()."""
+"""Stage 4, infer: run the (research-chosen) engine for a case's params. EXAMPLE = the SIR simulate()."""
 from __future__ import annotations
 
 from ..io.schema import SIRParams, SIRResult

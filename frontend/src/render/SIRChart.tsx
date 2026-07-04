@@ -1,4 +1,4 @@
-// A minimal dependency-free SVG line chart of an SIR trace (S/I/R over time). EXAMPLE renderer — a real product
+// A minimal dependency-free SVG line chart of an SIR trace (S/I/R over time). EXAMPLE renderer, a real product
 // uses its domain-appropriate, interactive visualizations here.
 import type { Trace } from '../lib/contract.types';
 

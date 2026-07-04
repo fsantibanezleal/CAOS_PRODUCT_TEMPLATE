@@ -40,7 +40,7 @@ export default function App() {
 
   return (
     <main style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 900, margin: '2rem auto', padding: '0 1rem' }}>
-      <h1>Product — deterministic replay</h1>
+      <h1>Product, deterministic replay</h1>
       <p>Replaying committed artifacts (CONTRACT 2). {index?.n_cases ?? 0} cases across {Object.keys(byCategory).length} categories.</p>
       {err && <p style={{ color: '#f85149' }}>error: {err}</p>}
       <label>
@@ -59,7 +59,7 @@ export default function App() {
       </label>
       {manifest && (
         <p>
-          lane: <b>{manifest.lane}</b> — <i>{manifest.expected_band}</i>
+          lane: <b>{manifest.lane}</b>, <i>{manifest.expected_band}</i>
         </p>
       )}
       {trace && <SIRChart trace={trace} />}

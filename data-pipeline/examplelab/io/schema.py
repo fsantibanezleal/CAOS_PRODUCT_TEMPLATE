@@ -1,4 +1,4 @@
-"""Typed objects passed between pipeline stages — the inter-stage contract. Plain dataclasses (Pyodide-safe)."""
+"""Typed objects passed between pipeline stages, the inter-stage contract. Plain dataclasses (Pyodide-safe)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -28,7 +28,7 @@ class FeatureRow:
 
 @dataclass(frozen=True)
 class SIRResult:
-    """The engine output for one case (infer stage) — the raw, undecimated trajectory + scalars."""
+    """The engine output for one case (infer stage), the raw, undecimated trajectory + scalars."""
     case_id: str
     t: list[float]
     S: list[float]
