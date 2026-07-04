@@ -17,3 +17,4 @@ groups them. The **App shows ONE selected case**; **Experiments/Benchmark show c
 
 A real product fills a matrix spanning its real axes (not "two of everything") + explicit negative/sanity
 controls, and adds one `docs/cases/<category>/<case-id>.md` per case (formalization + expected results + anchor).
+Copy [`00_TEMPLATE.md`](00_TEMPLATE.md) as the starting point for each per-case page.
