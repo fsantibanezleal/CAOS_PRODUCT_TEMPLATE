@@ -1,13 +1,17 @@
-"""The offline pipeline orchestrator + CLI (ADR-0057). Runs the named stages per case, applies CONTRACT 1, writes
-the compact artifact + manifest (CONTRACT 2) and a flat index.json.
+"""Offline pipeline orchestrator and CLI.
+
+The canonical bake is an explicit release operation. Tests and CI smoke runs
+must pass ``--output`` so they cannot mutate committed scientific evidence.
 
     python -m examplelab.pipeline            # all cases
     python -m examplelab.pipeline EX02_epidemic --seed 7
+    python -m examplelab.pipeline EX02_epidemic --output build/smoke
 """
 from __future__ import annotations
 
 import argparse
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import registry
@@ -27,10 +31,24 @@ MODELS = REPO_ROOT / "models"
 STAGES = ("preprocess", "feature_extraction", "train", "infer", "evaluate", "export")
 
 
-def _train_model() -> dict:
+@dataclass(frozen=True)
+class PipelinePaths:
+    root: Path
+    manifests: Path
+    models: Path
+
+    @classmethod
+    def from_output(cls, output: str | Path | None = None) -> "PipelinePaths":
+        if output is None:
+            return cls(root=DERIVED, manifests=MANIFESTS, models=MODELS)
+        root = Path(output).resolve()
+        return cls(root=root, manifests=root / "manifests", models=root / "models")
+
+
+def _train_model(models_dir: Path) -> dict:
     # didactic surrogate: train on the non-degenerate case params; held-out eval uses a disjoint synthetic draw
     params = [c.params for c in registry.list_cases() if c.params.I0 > 0]
-    return train.run(params, str(MODELS))
+    return train.run(params, str(models_dir))
 
 
 def _holdout_params(seed: int) -> list[SIRParams]:
@@ -42,10 +60,17 @@ def _holdout_params(seed: int) -> list[SIRParams]:
     return out
 
 
-def precompute(case_id: str, seed: int = 42, model: dict | None = None) -> dict:
+def precompute(
+    case_id: str,
+    seed: int = 42,
+    model: dict | None = None,
+    *,
+    output_root: str | Path | None = None,
+) -> dict:
+    paths = PipelinePaths.from_output(output_root)
     case = registry.get_case(case_id)
     if model is None:
-        model = _train_model()
+        model = _train_model(paths.models)
     t0 = time.perf_counter()
     # run CONTRACT 1 on the case params (proves the gate + carries flags); a real product reads raw data here
     rep = validate_rows([{"case_id": case.params.case_id, "beta": case.params.beta, "gamma": case.params.gamma,
@@ -55,16 +80,18 @@ def precompute(case_id: str, seed: int = 42, model: dict | None = None) -> dict:
     metrics = evaluate.run(model, _holdout_params(seed))
     run_ms = (time.perf_counter() - t0) * 1000.0
     return export.run(case=case, params=params, result=result, seed=seed, run_ms=run_ms,
-                      flags=rep.flagged, metrics=metrics, derived_dir=str(DERIVED), manifests_dir=str(MANIFESTS))
+                      flags=rep.flagged, metrics=metrics, derived_dir=str(paths.root),
+                      manifests_dir=str(paths.manifests))
 
 
-def run_all(seed: int = 42) -> list[dict]:
-    model = _train_model()
+def run_all(seed: int = 42, *, output_root: str | Path | None = None) -> list[dict]:
+    paths = PipelinePaths.from_output(output_root)
+    model = _train_model(paths.models)
     entries = []
     for c in registry.list_cases():
-        precompute(c.id, seed=seed, model=model)
+        precompute(c.id, seed=seed, model=model, output_root=paths.root)
         entries.append({"case_id": c.id, "category": c.category, "manifest_path": f"manifests/{c.id}.json"})
-    write_json(MANIFESTS / "index.json", build_index(entries))
+    write_json(paths.manifests / "index.json", build_index(entries))
     return entries
 
 
@@ -72,17 +99,20 @@ def main() -> None:
     ap = argparse.ArgumentParser(prog="examplelab.pipeline")
     ap.add_argument("case", nargs="?", default="all", help="a case id, or 'all'")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--output", type=Path,
+                    help="sandbox output root; omit only for an intentional canonical release bake")
     args = ap.parse_args()
+    paths = PipelinePaths.from_output(args.output)
     if args.case == "all":
-        entries = run_all(args.seed)
-        print(f"precomputed {len(entries)} cases -> {DERIVED}")
+        entries = run_all(args.seed, output_root=args.output)
+        print(f"precomputed {len(entries)} cases -> {paths.root}")
         for e in entries:
             print(f"  {e['case_id']:20s} [{e['category']}]")
-        print(f"index -> {MANIFESTS / 'index.json'}")
+        print(f"index -> {paths.manifests / 'index.json'}")
     else:
-        m = precompute(args.case, args.seed)
+        m = precompute(args.case, args.seed, output_root=args.output)
         print(f"precomputed {args.case}: lane={m['lane']} bytes={m['artifact']['bytes']} "
-              f"metrics={m['metrics']} -> {DERIVED / m['artifact']['path']}")
+              f"metrics={m['metrics']} -> {paths.root / m['artifact']['path']}")
 
 
 if __name__ == "__main__":

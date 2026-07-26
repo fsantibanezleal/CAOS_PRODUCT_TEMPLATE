@@ -31,9 +31,11 @@ A product is only real if data flows through **two enforced contracts**:
    units, ranges) of an input dataset and an explicit **outlier policy** (reject / clip / flag). This is the
    *"bring your own data"* gate: a user's dataset is accepted iff it satisfies the contract. Documented in
    [docs/data-contract.md](docs/data-contract.md).
-2. **Artifact contract, `processing → web`.** Every pipeline run writes a compact, standard-format artifact and a
-   `manifests/<case>.json` (params, seed, run_ms, bytes, gate verdict, format/version). The web app loads **only**
-   these, it never recomputes, and a TS type mirrors the manifest schema so a contract drift fails the build.
+2. **Artifact contract, `processing → web`.** Every canonical pipeline run writes a compact,
+   standard-format artifact and a `manifests/<case>.json` (params, seed, run_ms, bytes, gate verdict,
+   format/version). The web replay lane loads only these. A separately named reduced live engine may compute
+   valid interactive results when its parity/latency/memory gates pass; it never overwrites or masquerades
+   as canonical offline truth. A TS type mirrors the manifest schema so contract drift fails the build.
 
 If either contract is missing, the product is a demo. CI enforces both.
 
@@ -60,15 +62,21 @@ See [docs/guides/00_instantiate.md](docs/guides/00_instantiate.md). In short: co
 fails CI if any example lab or placeholder text survives), rename the `examplelab` package (in
 `data-pipeline/`) to `<slug>lab`, **replace the EXAMPLE engine** (the SIR model in
 `data-pipeline/<slug>lab/model/` + `stages/`) with your
-product's research-chosen SOTA engine (the one documented in `docs/frameworks/`, pinned in
-`requirements-precompute.txt`, e.g. Yade/Chrono for DEM, OR-Tools for dispatch, MintPy for InSAR), write your
-ingestion contract + cases, and fill the `docs/` wiki **as you build, not at the end** (ADR-0056).
+product's complete research-chosen classical→SOTA→frontier method registry. Every promised method must
+pass ADR-0069's vertical acceptance contract and be documented in `docs/frameworks/`, pinned in
+`requirements-precompute.txt` or `requirements-gpu.txt`, and actually executed by the pipeline. Write the
+ingestion contract, split policy, cases/variants, and fill the `docs/` wiki **as you build, not at the end**.
 
 ## Hard rules this template bakes in
 
 - **The deep research is binding, not decoration.** Every engine/solver/library the research selected lives in
   `docs/frameworks/<tool>/` *and* `requirements-precompute.txt`, and the pipeline actually uses it. No hand-rolled
   substitute for a SOTA engine the research prescribed.
+- **The repository is the product.** It implements ingest, preprocess, dataset/split, feature extraction,
+  training/fine-tuning, inference, evaluation, export, and validation for every promised method. The web is
+  the companion workbench, not a substitute for those engines.
+- **Canonical science is offline.** Tests run in sandboxes; release bake is explicit; deployment verifies
+  checksums and publishes existing evidence. Deploy never trains, benchmarks, or mutates canonical artifacts.
 - **Standard formats end-to-end** (`data-pipeline/<slug>lab/io/formats.py`): domain-standard in, compact-standard out.
 - **Reproducible**: pinned requirements per need; `scripts/setup`; CI installs them and runs a pipeline smoke.
 - **Applicable to new data**: the ingestion contract is the bring-your-own-data door.

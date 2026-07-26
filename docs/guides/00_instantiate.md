@@ -6,20 +6,27 @@
    placeholder text survives, so you cannot ship SIR/EX0* residue by accident.
 2. **Rename** the package `examplelab` -> `<slug>lab` (the folder + all imports + `pyproject.toml`
    `[tool.setuptools.packages.find].where`/name + the scripts' `-m examplelab.pipeline` + docs).
-3. **Replace the EXAMPLE engine**: `<slug>lab/model/` + the bodies of `stages/{preprocess,feature_extraction,train,
-   infer,evaluate}` with your research-chosen SOTA engine. **Keep the stage names + both contracts.**
+3. **Replace the EXAMPLE engine with the complete method ladder**: classical, domain SOTA,
+   foundation/learned, and frontier methods. For each method implement the ADR-0069 vertical unit:
+   dependency + provenance/license + preprocessing + train/calibrate where applicable + checkpoint +
+   inference + held-out evaluation + export + tests + framework/case docs + honest lane. **Keep all named
+   stages and both contracts; no stage may remain an example or no-op.**
 4. **Write CONTRACT 1** (`io/contract.py`) for YOUR raw data, required columns, units, ranges, explicit outlier
    policy, plus a tiny `data/examples/` sample that passes it; document it in `data/README.md`. Update
    `tests/test_contract.py`.
-5. **Define cases-by-category** in `cases/` + `registry.py` (a varied matrix across your real axes + negative/sanity
-   controls). Document them in `docs/cases/`.
-6. **Pin your engines** in `data-pipeline/requirements.txt` (or `-gpu`/`-api`) and add a card per engine in
+5. **Define cases-by-category and variants** in `cases/` + `registry.py`: nominal regimes, operating
+   extremes, acquisition degradations, boundary cases, positive/negative controls, and temporal cases
+   where relevant. Define source/seed/site/time-grouped train/val/calibration/test splits before fitting;
+   meaningful parametric cases carry at least six variants. Document the matrix in `docs/cases/`.
+6. **Pin your engines** in the light, precompute, GPU, and API requirement files as applicable and add a card per engine in
    `docs/frameworks/<NN>_<tool>/` (the deep research, made binding, no toy substitute).
 7. **Mirror the contract**: if your trace/manifest shape changed, update `frontend/src/lib/contract.types.ts`
    (a drift fails `tsc`); build the visualizations in `frontend/src/render` + `App.tsx`.
 8. **Activate only the lanes you need.** Leave the rest dormant with a README marker ("this solution does not
    require it at the moment"), e.g. `app/` for a static product; `frontend/` for a pipeline-only product.
-9. **Verify**: `scripts/setup` → `scripts/precompute` → `pytest` → `cd frontend && npm run build`. CI guards green.
+9. **Verify in separate operations**: setup → sandboxed smoke → tests → explicit canonical bake → artifact
+   validation/completeness report → frontend build. CI guards green. Deployment only re-runs artifact
+   validation and publishes; it never trains or recomputes canonical inference.
 10. **Version** from day 1: `CHANGELOG.md` (`X.XX.XXX`, `0.x` while synthetic) + a tag per release.
 11. **Ship the Architecture modal** (ADR-0058, MANDATORY): copy `frontend/src/architecture.ts.txt` to
     `architecture.ts`, specialise the product-specific SVGs (`public/svg/tech/01-the-app.svg`,

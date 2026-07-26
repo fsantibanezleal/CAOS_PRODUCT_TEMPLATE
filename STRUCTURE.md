@@ -41,12 +41,15 @@ explicit **input→output contract** to the next stage. Not a monolith.
 
 | Order | Stage module | Input | Output | Notes |
 |---|---|---|---|---|
-| 1 | `preprocess.py` | raw dataset (via `io/contract.py`) | cleaned, validated table | applies the **ingestion contract** + outlier policy |
-| 2 | `features.py` | cleaned table | feature table (standard format) | feature extraction; deterministic |
-| 3 | `train.py` | features (+ engine labels) | fitted model artifact → `models/` | OFFLINE; e.g. surrogate / CNN → ONNX |
-| 4 | `infer.py` | model + case params | predictions / emergent outputs | runs the **research-chosen SOTA engine** + the model |
-| 5 | `evaluate.py` | predictions vs held-out | metrics (R²/MAPE/AUC, parity) | the **TEST / validation** stage (held-out, leakage-safe) |
-| 6 | `export.py` | predictions + metrics | compact standard-format **web artifact** + `manifests/<case>.json` | the **export pipeline**, the processing→web contract |
+| 1 | `ingest.py` | raw dataset (via `io/contract.py`) | validated source records | applies the ingestion contract, provenance, and outlier policy |
+| 2 | `preprocess.py` | validated source records | calibrated/cleaned records | domain normalization with fitted-state persistence |
+| 3 | `dataset.py` | records + source/seed/site/time groups | versioned train/val/calibration/test splits | blocks leakage before fitting |
+| 4 | `features.py` | split records | feature tensors/tables | deterministic; fitted transforms use train only |
+| 5 | `train.py` | train/val features + labels | checkpoint(s) + training manifest | one real implementation per learned method; resumable |
+| 6 | `infer.py` | method + checkpoint + held-out cases | predictions + timings | executes every promised method, including offline-only engines |
+| 7 | `evaluate.py` | predictions vs held-out truth | complete method × case metric matrix | missing cells fail; includes parity and robustness |
+| 8 | `export.py` | predictions + metrics | compact web artifacts + manifests | processing→web contract; canonical results are immutable |
+| 9 | `validate.py` | registry + checkpoints + manifests + artifacts | signed/checksummed release report | final completeness, schema, provenance, and drift gate |
 
 `pipeline.py` orchestrates these (an ordered `STAGES` list); `python -m productlab.pipeline <case>` runs them and
 persists artifact + manifest. Add domain stages as needed (e.g. `calibrate.py`, `decimate.py`), same rules.
@@ -108,5 +111,7 @@ GeoTIFF. The compact committed artifacts in `data/artifacts/` ARE the standardiz
 
 ## What CI enforces (so we can't regress to demos)
 
-`ruff` · `pytest` · **pipeline smoke** (regenerate one case's artifact+manifest) · **guards** (no real `.env`,
-no raw/heavy data tracked, no "live"-tagged stage that breaches the gate, manifest⇄artifact contract holds).
+`ruff` · `pytest` · **sandboxed pipeline smoke** (regenerate one case under a temporary output root) ·
+**guards** (no real `.env`, no raw/heavy data tracked, no incomplete method/case matrix, no "live"-tagged
+stage that breaches the gate, manifest⇄artifact contract holds). The release bake is an explicit command;
+the web build and deployment only verify/copy committed artifacts and never run canonical science.
