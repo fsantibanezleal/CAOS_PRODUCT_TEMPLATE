@@ -2,9 +2,9 @@
 
 1. **Copy** the template tree into the new product repo (its own git repo; code-repo flow `task/* -> develop -> main`).
    Then **delete the `.template-source` sentinel file at the repo root.** This arms
-   `scripts/check_template_residue.py` (a CI guard): from now on the build FAILS if any example lab or
+   `scripts/check_template_residue.py` (a CI guard): from now on the build FAILS if any example pipeline or
    placeholder text survives, so you cannot ship SIR/EX0* residue by accident.
-2. **Rename** the package `pipeline` -> `<slug>lab` (the folder + all imports + `pyproject.toml`
+2. **Rename** the package `pipeline` -> `pipeline` (the folder + all imports + `pyproject.toml`
    `[tool.setuptools.packages.find].where`/name + the scripts' `data-pipeline/run.py` + docs).
 3. **Replace the EXAMPLE engine with the complete method ladder**: classical, domain SOTA,
    foundation/learned, and frontier methods. For each method implement the ADR-0069 vertical unit:

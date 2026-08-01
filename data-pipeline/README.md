@@ -1,6 +1,6 @@
 # data-pipeline/, the offline engine (`pipeline`)
 
-Rename `pipeline` → `<slug>lab` per product. The **single source of physics/algorithm truth**; `frontend/` and
+Rename `pipeline` → `pipeline` per product. The **single source of physics/algorithm truth**; `frontend/` and
 `app/` consume it, never re-implement it. Its own venv: **`.venv-pipeline`** (heavy SOTA engines, local-only).
 
 ## Layout (the package lives directly under `data-pipeline/`)

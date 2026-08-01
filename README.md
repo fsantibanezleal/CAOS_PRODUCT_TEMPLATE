@@ -27,7 +27,7 @@ It is modelled on the validated exemplar **CAOS_SIMLAB** (`simlab/pipeline.py`, 
 
 A product is only real if data flows through **two enforced contracts**:
 
-1. **Ingestion contract, `raw → processing`.** `data-pipeline/<slug>lab/io/contract.py` (shipped as `pipeline`) defines the required schema (columns,
+1. **Ingestion contract, `raw → processing`.** `data-pipeline/pipeline/io/contract.py` (shipped as `pipeline`) defines the required schema (columns,
    units, ranges) of an input dataset and an explicit **outlier policy** (reject / clip / flag). This is the
    *"bring your own data"* gate: a user's dataset is accepted iff it satisfies the contract. Documented in
    [docs/data-contract.md](docs/data-contract.md).
@@ -59,9 +59,9 @@ cd web && npm install && node copy-data.mjs && npm run dev
 
 See [docs/guides/00_instantiate.md](docs/guides/00_instantiate.md). In short: copy this tree, **delete the
 `.template-source` sentinel** (this arms the residue guard, `scripts/check_template_residue.py`, which then
-fails CI if any example lab or placeholder text survives), rename the `pipeline` package (in
-`data-pipeline/`) to `<slug>lab`, **replace the EXAMPLE engine** (the SIR model in
-`data-pipeline/<slug>lab/model/` + `stages/`) with your
+fails CI if any example pipeline or placeholder text survives), rename the `pipeline` package (in
+`data-pipeline/`) to `pipeline`, **replace the EXAMPLE engine** (the SIR model in
+`data-pipeline/pipeline/model/` + `stages/`) with your
 product's complete research-chosen classical→SOTA→frontier method registry. Every promised method must
 pass ADR-0069's vertical acceptance contract and be documented in `docs/frameworks/`, pinned in
 `requirements-precompute.txt` or `requirements-gpu.txt`, and actually executed by the pipeline. Write the
@@ -77,7 +77,7 @@ ingestion contract, split policy, cases/variants, and fill the `docs/` wiki **as
   the companion workbench, not a substitute for those engines.
 - **Canonical science is offline.** Tests run in sandboxes; release bake is explicit; deployment verifies
   checksums and publishes existing evidence. Deploy never trains, benchmarks, or mutates canonical artifacts.
-- **Standard formats end-to-end** (`data-pipeline/<slug>lab/io/formats.py`): domain-standard in, compact-standard out.
+- **Standard formats end-to-end** (`data-pipeline/pipeline/io/formats.py`): domain-standard in, compact-standard out.
 - **Reproducible**: pinned requirements per need; `scripts/setup`; CI installs them and runs a pipeline smoke.
 - **Applicable to new data**: the ingestion contract is the bring-your-own-data door.
 - **Versioned** (X.XX.XXX, CHANGELOG + tags from day 1) with **license/attribution hygiene**.

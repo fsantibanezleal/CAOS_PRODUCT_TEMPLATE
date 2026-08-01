@@ -114,12 +114,12 @@ def main() -> int:
         print(f"check_template_residue: OK: no template residue in {len(files)} tracked files.")
         return 0
 
-    print("::error::template residue found: instantiation left the example lab / placeholder text in place.")
+    print("::error::template residue found: instantiation left the example pipeline / placeholder text in place.")
     for p in sorted(path_hits):
         print(f"  forbidden file: {p}")
     for rel, token in sorted(content_hits):
         print(f"  forbidden text: {rel}  (contains '{token}')")
-    print("\nReplace the example lab (data-pipeline/pipeline -> your product's lab), rebake the real")
+    print("\nReplace the example pipeline (data-pipeline/pipeline -> your product's lab), rebake the real")
     print("cases, and purge the placeholder text. If a hit is a false positive, add a path fragment to")
     print("scripts/.template_residue_allow. This guard is skipped only in the template (.template-source).")
     return 1

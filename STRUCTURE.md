@@ -5,7 +5,7 @@ built against it until the shape is approved, so we don't build-then-redo.
 
 > **Blueprint names → shipped tree (read this first).** This blueprint predates the built template and uses
 > generic names. In the tree actually shipped: **`productlab/` = `data-pipeline/pipeline/`** (the Python
-> package lives INSIDE `data-pipeline/`; on instantiation rename `pipeline` → `<slug>lab`), **`web/` =
+> package lives INSIDE `data-pipeline/`; on instantiation rename `pipeline` → `pipeline`), **`web/` =
 > `frontend/`**, and **`api/` = `app/`** (the dormant FastAPI module). The stage/contract/lane semantics below
 > are unchanged, only the paths differ. When in doubt, the shipped tree + `docs/guides/00_instantiate.md` win.
 

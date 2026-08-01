@@ -1,5 +1,5 @@
 // Prebuild: copy the committed CONTRACT-2 artifacts (../data/derived) into the SPA's public/ so the static site
-// replays them, and inline the examplelab sources for the live (Pyodide) lane. Canonical copies live in ../data
+// replays them, and inline the pipeline sources for the live (Pyodide) lane. Canonical copies live in ../data
 // and ../data-pipeline, public/ is a build-time overlay (git-ignored).
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -19,8 +19,8 @@ if (existsSync(derived)) {
   console.warn('[copy-data] no data/derived, run scripts/precompute first');
 }
 
-// 2) inline the examplelab Python sources for the optional Pyodide live lane -> public/pyodide/sources.json
-const pkg = join(ROOT, 'data-pipeline', 'examplelab');
+// 2) inline the pipeline Python sources for the optional Pyodide live lane -> public/pyodide/sources.json
+const pkg = join(ROOT, 'data-pipeline', 'pipeline');
 if (existsSync(pkg)) {
   const sources = {};
   const walk = (dir, rel = '') => {
@@ -29,11 +29,11 @@ if (existsSync(pkg)) {
       const abs = join(dir, e.name);
       const r = rel ? `${rel}/${e.name}` : e.name;
       if (e.isDirectory()) walk(abs, r);
-      else if (e.name.endsWith('.py')) sources[`examplelab/${r}`] = readFileSync(abs, 'utf-8');
+      else if (e.name.endsWith('.py')) sources[`pipeline/${r}`] = readFileSync(abs, 'utf-8');
     }
   };
   walk(pkg);
   mkdirSync(join(PUB, 'pyodide'), { recursive: true });
   writeFileSync(join(PUB, 'pyodide', 'sources.json'), JSON.stringify(sources));
-  console.log(`[copy-data] inlined ${Object.keys(sources).length} examplelab sources -> public/pyodide/sources.json`);
+  console.log(`[copy-data] inlined ${Object.keys(sources).length} pipeline sources -> public/pyodide/sources.json`);
 }
