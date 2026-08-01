@@ -1,24 +1,10 @@
-# Product-repo template, the offline engine package (ADR-0057). Rename `examplelab` -> `<slug>lab` per product.
+# Repo-local tool configuration ONLY. A product declares NO package of its own.
+# See conventions/no-internal-packages.md: if a package is required it is a SEPARATE REPO with a
+# valid PyPI project, published, and consumed as a dependency (milldem, minehaulsim, oreblocks).
+# data-pipeline/ is scripts, invoked by path: python data-pipeline/run.py
+# Product-repo template, the offline engine package (ADR-0057). Rename `pipeline` -> `<slug>lab` per product.
 # The EXAMPLE engine is numpy-only on purpose (an instantly-installable, no-hang reference); a real product pins
 # its research-chosen SOTA engines in data-pipeline/requirements.txt and documents them in docs/frameworks/.
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "examplelab"
-# PEP 440 form of the display version X.XX.XXX (see CHANGELOG.md + examplelab.__version__).
-version = "0.1.0"
-description = "CAOS product-repo template, offline data-pipeline + two data contracts + staged pipeline (EXAMPLE: SIR)."
-readme = "README.md"
-requires-python = ">=3.11"
-license = { text = "MIT" }
-authors = [{ name = "Felipe Santibáñez-Leal" }]
-dependencies = ["numpy>=1.26"]
-
-[tool.setuptools.packages.find]
-where = ["data-pipeline"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

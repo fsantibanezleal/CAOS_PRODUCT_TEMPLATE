@@ -1,5 +1,5 @@
-// LIVE lane (optional, Pyodide): load the inlined examplelab sources (public/pyodide/sources.json) and call
-// examplelab.live.run_trace_json for a bring-your-own-params interaction in the browser. This is a STUB, a real
+// LIVE lane (optional, Pyodide): load the inlined pipeline sources (public/pyodide/sources.json) and call
+// pipeline.live.run_trace_json for a bring-your-own-params interaction in the browser. This is a STUB, a real
 // product wires Pyodide here. The replay path (App.tsx) is the always-available fallback (ADR-0054), so a product
 // can ship with this lane dormant and still be fully functional.
 import type { Trace } from '../lib/contract.types';

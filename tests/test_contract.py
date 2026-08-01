@@ -1,5 +1,5 @@
 """CONTRACT 1 (ingestion) tests: good data validates; bad data is rejected with a reason; outliers are flagged."""
-from examplelab.io.contract import validate_rows
+from pipeline.io.contract import validate_rows
 
 
 def test_good_rows_accepted():

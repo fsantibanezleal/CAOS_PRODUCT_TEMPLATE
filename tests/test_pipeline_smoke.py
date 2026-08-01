@@ -2,7 +2,7 @@
 degenerate control runs without crashing, and run_all writes the flat index."""
 import json
 
-from examplelab import pipeline, registry
+from pipeline import pipeline, registry
 
 
 def test_case_deterministic_same_seed(tmp_path):

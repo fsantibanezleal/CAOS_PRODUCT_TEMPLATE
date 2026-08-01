@@ -1,13 +1,13 @@
 # Changelog
 
-All notable changes to this product. Format: `X.XX.XXX` (display), see `examplelab.__version__`. Keep `0.x`
+All notable changes to this product. Format: `X.XX.XXX` (display), see `pipeline.__version__`. Keep `0.x`
 while on mock/synthetic data. Tag every release.
 
 ## [0.01.000], 2026-06-20
 
 ### Added
 - Initial instantiation from the CAOS product-repo template (ADR-0057).
-- Offline `data-pipeline/` (`examplelab`): the two data contracts (ingestion + artifact), the named staged
+- Offline `data-pipeline/` (`pipeline`): the two data contracts (ingestion + artifact), the named staged
   pipeline (preprocess → feature_extraction → train → infer → evaluate → export), the seeded RNG, the compact
   trace, the manifest, and the measured live-vs-precompute gate.
 - EXAMPLE engine: a deterministic SIR epidemic (numpy-only, Pyodide-safe), **replace with the product's

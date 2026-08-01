@@ -3,9 +3,9 @@
 The canonical bake is an explicit release operation. Tests and CI smoke runs
 must pass ``--output`` so they cannot mutate committed scientific evidence.
 
-    python -m examplelab.pipeline            # all cases
-    python -m examplelab.pipeline EX02_epidemic --seed 7
-    python -m examplelab.pipeline EX02_epidemic --output build/smoke
+    python data-pipeline/run.py            # all cases
+    python data-pipeline/run.py EX02_epidemic --seed 7
+    python data-pipeline/run.py EX02_epidemic --output build/smoke
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from .io.formats import write_json
 from .io.schema import SIRParams
 from .stages import evaluate, export, infer, train
 
-# data-pipeline/examplelab/pipeline.py -> parents[2] = repo root (works under `pip install -e .` too)
+# data-pipeline/pipeline/pipeline.py -> parents[2] = repo root (works under `pip install -e .` too)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DERIVED = REPO_ROOT / "data" / "derived"
 MANIFESTS = DERIVED / "manifests"
@@ -96,7 +96,7 @@ def run_all(seed: int = 42, *, output_root: str | Path | None = None) -> list[di
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(prog="examplelab.pipeline")
+    ap = argparse.ArgumentParser(prog="pipeline.pipeline")
     ap.add_argument("case", nargs="?", default="all", help="a case id, or 'all'")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--output", type=Path,

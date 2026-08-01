@@ -1,6 +1,6 @@
 # The staged precompute pipeline
 
-`data-pipeline/examplelab/pipeline.py` orchestrates the **named stages** (frozen names/signatures, rework bodies):
+`data-pipeline/pipeline/pipeline.py` orchestrates the **named stages** (frozen names/signatures, rework bodies):
 
 | Stage | Module | Does |
 |---|---|---|
@@ -11,7 +11,7 @@
 | evaluate | `stages/evaluate.py` | held-out, leakage-safe metrics (R²/RMSE) |
 | export | `stages/export.py` | **CONTRACT 2**, compact artifact + manifest |
 
-Run: `python -m examplelab.pipeline [all|<case_id>] [--seed N]` (or `scripts/precompute.{sh,ps1}`). It writes
+Run: `python data-pipeline/run.py [all|<case_id>] [--seed N]` (or `scripts/precompute.{sh,ps1}`). It writes
 `data/derived/<case>/trace.json` + `data/derived/manifests/<case>.json` + `index.json`.
 
 To instantiate a real product: keep the stage names, replace the bodies, `infer`/`train` call the

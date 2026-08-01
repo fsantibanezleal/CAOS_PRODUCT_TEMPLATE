@@ -32,7 +32,7 @@ def build_case_manifest(
         "category": case.category,
         "real_or_synthetic": case.real_or_synthetic,
         "expected_band": case.expected_band,
-        "engine": {"package": "examplelab", "version": __version__, "model": "SIR (EXAMPLE, replace per product)"},
+        "engine": {"package": "pipeline", "version": __version__, "model": "SIR (EXAMPLE, replace per product)"},
         "params": {"beta": params.beta, "gamma": params.gamma, "N": params.N, "I0": params.I0, "days": params.days},
         "seed": seed,
         "artifact": {"path": artifact_rel, "format": "json", "trace_schema": TRACE_SCHEMA, "bytes": trace_bytes},

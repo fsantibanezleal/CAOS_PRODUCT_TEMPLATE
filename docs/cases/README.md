@@ -1,6 +1,6 @@
 # Cases + categories
 
-Each case (`data-pipeline/examplelab/cases/`) declares a **CATEGORY** (the domain problem-type taxonomy), its
+Each case (`data-pipeline/pipeline/cases/`) declares a **CATEGORY** (the domain problem-type taxonomy), its
 params, an expected band (what a domain expert should see), and a real|synthetic flag. `registry.list_categories()`
 groups them. The **App shows ONE selected case**; **Experiments/Benchmark show cross-case summaries by category**
 (never mixed into the App).

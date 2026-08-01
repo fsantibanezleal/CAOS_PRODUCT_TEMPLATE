@@ -27,7 +27,7 @@ It is modelled on the validated exemplar **CAOS_SIMLAB** (`simlab/pipeline.py`, 
 
 A product is only real if data flows through **two enforced contracts**:
 
-1. **Ingestion contract, `raw → processing`.** `data-pipeline/<slug>lab/io/contract.py` (shipped as `examplelab`) defines the required schema (columns,
+1. **Ingestion contract, `raw → processing`.** `data-pipeline/<slug>lab/io/contract.py` (shipped as `pipeline`) defines the required schema (columns,
    units, ranges) of an input dataset and an explicit **outlier policy** (reject / clip / flag). This is the
    *"bring your own data"* gate: a user's dataset is accepted iff it satisfies the contract. Documented in
    [docs/data-contract.md](docs/data-contract.md).
@@ -59,7 +59,7 @@ cd web && npm install && node copy-data.mjs && npm run dev
 
 See [docs/guides/00_instantiate.md](docs/guides/00_instantiate.md). In short: copy this tree, **delete the
 `.template-source` sentinel** (this arms the residue guard, `scripts/check_template_residue.py`, which then
-fails CI if any example lab or placeholder text survives), rename the `examplelab` package (in
+fails CI if any example lab or placeholder text survives), rename the `pipeline` package (in
 `data-pipeline/`) to `<slug>lab`, **replace the EXAMPLE engine** (the SIR model in
 `data-pipeline/<slug>lab/model/` + `stages/`) with your
 product's complete research-chosen classical→SOTA→frontier method registry. Every promised method must
