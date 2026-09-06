@@ -4,13 +4,18 @@
    Then **delete the `.template-source` sentinel file at the repo root.** This arms
    `scripts/check_template_residue.py` (a CI guard): from now on the build FAILS if any example pipeline or
    placeholder text survives, so you cannot ship SIR/EX0* residue by accident.
-2. **Rename** the package `pipeline` -> `pipeline` (the folder + all imports + `pyproject.toml`
-   `[tool.setuptools.packages.find].where`/name + the scripts' `data-pipeline/run.py` + docs).
-3. **Replace the EXAMPLE engine with the complete method ladder**: classical, domain SOTA,
+2. **Replace the example tooling with product-specific plain scripts** under `data-pipeline/`, invoked
+   by path (`python data-pipeline/run.py`). The product declares no internal package: keep
+   `pyproject.toml` for tool configuration only, with no `[project]`, `[build-system]` or setuptools
+   configuration, and never use `pip install -e .`. If a reusable library is required under ADR-0061,
+   create its separate published repository and consume a pinned dependency (ADR-0057 packaging rule).
+3. **For a scientific product, replace the EXAMPLE engine with the complete method ladder**: classical, domain SOTA,
    foundation/learned, and frontier methods. For each method implement the ADR-0069 vertical unit:
    dependency + provenance/license + preprocessing + train/calibrate where applicable + checkpoint +
    inference + held-out evaluation + export + tests + framework/case docs + honest lane. **Keep all named
-   stages and both contracts; no stage may remain an example or no-op.**
+   stages and both contracts; no stage may remain an example or no-op.** Other explicitly selected
+   archetypes implement their full declared stage and evidence contract; a curated spatial atlas
+   follows ADR-0072 and does not introduce scientific prediction or training outside its scope.
 4. **Write CONTRACT 1** (`io/contract.py`) for YOUR raw data, required columns, units, ranges, explicit outlier
    policy, plus a tiny `data/examples/` sample that passes it; document it in `data/README.md`. Update
    `tests/test_contract.py`.

@@ -46,7 +46,6 @@ FORBIDDEN_PATH_NAME = (
 # Tracked TEXT content that must not survive instantiation (unambiguous template tokens only;
 # generic capability words like "Pyodide" are intentionally NOT listed, a product may truly use it).
 FORBIDDEN_CONTENT = (
-    "pipeline",
     "SIRChart",
     "CAOS product template",
     "PENDING-training",
