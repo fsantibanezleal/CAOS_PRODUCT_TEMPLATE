@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 TRUNKS = {"develop", "main", "master"}
 FORBIDDEN_RUN = re.compile(
-    r"requirements-precompute|data-pipeline/\S+\.py|\brun_all\b|\bprecompute\b|\bbenchmark\b|"
+    r"data-pipeline/\S+\.py|\brun_all\b|\bprecompute\b|\bbenchmark\b|"
     r"stages\.train|--epochs\b|\bcompare_bakes\b|\bbake\b|lab\.pipeline\b|-m\s+\S+\.pipeline\b"
 )
 TRAIN_CALLS = {"precompute", "run_all", "train", "bake", "fit_model"}
@@ -67,12 +67,18 @@ def check_workflow(path: Path) -> list[str]:
     for j, t, r in jobs:
         if not t and not r:
             errs.append(f"{name}: job '{j}' has no timeout-minutes (ADR-0074 rule 6)")
+    deploys = any(h in name.lower() for h in ("deploy", "pages", "publish", "release"))
+    cpu_torch = "download.pytorch.org/whl/cpu" in text
     for i, line in enumerate(lines, 1):
         if line.strip().startswith("#"):
             continue
         if re.match(r"^\s*(-\s*)?run\s*:", line) or (i > 1 and re.match(r"^\s{10,}\S", line)):
             if FORBIDDEN_RUN.search(re.sub(r"not\s+bake", "", line)):
-                errs.append(f"{name}:{i}: trains, bakes or installs the precompute lane (ADR-0074 rule 1/3)")
+                errs.append(f"{name}:{i}: trains, bakes or runs the pipeline (ADR-0074 rule 1)")
+            elif "requirements-precompute" in line and (deploys or not cpu_torch):
+                why = ("a deploy never installs the precompute lane" if deploys
+                       else "the precompute lane without the CPU torch index")
+                errs.append(f"{name}:{i}: {why} (ADR-0074 rule 3)")
     return errs
 
 
