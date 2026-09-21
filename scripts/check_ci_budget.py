@@ -17,10 +17,11 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+# The repo root; an explicit path audits another checkout (python check_ci_budget.py <repo>).
+ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 TRUNKS = {"develop", "main", "master"}
 FORBIDDEN_RUN = re.compile(
-    r"requirements-precompute|data-pipeline/run\.py|\brun_all\b|\bprecompute\b|"
+    r"requirements-precompute|data-pipeline/\S+\.py|\brun_all\b|\bprecompute\b|\bbenchmark\b|"
     r"stages\.train|--epochs\b|\bcompare_bakes\b|\bbake\b|lab\.pipeline\b|-m\s+\S+\.pipeline\b"
 )
 TRAIN_CALLS = {"precompute", "run_all", "train", "bake", "fit_model"}
