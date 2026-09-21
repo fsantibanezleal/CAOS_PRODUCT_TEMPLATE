@@ -1,11 +1,6 @@
 """CONTRACT 2 (artifact) tests: the manifest points to a real artifact with the recorded byte size, and the lane
 verdict is consistent with the gate."""
-import pytest
-
 from pipeline import pipeline
-
-# Regenerates the case into the canonical tree: local offline lane only, never CI (ADR-0074).
-pytestmark = pytest.mark.bake
 
 
 def test_manifest_matches_artifact_and_gate():
