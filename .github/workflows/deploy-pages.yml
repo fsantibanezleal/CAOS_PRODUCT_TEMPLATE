@@ -12,20 +12,21 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # stdlib only: the deploy publishes committed artifacts, it never installs the
+      # precompute lane, trains or rebakes (ADR-0069, ADR-0074).
       - name: Verify committed scientific artifacts
-        run: |
-          pip install -r requirements-precompute.txt
-          python scripts/check_artifacts.py
+        run: python scripts/check_artifacts.py
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -40,6 +41,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

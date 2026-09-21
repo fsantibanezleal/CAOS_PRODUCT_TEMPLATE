@@ -3,31 +3,43 @@ name: CI
 on:
   push:
     branches: [main, develop]
-  pull_request:
   workflow_dispatch:
+
+# ADR-0074: CI checks code, it never trains, bakes or regenerates artifacts. Those run in
+# the local offline lane and are committed. Superseded runs are cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI_NO_TRAINING: "1"
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-      - name: Install (offline lane + dev + editable pkg)
-        run: pip install -r requirements-precompute.txt -r requirements-dev.txt
+      # Only what the unmarked tests import: the engine code and the dev tools, never the
+      # extra precompute tooling. torch, when the engine needs it, resolves to the CPU wheel.
+      - name: Install (engine + dev lane, CPU wheels)
+        env:
+          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+        run: pip install -r data-pipeline/requirements.txt -r requirements-dev.txt
       - name: Lint
         run: ruff check data-pipeline tests
-      - name: Tests
-        run: pytest
-      - name: Pipeline smoke (sandboxed; canonical artifacts are read-only)
-        run: python data-pipeline/run.py EX02_epidemic --output "${{ runner.temp }}/pipeline-smoke"
+      - name: Tests (no training, no bake; those run locally)
+        run: pytest -m "not bake"
       - name: CONTRACT 2, manifests <-> artifacts consistent (no drift)
         run: python scripts/check_artifacts.py
 
   guards:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - name: Base-integrity guards (the regressions this archetype forbids)
@@ -54,3 +66,5 @@ jobs:
         run: python scripts/check_template_residue.py
       - name: No em-dash or emoji in product content (ADR-0067)
         run: python scripts/check_content_standards.py
+      - name: CI budget, no training, trunk-only triggers (ADR-0074)
+        run: python scripts/check_ci_budget.py
