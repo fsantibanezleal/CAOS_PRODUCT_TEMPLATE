@@ -5,35 +5,24 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
-# ADR-0074: CI checks code, it never trains, bakes or regenerates artifacts. Those run in
-# the local offline lane and are committed. Superseded runs are cancelled.
+# ADR-0074: CI is cheap checks on committed files. It runs no test suite, installs no
+# training stack and never trains, bakes or regenerates artifacts: the full test suite
+# and the bake run locally. Superseded runs are cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  CI_NO_TRAINING: "1"
-
 jobs:
-  test:
+  checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
-      # Only what the unmarked tests import: the engine code and the dev tools, never the
-      # extra precompute tooling. torch, when the engine needs it, resolves to the CPU wheel.
-      - name: Install (engine + dev lane, CPU wheels)
-        env:
-          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
-        run: pip install -r data-pipeline/requirements.txt -r requirements-dev.txt
       - name: Lint
-        run: ruff check data-pipeline tests
-      - name: Tests (no training, no bake; those run locally)
-        run: pytest -m "not bake"
+        run: pip install ruff==0.15.18 && ruff check data-pipeline tests scripts
       - name: CONTRACT 2, manifests <-> artifacts consistent (no drift)
         run: python scripts/check_artifacts.py
 

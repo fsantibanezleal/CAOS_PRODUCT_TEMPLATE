@@ -8,9 +8,6 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
-# ADR-0074: tests that train, fit or bake carry @pytest.mark.bake. CI runs -m "not bake";
-# plain `pytest` runs them locally.
-markers = ["bake: trains, fits or regenerates artifacts; local offline lane only, never CI (ADR-0074)"]
 
 [tool.ruff]
 line-length = 110

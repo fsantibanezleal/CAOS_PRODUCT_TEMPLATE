@@ -2,12 +2,7 @@
 degenerate control runs without crashing, and run_all writes the flat index."""
 import json
 
-import pytest
-
 from pipeline import pipeline, registry
-
-# Regenerates artifacts: local offline lane only, never CI (ADR-0074).
-pytestmark = pytest.mark.bake
 
 
 def test_case_deterministic_same_seed(tmp_path):

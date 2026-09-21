@@ -1,37 +1,39 @@
-"""ADR-0074 gate: CI and CD never train, never bake, and only run for develop and main.
+"""ADR-0074 gate: CI and CD are cheap checks, run only for develop and main.
 
 Fails when a workflow:
   - triggers on pull_request, on a schedule, or on a push to a branch other than
     develop/main/master;
   - has no top-level concurrency group;
   - has a job without timeout-minutes;
-  - runs a training, pipeline or bake entry point, or installs the precompute lane;
-and when a test calls a training or bake entry point without @pytest.mark.bake.
-Stdlib only, so it runs in the guards job before any install.
+  - installs the training stack (precompute lane, pipeline requirements, torch & co.);
+  - runs a training, pipeline, bake or benchmark entry point;
+  - runs a test suite in a product repo (one with data-pipeline/): tests run locally.
+Stdlib only, so it runs before any install.
+Usage: python scripts/check_ci_budget.py [repo_dir]
 """
 
 from __future__ import annotations
 
-import ast
 import re
 import sys
 from pathlib import Path
 
-# The repo root; an explicit path audits another checkout (python check_ci_budget.py <repo>).
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 TRUNKS = {"develop", "main", "master"}
-FORBIDDEN_RUN = re.compile(
-    r"data-pipeline/\S+\.py|\brun_all\b|\bprecompute\b|\bbenchmark\b|"
-    r"stages\.train|--epochs\b|\bcompare_bakes\b|\bbake\b|lab\.pipeline\b|-m\s+\S+\.pipeline\b"
+STACK_INSTALL = re.compile(
+    r"requirements-precompute|data-pipeline/requirements|download\.pytorch\.org|"
+    r"(pip|uv)\s+(pip\s+)?install\b[^\n#]*\b(torch|torchvision|tensorflow|jax|jaxlib|transformers|lightning)\b"
 )
-TRAIN_CALLS = {"precompute", "run_all", "train", "bake", "fit_model"}
-TRAIN_KWARGS = {"epochs", "n_epochs", "max_epochs", "num_epochs"}
+PIPELINE_RUN = re.compile(
+    r"data-pipeline/\S+\.py|\brun_all\b|\bprecompute\b|\bbenchmark\b|stages\.train|--epochs\b|"
+    r"\bcompare_bakes\b|\bbake\b|lab\.pipeline\b|-m\s+\S+\.pipeline\b"
+)
+PYTEST = re.compile(r"(^|[\s;&|])(python\s+-m\s+)?pytest\b")
 
 
-def check_workflow(path: Path) -> list[str]:
+def check_workflow(path: Path, product: bool) -> list[str]:
     errs: list[str] = []
     text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
     name = path.relative_to(ROOT).as_posix()
     if re.search(r"^\s{2}pull_request(_target)?\s*:", text, re.M):
         errs.append(f"{name}: pull_request trigger (ADR-0074 rule 4)")
@@ -43,9 +45,10 @@ def check_workflow(path: Path) -> list[str]:
             errs.append(f"{name}: triggers on branches {sorted(bad)} (ADR-0074 rule 4)")
     if not re.search(r"^concurrency\s*:", text, re.M):
         errs.append(f"{name}: no top-level concurrency group (ADR-0074 rule 5)")
+
     in_jobs, job, has_timeout, reusable = False, None, False, False
     jobs: list[tuple[str, bool, bool]] = []
-    for line in lines:
+    for line in text.splitlines():
         if re.match(r"^jobs\s*:", line):
             in_jobs = True
             continue
@@ -66,60 +69,30 @@ def check_workflow(path: Path) -> list[str]:
         jobs.append((job, has_timeout, reusable))
     for j, t, r in jobs:
         if not t and not r:
-            errs.append(f"{name}: job '{j}' has no timeout-minutes (ADR-0074 rule 6)")
-    deploys = any(h in name.lower() for h in ("deploy", "pages", "publish", "release"))
-    cpu_torch = "download.pytorch.org/whl/cpu" in text
-    for i, line in enumerate(lines, 1):
-        if line.strip().startswith("#"):
+            errs.append(f"{name}: job '{j}' has no timeout-minutes (ADR-0074 rule 5)")
+
+    for i, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if s.startswith("#"):
             continue
-        if re.match(r"^\s*(-\s*)?run\s*:", line) or (i > 1 and re.match(r"^\s{10,}\S", line)):
-            if FORBIDDEN_RUN.search(re.sub(r"not\s+bake|requirements-precompute\S*", "", line)):
-                errs.append(f"{name}:{i}: trains, bakes or runs the pipeline (ADR-0074 rule 1)")
-            elif "requirements-precompute" in line and (deploys or not cpu_torch):
-                why = ("a deploy never installs the precompute lane" if deploys
-                       else "the precompute lane without the CPU torch index")
-                errs.append(f"{name}:{i}: {why} (ADR-0074 rule 3)")
-    return errs
-
-
-def _has_bake_marker(decorators: list[ast.expr]) -> bool:
-    return any("bake" in ast.unparse(d) for d in decorators)
-
-
-def check_tests() -> list[str]:
-    errs: list[str] = []
-    for path in sorted((ROOT / "tests").rglob("test_*.py")):
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        module_marked = any(
-            isinstance(n, ast.Assign)
-            and any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in n.targets)
-            and "bake" in ast.unparse(n.value)
-            for n in tree.body
-        )
-        if module_marked:
+        if STACK_INSTALL.search(line):
+            errs.append(f"{name}:{i}: installs the training stack (ADR-0074 rule 2)")
             continue
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            if not node.name.startswith("test") or _has_bake_marker(node.decorator_list):
-                continue
-            for call in (c for c in ast.walk(node) if isinstance(c, ast.Call)):
-                fn = call.func
-                fname = fn.attr if isinstance(fn, ast.Attribute) else getattr(fn, "id", "")
-                if fname in TRAIN_CALLS or any(k.arg in TRAIN_KWARGS for k in call.keywords):
-                    rel = path.relative_to(ROOT).as_posix()
-                    errs.append(f"{rel}:{node.lineno}: {node.name} calls {fname}() without "
-                                "@pytest.mark.bake (ADR-0074 rule 2)")
-                    break
+        is_cmd = re.match(r"^\s*(-\s*)?run\s*:", line) or re.match(r"^\s{10,}\S", line)
+        if not is_cmd:
+            continue
+        if PIPELINE_RUN.search(line):
+            errs.append(f"{name}:{i}: trains, bakes or runs the pipeline (ADR-0074 rule 1)")
+        elif product and PYTEST.search(re.sub(r"^\s*(-\s*)?run\s*:", "", line)):
+            errs.append(f"{name}:{i}: runs the test suite in CI; tests run locally (ADR-0074 rule 3)")
     return errs
 
 
 def main() -> int:
+    product = (ROOT / "data-pipeline").is_dir()
     errs: list[str] = []
     for wf in sorted((ROOT / ".github" / "workflows").glob("*.y*ml")):
-        errs += check_workflow(wf)
-    if (ROOT / "tests").is_dir():
-        errs += check_tests()
+        errs += check_workflow(wf, product)
     for e in errs:
         print(f"::error::{e}")
     if not errs:
