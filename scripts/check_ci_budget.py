@@ -73,7 +73,7 @@ def check_workflow(path: Path) -> list[str]:
         if line.strip().startswith("#"):
             continue
         if re.match(r"^\s*(-\s*)?run\s*:", line) or (i > 1 and re.match(r"^\s{10,}\S", line)):
-            if FORBIDDEN_RUN.search(re.sub(r"not\s+bake", "", line)):
+            if FORBIDDEN_RUN.search(re.sub(r"not\s+bake|requirements-precompute\S*", "", line)):
                 errs.append(f"{name}:{i}: trains, bakes or runs the pipeline (ADR-0074 rule 1)")
             elif "requirements-precompute" in line and (deploys or not cpu_torch):
                 why = ("a deploy never installs the precompute lane" if deploys
