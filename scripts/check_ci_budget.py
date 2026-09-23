@@ -37,15 +37,15 @@ def check_workflow(path: Path, product: bool) -> list[str]:
     errs: list[str] = []
     text = path.read_text(encoding="utf-8")
     name = path.relative_to(ROOT).as_posix()
-    if re.search(r"^\s{2}pull_request(_target)?\s*:", text, re.M):
+    if re.search(r"^\s{2}pull_request(_target)?\s*:", text, re.MULTILINE):
         errs.append(f"{name}: pull_request trigger (ADR-0074 rule 4)")
-    if re.search(r"^\s{2}schedule\s*:", text, re.M):
+    if re.search(r"^\s{2}schedule\s*:", text, re.MULTILINE):
         errs.append(f"{name}: schedule trigger (ADR-0074 rule 4)")
-    for m in re.finditer(r"^\s{4}branches\s*:\s*\[([^\]]*)\]", text, re.M):
+    for m in re.finditer(r"^\s{4}branches\s*:\s*\[([^\]]*)\]", text, re.MULTILINE):
         bad = {b.strip().strip("'\"") for b in m.group(1).split(",")} - TRUNKS - {""}
         if bad:
             errs.append(f"{name}: triggers on branches {sorted(bad)} (ADR-0074 rule 4)")
-    if not re.search(r"^concurrency\s*:", text, re.M):
+    if not re.search(r"^concurrency\s*:", text, re.MULTILINE):
         errs.append(f"{name}: no top-level concurrency group (ADR-0074 rule 5)")
 
     in_jobs, job, has_timeout, reusable = False, None, False, False
