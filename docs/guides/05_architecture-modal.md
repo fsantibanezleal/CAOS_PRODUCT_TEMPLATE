@@ -16,7 +16,7 @@ Binding decision: [`conventions/architecture/0-archetype/ADR-0058-in-app-archite
   a shell CSS-variable token (`--color-surface`, `--color-border`, `--color-accent`, `--color-fg`, `--color-good`,
   `--color-warn`, …) so the diagram repaints with the active light/dark theme.
 - **A paste-ready config**, [`frontend/src/architecture.ts.txt`](../../frontend/src/architecture.ts.txt) with the
-  five ADR-0058 tabs already wired to the SVGs and bilingual ES/EN bodies.
+  five ADR-0058 tabs already wired to the SVGs and bilingual EN/ES bodies.
 
 ## How to wire it (per product)
 
