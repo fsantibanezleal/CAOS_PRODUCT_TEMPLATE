@@ -23,7 +23,7 @@ ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).reso
 TRUNKS = {"develop", "main", "master"}
 STACK_INSTALL = re.compile(
     r"download\.pytorch\.org|(pip|uv)\s+(pip\s+)?install\b[^\n#]*("
-    r"requirements-precompute|data-pipeline/requirements|"
+    r"requirements-precompute|requirements-gpu|data-pipeline/requirements|"
     r"\b(torch|torchvision|tensorflow|jax|jaxlib|transformers|lightning)\b)"
 )
 PIPELINE_RUN = re.compile(
