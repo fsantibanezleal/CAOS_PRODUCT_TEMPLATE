@@ -8,7 +8,7 @@ that carries the files of two places.
 
 Locally: the sandboxed pipeline tests, the canonical bake when the science changed, `npm run build`, `npm test`, and
 `npm run gate`, which serves `dist/` as Pages would (no fallback) and walks every route, tab and case at five sizes,
-in both themes and both languages. A person reads its captures (`frontend/gate-output/shots/`): the gate measures,
+in both themes and both languages. A person reads its captures (written under `frontend/`, in gate-output/shots): the gate measures,
 it does not judge content.
 
 ## The deploy

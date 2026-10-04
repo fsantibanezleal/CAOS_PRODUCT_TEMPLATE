@@ -66,7 +66,8 @@ def allowlist() -> list[str]:
 
 
 def main() -> int:
-    files = [ln.strip() for ln in git("ls-files").splitlines() if ln.strip()]
+    # tracked files that are on disk (a file deleted and not yet committed is already gone)
+    files = [ln.strip() for ln in git("ls-files").splitlines() if ln.strip() and (ROOT / ln.strip()).exists()]
     if (ROOT / SENTINEL).exists():
         if is_template_repo():
             print(f"check_template_residue: {SENTINEL} present in {TEMPLATE_REPO}: the example is intentional here.")
