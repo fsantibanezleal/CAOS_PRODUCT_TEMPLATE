@@ -1,62 +1,35 @@
-# 05 · The in-app Architecture / "How it works" modal (ADR-0058)
+# Guide: the architecture modal (ADR-0058)
 
-Every CAOS/Faena web app **MUST** ship an in-app **Architecture / "How it works"** modal, opened by an
-always-visible **ⓘ button in the header**. It is the fast visual proof the app is a *real, complete system*, not a
-demo. The chrome (button + modal) is provided by the shared shell; each product supplies only its diagrams + copy.
+Every product carries the "How it works" modal: at least five tabs, each a hand-authored diagram and a short body,
+in both languages. The configuration is `frontend/src/architecture/index.ts`, passed to the shell as
+`architecture` in `frontend/src/App.tsx`.
 
-Binding decision: [`conventions/architecture/0-archetype/ADR-0058-in-app-architecture-modal.md`](../../../conventions/architecture/0-archetype/ADR-0058-in-app-architecture-modal.md)
-(in CAOS_MANAGE). Reference implementations: Veta and Circuita.
+## The five tabs
 
-## What you inherit from the template
+1. The app: what the reader chooses and what the app shows.
+2. The lanes: what runs offline, what is replayed, what runs live.
+3. The web flow: from the index to a view, and the gate before a deploy.
+4. The science: the product's model, its key relations, and how it is computed.
+5. The data contracts: what enters the pipeline and what it commits for the web.
 
-- **Chrome**, `@fasl-work/caos-app-shell` (≥ **0.1.2**) exposes the ⓘ button + the `ArchitectureModal`. The
-  `ShellConfig` gained an `architecture` field; when it is present the button appears, when absent it is hidden.
-- **Five themed placeholder SVGs** in [`frontend/public/svg/tech/`](../../frontend/public/svg/tech/):
-  `01-the-app.svg`, `02-lanes.svg`, `03-web-flow.svg`, `04-the-science.svg`, `05-data-contracts.svg`. Every colour is
-  a shell CSS-variable token (`--color-surface`, `--color-border`, `--color-accent`, `--color-fg`, `--color-good`,
-  `--color-warn`, …) so the diagram repaints with the active light/dark theme.
-- **A paste-ready config**, [`frontend/src/architecture.ts.txt`](../../frontend/src/architecture.ts.txt) with the
-  five ADR-0058 tabs already wired to the SVGs and bilingual EN/ES bodies.
+A product may add tabs; it never drops below five.
 
-## How to wire it (per product)
+## How a diagram is written
 
-1. **Copy** `frontend/src/architecture.ts.txt` → `frontend/src/architecture.ts`.
-2. **Specialise** the product-specific tabs:
-   - Replace `public/svg/tech/01-the-app.svg` with a diagram of THIS product's domain (problem → input → method →
-     value) and edit the `app` tab's `body_en` / `body_es`.
-   - Replace `public/svg/tech/04-the-science.svg` with THIS product's real algorithm + equations and edit the
-     `science` tab body.
-   - Tabs `lanes`, `web-flow`, `design` are archetype-generic, the shipped SVGs + copy are reusable as-is. Keep
-     them; tweak only if your product deviates from the archetype.
-   - Add domain tabs if useful (never *fewer* than the five).
-3. **Pass it to the shell** in `frontend/src/main.tsx`:
+- Inline only. Each SVG lives in `frontend/src/architecture/` and is imported with `?raw`, so it is part of the page
+  and reads the theme's tokens. An `<img>` or a fetched file cannot, and renders black in one theme.
+- Shell tokens only. Every colour and font is `var(--color-...)` or `var(--font-...)` from the shell's list; no hex
+  colour, no undefined token.
+- Both languages in one file. Every translatable `<text>` is written twice at the same place, with the classes
+  `l-en` and `l-es`; the modal shows one. Language-neutral text (numbers, file names, formulas) is written once.
+- Marker ids are unique per diagram (`id="dc5-arrow"`), because all five can be in the page.
 
-   ```ts
-   import { architecture } from './architecture';
+The shell checks the configuration when the app mounts: at least five tabs, inline SVG strings, defined tokens,
+no hex colours, labels and bodies in both languages. A violation is reported with `console.error`, and the gate
+fails a page on any console error, so a broken modal does not ship.
 
-   const shellConfig = {
-     product: { name: 'YourProduct', mark: <YourIcon size={18} /> },
-     routes: [/* … */],
-     links: { github: '…' },
-     version: '0.06.000',
-     architecture,            // ← turns the ⓘ button on
-   };
-   ```
+## What the body says
 
-4. **Pin the shell** to `^0.1.2` in `frontend/package.json` (the version that ships the modal).
-
-## The five mandatory tabs (ADR-0058 minimum)
-
-| id | tab | generic? | what it must show |
-|----|-----|----------|-------------------|
-| `app` | The app | **product** | the domain problem → input → method → value; why it is real, not a demo |
-| `lanes` | Lanes, web / offline / compute | generic | what runs **live in the web** vs **offline/compute** (bake + train) vs **replay** |
-| `web-flow` | Web-app flow | generic | App recomputes live; the 6 pages; contract mirror; copy-data overlay; deploy |
-| `science` | The science | **product** | the real algorithm step by step, with the genuine equations |
-| `design` | Data contracts / design | generic | the two contracts (ingestion + artifact) + the lane gate + cases-by-category |
-
-## Verify before deploy
-
-The screenshot-verify step (mandatory before any deploy) **must open the modal and confirm every tab renders its
-diagram (themed, no broken SVG) + its text with no error**, in both light and dark. A product is **not "done"**
-without the ⓘ Architecture modal at full depth, it is a NON-NEGOTIABLE row in the product-quality bar.
+Two to four sentences per tab, in both languages, that say what the diagram shows and why it matters for this
+product. Numbers in a body are read from the artifacts or are stable facts of the design (a step size, a schema
+version); a count that changes with the data does not belong in a body.

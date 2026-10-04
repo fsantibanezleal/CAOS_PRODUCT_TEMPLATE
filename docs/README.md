@@ -1,7 +1,8 @@
 # Docs, the product wiki
 
-SimLab-style navigable wiki (ADR-0056), authored **as the product is built**, not at the end. The pipeline +
-its validation + these docs are the primary product; the web app is a projection of a validated subset.
+The product wiki (ADR-0056), written as the product is built, unit by unit, never at the end. The pipeline, its
+validation and these documents are the product; the web app is its companion workbench. The design, with every
+requirement and its gate, is [design/SDD.md](design/SDD.md).
 
 ## Map
 - **[architecture/](architecture/)**, how the repo works: the frozen base, the two data contracts, determinism +

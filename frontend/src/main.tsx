@@ -1,6 +1,15 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
+import { BrowserRouter } from 'react-router';
+import 'katex/dist/katex.min.css';
+import '@fasl-work/caos-app-shell/styles.css';
+import '@fasl-work/caos-app-shell/chart.css';
+import { App } from './App';
 
-const el = document.getElementById('root');
-if (el) createRoot(el).render(<StrictMode><App /></StrictMode>);
+createRoot(document.getElementById('root') as HTMLElement).render(
+  <StrictMode>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <App />
+    </BrowserRouter>
+  </StrictMode>,
+);

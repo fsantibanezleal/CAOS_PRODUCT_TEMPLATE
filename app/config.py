@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+VERSION = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()  # the single source (T4)
 
 
 @dataclass

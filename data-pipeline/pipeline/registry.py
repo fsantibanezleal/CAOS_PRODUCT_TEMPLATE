@@ -2,7 +2,7 @@
 cross-case summaries by category."""
 from __future__ import annotations
 
-from .cases.example_case import CASES, Case
+from .cases.example_case import CASES, DEFAULT_CASE, Case
 
 _BY_ID: dict[str, Case] = {c.id: c for c in CASES}
 
@@ -17,8 +17,12 @@ def get_case(case_id: str) -> Case:
     return _BY_ID[case_id]
 
 
+def default_case() -> str:
+    return DEFAULT_CASE
+
+
 def list_categories() -> dict[str, list[str]]:
     out: dict[str, list[str]] = {}
     for c in CASES:
-        out.setdefault(c.category, []).append(c.id)
+        out.setdefault(c.category["en"], []).append(c.id)
     return out
