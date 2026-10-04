@@ -10,7 +10,8 @@ What it does, in order:
   1. refuses unless this tree is the template (the .template-source sentinel is present);
   2. writes product.json (name, slug, taglines in both languages, repository, visibility, licence, holder, year)
      and the frontend package name;
-  3. resets VERSION to 0.01.000 and starts CHANGELOG.md with the instantiation entry;
+  3. resets VERSION to 0.01.000, starts CHANGELOG.md with the instantiation entry, and records the template version
+     and commit it started from in .template-version (ADR-0078: a product adopts a later base deliberately);
   4. writes the MIT LICENSE with the year and the holder;
   5. writes deploy/TARGET and removes the other deploy place (one deploy place, decided first): `pages` removes the
      VPS unit and site templates and, with --domain, writes frontend/public/CNAME; `vps` removes the Pages workflow
@@ -175,6 +176,11 @@ def main() -> int:
     write("frontend/package.json", json.dumps(pkg, indent=2) + "\n")
 
     write("VERSION", "0.01.000\n")
+    try:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        commit = "unknown"
+    write(".template-version", f"CAOS_PRODUCT_TEMPLATE {template_version} {commit}\n")
     today = dt.date.today().isoformat()
     write("CHANGELOG.md", "\n".join([
         "# Changelog",
