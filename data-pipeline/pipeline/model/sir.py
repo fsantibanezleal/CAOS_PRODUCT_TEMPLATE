@@ -1,6 +1,6 @@
-"""EXAMPLE analytic core: a deterministic SIR epidemic via forward Euler. Pure-Python + numpy => Pyodide-safe, so
-the SAME code path serves the offline pipeline AND the live browser lane. Replace with your product's
-research-chosen engine (kept in model/ only if it is pure-Python and light enough for the live lane)."""
+"""EXAMPLE engine: a deterministic SIR epidemic, forward Euler at a quarter-day step. It is the reference of the live
+lane: frontend/src/engine/sir.ts is a step-for-step TypeScript port, and its parity test holds it to the traces
+this engine bakes. Replace with the product's research-chosen engine."""
 from __future__ import annotations
 
 import numpy as np

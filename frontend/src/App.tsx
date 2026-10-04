@@ -1,73 +1,45 @@
-// The replay SPA: list cases grouped by CATEGORY, select one, replay its committed trace (CONTRACT 2). The
-// always-available static path (ADR-0054); the optional Pyodide live lane (src/pyodide) is the recompute upgrade.
-import { useEffect, useMemo, useState } from 'react';
-import { loadIndex, loadManifest, loadTrace } from './api/artifacts';
-import type { CaseIndex, CaseManifest, Trace } from './lib/contract.types';
-import { SIRChart } from './render/SIRChart';
+// The six routes on the shared shell (ADR-0016, ADR-0057 as amended 2026-10-04): the App route is the workbench,
+// the five documentation routes are DocPages. Identity, licence and visibility come from product.json (one source,
+// written by scripts/instantiate.py); the version is VERSION, injected at build.
+import { AppShell, CitationsProvider, STANDARD_ROUTES, type ShellConfig } from '@fasl-work/caos-app-shell';
+import { Route, Routes } from 'react-router';
+import product from '../../product.json';
+import { architecture } from './architecture';
+import { CITATIONS } from './content/citations';
+import { Benchmark } from './pages/Benchmark';
+import { Experiments } from './pages/Experiments';
+import { Implementation } from './pages/Implementation';
+import { Introduction } from './pages/Introduction';
+import { Methodology } from './pages/Methodology';
+import { NotFound } from './pages/NotFound';
+import { Workbench } from './workbench/Workbench';
 
-export default function App() {
-  const [index, setIndex] = useState<CaseIndex | null>(null);
-  const [sel, setSel] = useState('');
-  const [manifest, setManifest] = useState<CaseManifest | null>(null);
-  const [trace, setTrace] = useState<Trace | null>(null);
-  const [err, setErr] = useState('');
+const config: ShellConfig = {
+  product: { name: product.name },
+  routes: STANDARD_ROUTES,
+  links: { github: product.repo },
+  version: __APP_VERSION__,
+  build: __BUILD_ID__,
+  license: { en: `${product.license} licence`, es: `Licencia ${product.license}` },
+  visibility: product.visibility === 'private' ? 'private' : 'public',
+  contain: true,
+  architecture,
+};
 
-  useEffect(() => {
-    loadIndex()
-      .then((ix) => {
-        setIndex(ix);
-        setSel(ix.cases[0]?.case_id ?? '');
-      })
-      .catch((e: unknown) => setErr(String(e)));
-  }, []);
-
-  useEffect(() => {
-    if (!sel) return;
-    loadManifest(sel)
-      .then((m) => {
-        setManifest(m);
-        return loadTrace(m.artifact.path);
-      })
-      .then(setTrace)
-      .catch((e: unknown) => setErr(String(e)));
-  }, [sel]);
-
-  const byCategory = useMemo(() => {
-    const out: Record<string, string[]> = {};
-    index?.cases.forEach((c) => (out[c.category] ??= []).push(c.case_id));
-    return out;
-  }, [index]);
-
+export function App() {
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 900, margin: '2rem auto', padding: '0 1rem' }}>
-      <h1>Product, deterministic replay</h1>
-      <p>Replaying committed artifacts (CONTRACT 2). {index?.n_cases ?? 0} cases across {Object.keys(byCategory).length} categories.</p>
-      {err && <p style={{ color: '#f85149' }}>error: {err}</p>}
-      <label>
-        Case:{' '}
-        <select value={sel} onChange={(e) => setSel(e.target.value)}>
-          {Object.entries(byCategory).map(([cat, ids]) => (
-            <optgroup key={cat} label={cat}>
-              {ids.map((id) => (
-                <option key={id} value={id}>
-                  {id}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </label>
-      {manifest && (
-        <p>
-          lane: <b>{manifest.lane}</b>, <i>{manifest.expected_band}</i>
-        </p>
-      )}
-      {trace && <SIRChart trace={trace} />}
-      {trace && (
-        <p>
-          peak I: {trace.summary.peak_I} at t={trace.summary.t_peak} · attack rate {trace.summary.attack_rate}
-        </p>
-      )}
-    </main>
+    <CitationsProvider items={CITATIONS}>
+      <AppShell config={config}>
+        <Routes>
+          <Route path="/" element={<Workbench />} />
+          <Route path="/introduction" element={<Introduction />} />
+          <Route path="/methodology" element={<Methodology />} />
+          <Route path="/implementation" element={<Implementation />} />
+          <Route path="/experiments" element={<Experiments />} />
+          <Route path="/benchmark" element={<Benchmark />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AppShell>
+    </CitationsProvider>
   );
 }
