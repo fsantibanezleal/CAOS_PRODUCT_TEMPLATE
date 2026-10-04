@@ -61,6 +61,19 @@ def _holdout_params(seed: int) -> list[SIRParams]:
     return out
 
 
+def _engine_ms(params: SIRParams, repeats: int = 5) -> float:
+    """The cost the lane gate judges: one engine run, after a warm-up, as the median of several. Timing the whole case
+    (validation, evaluation, the cold start of the first case in a bake) made the verdict depend on bake order: the
+    first case baked was once labelled precompute while it runs in microseconds (found 2026-10-04)."""
+    infer.run(params)
+    times = []
+    for _ in range(repeats):
+        t0 = time.perf_counter()
+        infer.run(params)
+        times.append((time.perf_counter() - t0) * 1000.0)
+    return sorted(times)[repeats // 2]
+
+
 def precompute(
     case_id: str,
     seed: int = 42,
@@ -72,15 +85,14 @@ def precompute(
     case = registry.get_case(case_id)
     if model is None:
         model = _train_model(paths.models)
-    t0 = time.perf_counter()
     # run CONTRACT 1 on the case params (proves the gate + carries flags); a real product reads raw data here
     rep = validate_rows([{"case_id": case.params.case_id, "beta": case.params.beta, "gamma": case.params.gamma,
                           "N": case.params.N, "I0": case.params.I0, "days": case.params.days}])
     params = rep.accepted[0] if rep.accepted else case.params
     result = infer.run(params)
     expect = expectations.check(case.id, case.expect, result)  # a result outside its declared range fails the bake
+    run_ms = _engine_ms(params)
     metrics = evaluate.run(model, _holdout_params(seed))
-    run_ms = (time.perf_counter() - t0) * 1000.0
     return export.run(case=case, params=params, result=result, seed=seed, run_ms=run_ms,
                       flags=rep.flagged, metrics=metrics, expect=expect, derived_dir=str(paths.root),
                       manifests_dir=str(paths.manifests))

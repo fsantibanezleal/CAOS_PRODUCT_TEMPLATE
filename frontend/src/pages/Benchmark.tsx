@@ -12,7 +12,11 @@ interface Timing {
   medianMs: number;
 }
 
-/** Times the live engine on every case, after the page has rendered, outside any animation frame. */
+/**
+ * Times the live engine on every case, after the page has rendered, outside any animation frame. A browser coarsens
+ * its clock (to 0.1 ms or more), so each sample times a batch of runs long enough to measure, and the median of seven
+ * samples is divided back to one run.
+ */
 function useTimings(cases: CaseData[] | null): Timing[] | null {
   const [out, setOut] = useState<Timing[] | null>(null);
   useEffect(() => {
@@ -20,11 +24,18 @@ function useTimings(cases: CaseData[] | null): Timing[] | null {
     const id = window.setTimeout(() => {
       setOut(
         cases.map(({ manifest }) => {
+          let batch = 1;
+          for (;;) {
+            const t0 = performance.now();
+            for (let k = 0; k < batch; k += 1) simulate(manifest.params);
+            if (performance.now() - t0 >= 20 || batch >= 1 << 16) break;
+            batch *= 2;
+          }
           const runs: number[] = [];
           for (let k = 0; k < 7; k += 1) {
             const t0 = performance.now();
-            simulate(manifest.params);
-            runs.push(performance.now() - t0);
+            for (let j = 0; j < batch; j += 1) simulate(manifest.params);
+            runs.push((performance.now() - t0) / batch);
           }
           runs.sort((a, b) => a - b);
           return { caseId: manifest.case_id, medianMs: runs[3] };
@@ -49,8 +60,8 @@ export function Benchmark() {
     <DocPage wide title={{ en: 'Benchmark', es: 'Benchmark' }} lede={t('What each case costs, baked and live, against the budgets its lane was given.', 'Lo que cuesta cada caso, precalculado y en vivo, contra los presupuestos que se le asignaron a su carril.')}>
       <DocSection title={{ en: 'Budgets and timings', es: 'Presupuestos y tiempos' }} noRefsReason={{ en: 'Measures this build.', es: 'Mide esta compilación.' }}>
         <P
-          en="The pipeline's lane gate decides, per case, whether the live engine may re-run it in the browser: the engine must be light, the committed trace small, and the run fast. This page reads each budget from the manifest and measures the live engine here, as the median of seven runs, so the verdict is about this browser on this device."
-          es="La compuerta de carril del pipeline decide, por caso, si el motor en vivo puede volver a correrlo en el navegador: el motor debe ser liviano, la traza comprometida pequeña y la corrida rápida. Esta página lee cada presupuesto desde el manifiesto y mide aquí el motor en vivo, como la mediana de siete corridas, así que el veredicto es sobre este navegador en este dispositivo."
+          en="The pipeline's lane gate decides, per case, whether the live engine may re-run it in the browser: the engine must be light, the committed trace small, and the run fast. This page reads each budget from the manifest and measures the live engine here, as the median of seven timed batches of runs, so the verdict is about this browser on this device."
+          es="La compuerta de carril del pipeline decide, por caso, si el motor en vivo puede volver a correrlo en el navegador: el motor debe ser liviano, la traza comprometida pequeña y la corrida rápida. Esta página lee cada presupuesto desde el manifiesto y mide aquí el motor en vivo, como la mediana de siete lotes de corridas medidos, así que el veredicto es sobre este navegador en este dispositivo."
         />
         {ready ? (
           <>
@@ -60,7 +71,7 @@ export function Benchmark() {
                 tone={worst <= 1 ? 'good' : 'bad'}
                 verdict={
                   worst <= 1
-                    ? { en: `Every case runs within its budget; the slowest uses ${formatNumber(worst, 'en', { percent: true, decimals: 1 })} of it.`, es: `Cada caso corre dentro de su presupuesto; el más lento usa ${formatNumber(worst, 'es', { percent: true, decimals: 1 })} de él.` }
+                    ? { en: `Every case runs within its budget; the slowest uses ${formatNumber(worst, 'en', { percent: true, digits: 2 })} of it.`, es: `Cada caso corre dentro de su presupuesto; el más lento usa ${formatNumber(worst, 'es', { percent: true, digits: 2 })} de él.` }
                     : { en: 'A case exceeds its run budget on this device: the live lane would be slow here.', es: 'Un caso excede su presupuesto de corrida en este dispositivo: el carril en vivo sería lento aquí.' }
                 }
               />
@@ -83,7 +94,7 @@ export function Benchmark() {
                     <td>{c.manifest.lane === 'live' ? t('live', 'en vivo') : t('precompute', 'precálculo')}</td>
                     <td>{formatNumber(c.manifest.artifact.bytes, lang, { decimals: 0 })}</td>
                     <td>{formatNumber(c.manifest.gate.trace_bytes_budget, lang, { decimals: 0 })}</td>
-                    <td>{formatNumber(timings[i].medianMs, lang, { decimals: 2 })}</td>
+                    <td>{formatNumber(timings[i].medianMs, lang, { digits: 3 })}</td>
                     <td>{formatNumber(c.manifest.gate.run_ms_budget, lang, { decimals: 0 })}</td>
                   </tr>
                 ))}
