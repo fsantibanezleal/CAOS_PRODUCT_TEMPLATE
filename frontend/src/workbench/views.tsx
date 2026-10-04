@@ -206,6 +206,12 @@ function FinalSizeView({ sel }: { sel: Selection | null }) {
   );
 }
 
+/** The smallest 1, 2, 2.5 or 5 times a power of ten at or above x: an axis whose ticks a reader can read. */
+function niceCeil(x: number): number {
+  const p = 10 ** Math.floor(Math.log10(x));
+  return ([1, 2, 2.5, 5, 10].find((m) => m * p >= x) ?? 10) * p;
+}
+
 /** Peak and attack rate of the case under each immunisation variant, run live. */
 export function CompareView({ sel }: { sel: Selection | null }) {
   const lang = useShellLang();
@@ -224,7 +230,7 @@ export function CompareView({ sel }: { sel: Selection | null }) {
     <div className="caos-views-row">
       {metrics.map((m) => {
         const values = rows.map(m.value);
-        const max = Math.max(...values) || 1;
+        const max = niceCeil(Math.max(...values) || 1);
         return (
           <PlotCard key={m.id} fill title={m.title} lane="live" provenance="synthetic" dataKey={stateKey}>
             <Stage label={m.title}>

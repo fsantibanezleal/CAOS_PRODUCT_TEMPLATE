@@ -43,7 +43,7 @@ export function Experiments() {
                 <th>{t('Peak day', 'Día del pico')}</th>
                 <th>{t('Attack rate', 'Tasa de ataque')}</th>
                 <th>{t('Final size', 'Tamaño final')}</th>
-                <th>{t('Expected', 'Esperado')}</th>
+                <th className="caos-col-text">{t('Expected', 'Esperado')}</th>
               </tr>
             </thead>
             <tbody>
@@ -55,7 +55,7 @@ export function Experiments() {
                   <td>{formatNumber(r.s.t_peak, lang, { decimals: 1 })}</td>
                   <td>{formatNumber(r.s.attack_rate, lang, { percent: true, decimals: 1 })}</td>
                   <td>{formatNumber(r.z, lang, { percent: true, decimals: 1 })}</td>
-                  <td title={r.m.expected_band[lang]}>{r.m.expected_band[lang]}</td>
+                  <td className="caos-col-text">{r.m.expected_band[lang]}</td>
                 </tr>
               ))}
             </tbody>
