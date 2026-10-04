@@ -57,7 +57,7 @@ before the next starts.
 
 In separate steps: the sandboxed tests, the canonical bake (`scripts/precompute.sh`), `scripts/check_artifacts.py`,
 `npm run build`, `npm test`, `npm run gate`, and every guard in `.github/workflows/ci.yml`. Read the gate's
-captures (`frontend/gate-output/shots/`) yourself: the gate measures, it does not judge content.
+captures (written under `frontend/`, in gate-output/shots) yourself: the gate measures, it does not judge content.
 
 A release bumps `VERSION`, `frontend/package.json` and the top of `CHANGELOG.md` together, merges `develop` into
 `main` through a pull request, and tags `vX.XX.XXX`. The deploy runs after CI succeeds on `main` and checks the live
