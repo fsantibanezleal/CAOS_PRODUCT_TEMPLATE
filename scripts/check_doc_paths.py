@@ -26,7 +26,7 @@ def tracked() -> list[str]:
 
 
 def main() -> int:
-    files = tracked()
+    files = [f for f in tracked() if (ROOT / f).exists()]
     tops = {f.split("/", 1)[0] for f in files}
     missing: list[str] = []
     for rel in files:
@@ -49,7 +49,8 @@ def main() -> int:
                 if not (md.parent / target).resolve().exists():
                     missing.append(f"{rel}:{n}: link to {target}")
             for span in CODE.findall(line):
-                span = span.rstrip(".,;:")
+                # a test id (file::test) names its file here; check_sdd.py checks the test itself
+                span = span.split("::", 1)[0].rstrip(".,;:")
                 head = span.split("/", 1)[0]
                 if "/" not in span and span not in tops:
                     continue
