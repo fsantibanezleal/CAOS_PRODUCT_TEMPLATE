@@ -64,4 +64,4 @@ A release bumps `VERSION`, `frontend/package.json` and the top of `CHANGELOG.md`
 site; after it, run the gate against the deployed origin: `npm run gate -- --url https://<domain>`.
 
 On GitHub Pages, before the first deploy, enable Pages with the Actions source and set the custom domain by API
-(see [deploy/pages.md](../../deploy/pages.md)).
+(the Pages runbook in `deploy/`, kept only in a Pages product).
