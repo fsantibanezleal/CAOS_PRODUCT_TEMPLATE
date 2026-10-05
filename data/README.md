@@ -7,7 +7,7 @@ your product's real contract when you instantiate.
 
 | Path | What | Git |
 |---|---|---|
-| `raw/` | private/large source inputs | **git-ignored** (never committed; staged via `scripts/fetch-data`) |
+| `raw/` | private/large source inputs | **git-ignored** (never committed; staged by hand or by a product fetch script) |
 | `examples/` | a tiny standard-format sample that PASSES Contract 1 (clone-verify) | committed |
 | `derived/<case>/` | the compact, standard-format artifacts the web replays | committed |
 | `derived/manifests/` | per-case `<case>.json` (Contract 2) + the flat `index.json` inventory | committed |

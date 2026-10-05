@@ -1,26 +1,33 @@
 # The two data contracts
 
-A product is only real if data flows through two **enforced** contracts. Both are CI-checked.
+A product is real when its data flows through two enforced contracts.
 
-## CONTRACT 1, ingestion (`raw → pipeline`), the *bring-your-own-data* gate
-`data-pipeline/pipeline/io/contract.py`. Declares the required schema (columns, units, ranges) + an explicit
-**outlier policy** (reject / clip / flag). A dataset is accepted iff it passes; bad rows are rejected **with a
-reason**, never silently coerced; suspicious-but-plausible rows are flagged (the flag is recorded in the
-manifest). This is what lets a third party point the tool at THEIR data instead of only replaying baked cases.
+## Contract 1, ingestion (raw to pipeline)
 
-EXAMPLE (SIR): columns `case_id,beta,gamma,N,I0[,days]`; ranges per `RANGES`; reject NaN/Inf/out-of-range/`I0>N`;
-flag `R0>20`. Full table: [`data/README.md`](../../data/README.md).
+`data-pipeline/pipeline/io/contract.py` declares the required fields, their units and ranges, and the outlier
+policy. A record is rejected with its reason when a value is missing, non-numeric, NaN, infinite or out of range
+(and, in the example, when the initial infected exceed the population); a plausible but unusual record is accepted
+and flagged (the example flags R0 above 20), and the flag is carried into the manifest. Nothing is coerced. This is
+the door through which a reader's own data enters ([guide 02](../guides/02_bring-your-own-data.md)).
 
-## CONTRACT 2, artifact (`pipeline → web`)
-`data-pipeline/pipeline/core/{trace.py, manifest.py}`. Every run writes a compact trace (`example.trace/v1`) +
-a manifest (`example.manifest/v2`) recording params, seed, engine+version, the artifact byte size, the measured
-**[lane/gate](03_the-gate.md)** verdict, the Contract-1 flags, and the evaluation metrics. A flat
-`data/derived/manifests/index.json` inventories every case.
+## Contract 2, artifacts (pipeline to web)
 
-**Enforcement:** `frontend/src/lib/contract.types.ts` mirrors this schema, a drift fails `tsc`. `scripts/check_artifacts.py`
-(run in CI) verifies index→manifests→artifacts exist, byte sizes match, and lane==gate. The web loads **only** these
-artifacts; it never recomputes (except the optional live lane, which emits the same trace schema).
+`data-pipeline/pipeline/core/trace.py` and `data-pipeline/pipeline/core/manifest.py` write, into `data/derived/`:
 
-## Why this matters
-Without Contract 1 the app can't be applied to new data (it's a demo). Without Contract 2 the web can silently
-drift from what the pipeline produced. The contracts are the seam that makes the product a tool, not a slideshow.
+- `data/derived/manifests/index.json` (`example.index/v2`): every case with its bilingual title and category, and the case the
+  App opens on;
+- `manifests/<case>.json` (`example.manifest/v3`): parameters, seed, engine and version, the artifact and its byte
+  size, the lane verdict, the evaluation metrics, the expected ranges, and the bilingual expected band;
+- `<case>/trace.json` (`example.trace/v1`): 200 points of the trajectory, two decimals, and its summary.
+
+## How they are held
+
+- The bake fails when a result lies outside its case's expected range (`data-pipeline/pipeline/core/expect.py`).
+- `scripts/check_artifacts.py` (CI) checks that the index, the manifests and the artifacts agree, byte sizes
+  included, and that each lane matches its gate.
+- `frontend/src/lib/contract.types.ts` declares contract 2 for the web, as interfaces and as run-time descriptors
+  tied to them by `tsc`; `frontend/src/lib/contract.test.ts` reads every committed artifact against the descriptors
+  in both directions: a key written and not read, a key read and not written, and a value of the wrong type (a
+  boolean is not a number) each fail.
+- `frontend/scripts/copy-data.mjs` copies exactly the declared files into the site and fails on a missing one; the
+  web fetches them with the version in the address and refuses an answer that is not JSON.

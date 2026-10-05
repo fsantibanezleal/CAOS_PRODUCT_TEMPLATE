@@ -1,4 +1,4 @@
-"""Typed objects passed between pipeline stages, the inter-stage contract. Plain dataclasses (Pyodide-safe)."""
+"""Typed objects passed between pipeline stages, the inter-stage contract. Plain dataclasses."""
 from __future__ import annotations
 
 from dataclasses import dataclass

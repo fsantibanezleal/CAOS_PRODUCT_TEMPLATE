@@ -9,8 +9,8 @@ from typing import Any
 from .. import __version__
 from .trace import TRACE_SCHEMA
 
-MANIFEST_SCHEMA = "example.manifest/v2"
-INDEX_SCHEMA = "example.index/v1"
+MANIFEST_SCHEMA = "example.manifest/v3"
+INDEX_SCHEMA = "example.index/v2"
 
 
 def build_case_manifest(
@@ -23,16 +23,18 @@ def build_case_manifest(
     gate: dict,
     flags: list[dict],
     metrics: dict,
+    expect: dict,
 ) -> dict:
     # Deterministic: a pure function of (params, seed). No wall-clock here (would dirty git on re-run), the
     # lane/gate verdict + budgets carry the lane decision; live timing is measured in the browser, not committed.
     return {
         "schema": MANIFEST_SCHEMA,
         "case_id": case.id,
+        "title": case.title,
         "category": case.category,
         "real_or_synthetic": case.real_or_synthetic,
         "expected_band": case.expected_band,
-        "engine": {"package": "pipeline", "version": __version__, "model": "SIR (EXAMPLE, replace per product)"},
+        "engine": {"package": "pipeline", "version": __version__, "model": "SIR, forward Euler"},
         "params": {"beta": params.beta, "gamma": params.gamma, "N": params.N, "I0": params.I0, "days": params.days},
         "seed": seed,
         "artifact": {"path": artifact_rel, "format": "json", "trace_schema": TRACE_SCHEMA, "bytes": trace_bytes},
@@ -40,14 +42,19 @@ def build_case_manifest(
         "gate": gate,
         "flags": flags,
         "metrics": metrics,
+        "expect": expect,
     }
 
 
-def build_index(entries: list[dict]) -> dict:
-    """entries: [{case_id, category, manifest_path}] -> the flat authoritative inventory."""
+def build_index(entries: list[dict], default_case: str) -> dict:
+    """entries: [{case_id, title, category, manifest_path}] -> the flat authoritative inventory, with the case the
+    App opens on."""
+    if default_case not in {e["case_id"] for e in entries}:
+        raise ValueError(f"default case {default_case!r} is not among the baked cases")
     return {
         "schema": INDEX_SCHEMA,
         "engine_version": __version__,
         "n_cases": len(entries),
+        "default_case": default_case,
         "cases": sorted(entries, key=lambda e: e["case_id"]),
     }
