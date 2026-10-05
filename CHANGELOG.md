@@ -2,6 +2,19 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.02.001], 2026-10-05
+
+Found instantiating CAOS_Contraste, the first product made from 0.02.000 (by copying into its existing repository).
+
+### Fixed
+
+- The residue and doc-path guards read tracked files only, so in a product instantiated by copying (nothing
+  committed yet) the residue guard reported "OK, no example content in 2 tracked files": a check that passed with
+  nothing to check. Both now read tracked and untracked files (ignored ones excluded), and refuse a tree with too
+  few files to be a product.
+- `.template-version` recorded the product repository's own HEAD as if it were the template's commit; it now records
+  the template release and its tag (`CAOS_PRODUCT_TEMPLATE 0.02.001 (tag v0.02.001)`).
+
 ## [0.02.000], 2026-10-04
 
 The base fix of 2026-10-04 (ADR-0078, the recurring-failures history): the template now carries the rules every
