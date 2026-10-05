@@ -1,17 +1,16 @@
-# Guide, bring your own data
+# Guide: bring your own data
 
-The product is **applicable to NEW data**, not just the baked cases, that is what makes it a tool. The door is
-**CONTRACT 1** (`data-pipeline/pipeline/io/contract.py`).
+A product applies to new data, not only to its baked cases. The door is contract 1
+(`data-pipeline/pipeline/io/contract.py`).
 
-1. Put your input in the documented standard format (see [`data/README.md`](../../data/README.md), EXAMPLE: a
-   params CSV with `case_id,beta,gamma,N,I0[,days]`). Drop the file under `data/raw/` (git-ignored).
-2. Point `preprocess` at it (or pass it on the CLI) and run `scripts/precompute.{sh,ps1}`. CONTRACT 1 validates
-   each row: **rejected** with a reason if it violates the schema/ranges (NaN, out-of-range, `I0>N`, …),
-   **flagged** if plausible-but-suspicious (e.g. `R0>20`), **accepted** otherwise. Nothing is silently coerced.
-3. The pipeline produces a compact artifact + manifest you can replay in the SPA, exactly like the built-in cases.
-4. **Live (optional):** if the [gate](../architecture/03_the-gate.md) classifies your case `live`, the frontend's
-   Pyodide lane calls `pipeline.live.run_trace_json({...your params...})` and renders the result in-browser, no
-   server, no precompute.
+1. Put the input in the documented format (see [`data/README.md`](../../data/README.md); in the example, a parameters
+   CSV with `case_id,beta,gamma,N,I0[,days]`) under `data/raw/`, which git ignores.
+2. Run the pipeline on it with a sandbox output, for example
+   `python data-pipeline/run.py <case> --output build/mine`. Contract 1 validates each record: rejected with its
+   reason when it breaks the schema or a range, flagged when plausible but unusual, accepted otherwise.
+3. The pipeline writes an artifact and a manifest in the same shapes as the built-in cases, and checks the result
+   against the expected ranges declared for it.
+4. In the web, the live engine re-runs any case with the reader's values; a reader exploring a parameter set does
+   not need a bake at all.
 
-If your data legitimately doesn't fit, extend CONTRACT 1 (and its tests) **deliberately**, never loosen it just
-to make bad data pass.
+If your data does not fit, extend contract 1 and its tests deliberately; never loosen it to let bad data through.

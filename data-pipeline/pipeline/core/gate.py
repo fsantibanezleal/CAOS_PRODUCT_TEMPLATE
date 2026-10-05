@@ -1,10 +1,10 @@
-"""The measured live-vs-precompute GATE (ADR-0054). A case runs LIVE in the browser (Pyodide) iff it is
-pure-Python AND its wheels are a subset of the Pyodide-safe set AND it is small+fast enough; otherwise it is
-PRECOMPUTE and the SPA replays the committed artifact. The verdict + the measured numbers go into the manifest,
-and CI fails on mislabeling. This is a MEASUREMENT, never a hand-wave."""
+"""The measured lane gate (ADR-0054). A case may be re-run LIVE in the browser iff its engine is light (pure Python
+with wheels in a small allowed set, a proxy for an engine small enough to port or to run client side) AND one run is
+fast AND its trace is small; otherwise it is PRECOMPUTE and the web replays the committed artifact. The verdict and
+the measured numbers go into the manifest, and scripts/check_artifacts.py fails on a mislabelled lane."""
 from __future__ import annotations
 
-LIVE_WHEELS: set[str] = {"numpy"}   # the Pyodide-safe wheel set the live lane is allowed to import
+LIVE_WHEELS: set[str] = {"numpy"}   # the wheels a light, live-eligible engine may depend on
 RUN_MS_GATE = 1500.0                 # a live run must complete well within an interaction budget
 TRACE_BYTES_GATE = 256 * 1024        # a live/replay artifact must stay small
 
@@ -18,7 +18,7 @@ def classify_lane(*, pure_python: bool, wheels: set[str], run_ms: float, trace_b
     extra = set(wheels) - LIVE_WHEELS
     if extra:
         live = False
-        reasons.append(f"wheels not Pyodide-safe: {sorted(extra)}")
+        reasons.append(f"wheels outside the live set: {sorted(extra)}")
     if run_ms > RUN_MS_GATE:
         live = False
         reasons.append(f"runtime exceeds the {RUN_MS_GATE:.0f}ms budget")

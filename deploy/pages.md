@@ -1,17 +1,19 @@
-# Deploy, GitHub Pages (default, static deterministic-replay)
+# Deploy: GitHub Pages
 
-The default deploy for this archetype (ADR-0055 Pages-first): the SPA + the committed artifacts are served
-statically; there is **no backend** at request time. The workflow `.github/workflows/deploy-pages.yml`:
+The site and its committed artifacts are served statically. `.github/workflows/deploy-pages.yml` runs after CI
+succeeds on `main`, on that commit: it checks the committed artifacts, builds the site with its base path, deploys,
+and checks the live site (`scripts/check_live.py`). It never rebakes, trains or recomputes.
 
-1. regenerates the artifacts deterministically (`python data-pipeline/run.py all`) so the site replays fresh,
-   audited outputs;
-2. builds the frontend (`cd frontend && npm ci && npm run build`, `copy-data.mjs` overlays `data/derived` into
-   `public/`);
-3. uploads `frontend/dist` and deploys to Pages.
+## Once per product, before the first deploy
 
-Enable once per product: repo **Settings → Pages → Source = GitHub Actions**. Custom domain: set via
-`gh api PUT repos/<owner>/<repo>/pages -f cname=<sub>.fasl-work.com` (the CNAME file alone does not set the domain
-on Actions deploys, see the CAOS_MANAGE reference note).
+1. Enable Pages with GitHub Actions as the source:
+   `gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow`
+2. With a custom domain, `scripts/instantiate.py --domain` wrote a CNAME file into `frontend/public/`; set the domain on the
+   repository as well (the file alone does not set it for an Actions deploy):
+   `gh api -X PUT repos/<owner>/<repo>/pages -f cname=<sub>.fasl-work.com`
+3. Create the DNS record as a CNAME to `<owner>.github.io`, DNS only (not proxied), so GitHub can issue the
+   certificate; enforce HTTPS once it is issued:
+   `gh api -X PUT repos/<owner>/<repo>/pages -F https_enforced=true`
 
-The VPS path (`setup.sh`/`update.sh` + the systemd/nginx templates here) stays **dormant** unless the `app/`
-backend is activated (ADR-0002).
+Without a custom domain the site is a project page at `https://<owner>.github.io/<repo>/`, and the deploy builds
+with that base path.

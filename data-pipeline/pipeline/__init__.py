@@ -5,4 +5,7 @@ deep-research-chosen SOTA engine. Everything else (the two data contracts, the s
 manifest/trace, the cases-by-category registry) is the FROZEN base, instantiate it, do not redesign it.
 """
 
-__version__ = "0.01.000"  # display X.XX.XXX; PEP 440 form in pyproject.toml (0.1.0)
+from pathlib import Path
+
+# VERSION at the repository root is the only place the version is written (T4); every manifest records it.
+__version__ = (Path(__file__).resolve().parents[2] / "VERSION").read_text(encoding="utf-8").strip()
