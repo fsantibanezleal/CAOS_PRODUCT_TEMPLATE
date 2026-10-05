@@ -4,8 +4,8 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
 
 ## [0.02.004], 2026-10-05
 
-One defect found while CAOS_Contraste built its case C05 (issue #13), and the base on the shell 0.7.2. The fix
-carries a test that fails without it (`tests/test_guards.py`).
+Two defects found while CAOS_Contraste built its case C05 (issues #13 and #16), and the base on the shell 0.7.2.
+Each fix carries a test that fails without it (`tests/test_guards.py`).
 
 ### Changed
 
@@ -21,6 +21,11 @@ carries a test that fails without it (`tests/test_guards.py`).
   because a hyphen is a word boundary: Contraste's finding id `F-SCALED-COVERAGE` failed the guard in its pipeline and
   in every artifact that carries the finding. The token counts only when no word character or hyphen touches it, as
   the placeholder-name marker already does; the example's constant is still caught.
+- The doc-path guard judged a named path by the working disk, so a git-ignored output (a gate's screenshots) passed on
+  the machine that had made it and failed on CI's fresh checkout: Contraste's develop CI failed on docs naming
+  `frontend/gate-output/shots`. It now judges the repository as git sees it (tracked and untracked-not-ignored files,
+  and their folders), allows a path the repository ignores on purpose, and reports a link that leaves the repository;
+  local runs and CI agree.
 
 ## [0.02.003], 2026-10-05
 
