@@ -16,11 +16,7 @@ The exact version + install steps you verified; note OS constraints (e.g. Linux/
 A minimal runnable snippet.
 
 ## Applying it here
-Which stage uses it (`infer`/`train`/…), its inputs/outputs, and which contract it satisfies.
+Which module and stage use it, its inputs and outputs, and which contract it satisfies.
 
 ## Caveats / license
 Numerical caveats, performance, and redistribution terms.
-
----
-*The template's EXAMPLE engine is numpy-only SIR, so it ships no SOTA card, a real product fills one per engine
-(e.g. `01_yade/`, `02_ortools/`, `03_mintpy/`, `04_torch/`).*

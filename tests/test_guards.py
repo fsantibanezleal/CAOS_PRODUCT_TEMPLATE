@@ -8,8 +8,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
+# instantiate.py runs only in the template, whose sentinel it deletes: in a product the test has nothing to run on
+TEMPLATE_ONLY = pytest.mark.skipif(not (ROOT / ".template-source").exists(),
+                                   reason="instantiate runs only in the template repository (.template-source)")
 
 
 def _run(script: str, *args: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
@@ -97,6 +102,20 @@ def test_residue_marker_flags_the_placeholder_name_and_not_the_plugin_name():
     assert not marker.search('"name": "contraste-frontend"')
 
 
+def test_residue_guard_scans_the_helper_scripts_and_skips_its_own_tests(tmp_path):
+    tree = _git_tree(tmp_path)
+    _put(tree, "scripts/precompute.ps1", "# E.g.:  ./scripts/precompute.ps1 EX02_epidemic --seed 7\n")
+    _put(tree, "scripts/precompute.sh", "# the tiny teaching engine\n")
+    # the guard's own tests must name the placeholder they look for
+    _put(tree, "tests/test_guards.py", "assert marker.search('\"name\": \"caos-product-frontend\"')\n")
+    res = _run("check_template_residue.py", str(tree))
+    assert res.returncode == 1, res.stdout
+    assert "scripts/precompute.ps1:1: an example case id" in res.stdout
+    assert "scripts/precompute.sh:1: prose about the example engine" in res.stdout
+    assert "tests/test_guards.py" not in res.stdout
+
+
+@TEMPLATE_ONLY
 def test_instantiate_renames_the_lockfile_and_drops_the_template_guide(tmp_path):
     copy = tmp_path / "product"
     ignore = shutil.ignore_patterns(".git", "node_modules", ".venv*", "dist", "public/data", "__pycache__",

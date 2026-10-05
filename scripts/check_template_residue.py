@@ -27,7 +27,8 @@ from pathlib import Path
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
 SENTINEL = ".template-source"
 TEMPLATE_REPO = "CAOS_PRODUCT_TEMPLATE"
-SELF = {"scripts/check_template_residue.py", "scripts/.template_residue_allow", "CHANGELOG.md"}
+# the guard, its allowlist, the history, and the guard's own tests (which must name what it looks for)
+SELF = {"scripts/check_template_residue.py", "scripts/.template_residue_allow", "CHANGELOG.md", "tests/test_guards.py"}
 
 # (name, pattern): each one is unambiguous for the template's example.
 MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -38,11 +39,13 @@ MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("an example contract schema id", re.compile(r"\bexample\.(?:trace|manifest|index)/v\d+\b")),
     ("an example reference", re.compile(r"\b(?:Kermack|McKendrick|Hethcote)\b")),
     ("the example immunisation variants", re.compile(r"\bCOVERAGE\b|herd threshold")),
+    ("prose about the example engine", re.compile(r"\bEXAMPLE engine\b|\bteaching engine\b")),
 )
 FORBIDDEN_FILES = ("STRUCTURE.md", ".vscode/")
+# the helper scripts too: precompute.sh and precompute.ps1 named an example case and were never scanned
 TEXT_SUFFIXES = {
     ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".md", ".json", ".css", ".html", ".svg",
-    ".yml", ".yaml", ".toml", ".txt", ".cfg", ".ini",
+    ".yml", ".yaml", ".toml", ".txt", ".cfg", ".ini", ".sh", ".ps1",
 }
 
 
