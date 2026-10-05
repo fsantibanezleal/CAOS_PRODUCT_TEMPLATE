@@ -14,7 +14,7 @@ fi
 if [ -f frontend/package.json ]; then
   cd frontend
   [ -d node_modules ] || npm install
-  node copy-data.mjs
+  # npm run dev copies the declared artifacts first (predev: scripts/copy-data.mjs)
   npm run dev
 else
   echo "[dev] no frontend/ — this product ships without a web surface (static/web lane dormant)."

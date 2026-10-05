@@ -15,7 +15,8 @@ class ArtifactRef(BaseModel):
 class CaseManifest(BaseModel):
     schema_: str = Field(alias="schema")
     case_id: str
-    category: str
+    title: dict[str, str]  # {"en", "es"}
+    category: dict[str, str]
     artifact: ArtifactRef
     lane: str
 
