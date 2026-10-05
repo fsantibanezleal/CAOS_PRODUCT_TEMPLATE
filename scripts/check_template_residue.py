@@ -66,8 +66,14 @@ def allowlist() -> list[str]:
 
 
 def main() -> int:
-    # tracked files that are on disk (a file deleted and not yet committed is already gone)
-    files = [ln.strip() for ln in git("ls-files").splitlines() if ln.strip() and (ROOT / ln.strip()).exists()]
+    # The files of the product as they stand: tracked and untracked, ignored excluded, on disk. A product instantiated
+    # by copying into an existing repository has nothing tracked yet, and a scan of tracked files alone passed it with
+    # nothing scanned (CAOS_Contraste, 2026-10-05).
+    listed = git("ls-files", "--cached", "--others", "--exclude-standard").splitlines()
+    files = sorted({ln.strip() for ln in listed if ln.strip() and (ROOT / ln.strip()).is_file()})
+    if len(files) < 10:
+        print(f"::error::check_template_residue: only {len(files)} files to scan; this is not a product tree")
+        return 1
     if (ROOT / SENTINEL).exists():
         if is_template_repo():
             print(f"check_template_residue: {SENTINEL} present in {TEMPLATE_REPO}: the example is intentional here.")
