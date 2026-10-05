@@ -35,4 +35,9 @@ describe('CONTRACT 2: the committed artifacts are exactly what the web declares'
     expect(problems).toMatch(/extra: written by the pipeline, not declared/);
     expect(problems).toMatch(/attack_rate: declared by the web, not written/);
   });
+  it('a nullable kind accepts null and still checks a value', () => {
+    expect(conform(null, { nullable: 'number' })).toEqual([]);
+    expect(conform(2, { nullable: 'number' })).toEqual([]);
+    expect(conform('2', { nullable: 'number' }).join('')).toMatch(/expected a finite number/);
+  });
 });
