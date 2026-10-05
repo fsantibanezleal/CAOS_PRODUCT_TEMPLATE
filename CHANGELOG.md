@@ -2,6 +2,18 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.02.004], 2026-10-05
+
+One defect found while CAOS_Contraste built its case C05 (issue #13). The fix carries a test that fails without it
+(`tests/test_guards.py`).
+
+### Fixed
+
+- The residue marker for the example's immunisation variants (`\bCOVERAGE\b`) matched inside a hyphenated identifier,
+  because a hyphen is a word boundary: Contraste's finding id `F-SCALED-COVERAGE` failed the guard in its pipeline and
+  in every artifact that carries the finding. The token counts only when no word character or hyphen touches it, as
+  the placeholder-name marker already does; the example's constant is still caught.
+
 ## [0.02.003], 2026-10-05
 
 Eight defects found while CAOS_Contraste replaced the example and ran its first full gate (issue #10). Each fix
