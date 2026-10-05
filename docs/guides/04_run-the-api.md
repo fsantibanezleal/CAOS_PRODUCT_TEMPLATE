@@ -7,8 +7,8 @@ paid heavy compute).
 To activate:
 1. Pin deps in `requirements-api.txt` (`fastapi`, `uvicorn[standard]`, …); `scripts/setup.sh` (or `setup.ps1`) then creates `.venv` with them.
 2. `uvicorn app.main:app --reload` (or `scripts/dev.{sh,ps1}` auto-starts it when `app/` is active).
-3. Endpoints (`GET /api/cases`, `/api/cases/{id}/manifest`, `/api/cases/{id}/trace`, `/health`) serve the SAME
-   committed `data/derived` artifacts read-only, a thin layer over `data/`, never a re-implementation of the
-   engine. Deploy via the dormant VPS templates in `deploy/`.
+3. Endpoints (`GET /api/cases`, `/api/cases/{id}/manifest`, `/api/artifacts/{path}`, `/health`) serve the SAME
+   committed `data/derived` documents read-only and unchanged, a thin layer over `data/`, never a
+   re-implementation of the engine. Deploy via the dormant VPS templates in `deploy/`.
 
 Keep the data-pipeline + contract discipline even with a backend: the API serves what the pipeline baked.
