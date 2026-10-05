@@ -2,6 +2,33 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.02.002], 2026-10-05
+
+Six defects found while CAOS_Contraste replaced the example (issue #7). Each fix carries a test that plants the
+failure (`tests/test_guards.py`, `frontend/src/lib/declared.test.ts`, `frontend/src/lib/contract.test.ts`).
+
+### Fixed
+
+- `scripts/instantiate.py` renamed the package in `frontend/package.json` but left the template's name and version in
+  `frontend/package-lock.json`, which the residue guard then flagged; it now renames both places of the lockfile.
+- The residue guard's placeholder-name marker matched the template's own Vite plugin name `caos-product-html`, a
+  finding no product could clear without editing base code; it now matches the placeholder name only.
+- `scripts/check_doc_paths.py` failed on the gates of a requirements file opened `Status: planned`, which
+  `scripts/check_sdd.py` allows: the two guards contradicted each other on the first day of every unit. The gates of
+  a planned feature's `requirements.md` are now skipped there (and only there).
+- `scripts/instantiate.py` left the template's own guide to instantiating (`docs/guides/00_instantiate.md`) and its
+  index line in the product, where it names the example's feature folder; it now removes both.
+
+### Added
+
+- A case manifest may name several artifacts (`artifacts: [{path, bytes, lane, gate, ...}]`, one per variant baked
+  apart) as well as one (`artifact`); `frontend/scripts/declared.mjs` holds the rule for the build and its test, and
+  `scripts/check_artifacts.py` checks each artifact's bytes and lane. The index may declare further files to serve
+  (`files`, a product's contract declarations say), copied and checked like the rest.
+- `conform()` gains a nullable kind (`{ nullable: Kind }`), for an optional bound or an absent reference.
+- `scripts/check_artifacts.py`, `scripts/check_doc_paths.py` and `scripts/check_template_residue.py` take an optional
+  repository root, so their tests run them on a planted tree.
+
 ## [0.02.001], 2026-10-05
 
 Found instantiating CAOS_Contraste, the first product made from 0.02.000 (by copying into its existing repository).
