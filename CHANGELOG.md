@@ -4,8 +4,16 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
 
 ## [0.02.004], 2026-10-05
 
-One defect found while CAOS_Contraste built its case C05 (issue #13). The fix carries a test that fails without it
-(`tests/test_guards.py`).
+One defect found while CAOS_Contraste built its case C05 (issue #13), and the base on the shell 0.7.2. The fix
+carries a test that fails without it (`tests/test_guards.py`).
+
+### Changed
+
+- The web runs on `@fasl-work/caos-app-shell` 0.7.2 (0.7.1 and 0.7.2 published to npm on 2026-10-05): it carries the
+  fixes of the known shell defects 14 to 18 (scientific notation for tiny magnitudes, the workbench rows that no
+  longer shrink, the key under every chart of several series, the gate's pointer probe) and 21 (an integer axis ticks
+  only at integers, and the gate fails a repeated tick label), so a product instantiated from this release starts on
+  them and carries no override for them.
 
 ### Fixed
 
