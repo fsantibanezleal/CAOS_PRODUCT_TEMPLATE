@@ -87,7 +87,8 @@ export interface CaseIndex {
 
 export const SCHEMAS = { trace: 'example.trace/v1', manifest: 'example.manifest/v3', index: 'example.index/v2' } as const;
 
-/** A run-time description of a value: a primitive, a bilingual text, an array of a kind, an object, or a map. */
+/** A run-time description of a value: a primitive, a bilingual text, an array of a kind, an object, a map, or a
+ * kind that may also be null (an optional bound, an absent reference). */
 export type Kind =
   | 'string'
   | 'number'
@@ -96,7 +97,8 @@ export type Kind =
   | 'text'
   | { array: Kind }
   | { object: Record<string, Kind> }
-  | { map: Kind };
+  | { map: Kind }
+  | { nullable: Kind };
 
 export const TRACE_SUMMARY = { peak_I: 'number', t_peak: 'number', attack_rate: 'number' } satisfies Record<keyof TraceSummary, Kind>;
 
@@ -153,6 +155,7 @@ export function conform(value: unknown, kind: Kind, path = '$'): string[] {
   if (kind === 'integer') return Number.isInteger(value) ? [] : [`${path}: expected an integer`];
   if (kind === 'boolean') return typeof value === 'boolean' ? [] : [`${path}: expected a boolean`];
   if (kind === 'text') return conform(value, { object: { en: 'string', es: 'string' } }, path);
+  if ('nullable' in kind) return value === null ? [] : conform(value, kind.nullable, path);
   if ('array' in kind) {
     if (!Array.isArray(value)) return [`${path}: expected an array`];
     return value.flatMap((v, i) => conform(v, kind.array, `${path}[${i}]`));
