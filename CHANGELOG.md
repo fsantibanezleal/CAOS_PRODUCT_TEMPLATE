@@ -2,6 +2,33 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.02.003], 2026-10-05
+
+Eight defects found while CAOS_Contraste replaced the example and ran its first full gate (issue #10). Each fix
+carries a test that fails without it (`tests/test_guards.py`, `tests/test_dormant_api.py`).
+
+### Fixed
+
+- The residue guard flagged its own tests in every product (`tests/test_guards.py` must name the placeholder it looks
+  for); its tests are now part of the guard's own set.
+- The residue guard never read `.sh` and `.ps1` files, so `scripts/precompute.sh` and `scripts/precompute.ps1`
+  shipped the example's case id in every product; they are scanned now, and their comments name a `<case-id>`.
+- `scripts/precompute.ps1` found the pipeline interpreter in `.venv-pipeline` and then ran the global `python`; it
+  runs the environment's interpreter.
+- The template's instantiate test failed in every product (it needs the `.template-source` sentinel that instantiation
+  deletes); it runs only in the template repository.
+- The web's unit tests read only `.test.ts`, so a product's component tests (`.test.tsx`) never ran; Vitest includes
+  both.
+- The dormant `app/` read the example's manifest shape (`artifact.path`, `trace_schema`), so it broke in a product whose
+  manifests differ. It serves the committed documents unchanged: `/api/cases`, `/api/cases/{id}/manifest` and
+  `/api/artifacts/{path}` (any artifact a manifest names, in either form of contract 2), nothing outside
+  `data/derived`; the example DTOs are gone.
+- Template prose survived instantiation in files a product keeps: `pyproject.toml`, `requirements-precompute.txt`,
+  `requirements-gpu.txt`, `tests/conftest.py`, `data-pipeline/pipeline/io/formats.py` and the framework card template
+  now say what is true in any product. A new residue marker catches prose about the example engine in the files a
+  product rewrites.
+- `read_csv_rows` read a spreadsheet's UTF-8 export with its byte-order mark in the first header; it drops it.
+
 ## [0.02.002], 2026-10-05
 
 Six defects found while CAOS_Contraste replaced the example (issue #7). Each fix carries a test that plants the
