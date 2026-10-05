@@ -90,6 +90,25 @@ def test_doc_paths_skips_the_gates_of_planned_requirements_only(tmp_path):
     assert other.returncode == 1 and "docs/notes.md:1: names tests/test_missing.py" in other.stdout
 
 
+def test_doc_paths_judge_the_repository_as_git_sees_it_never_the_disk(tmp_path):
+    tree = _git_tree(tmp_path)
+    _put(tree, ".gitignore", "web/out/\n")
+    _put(tree, "web/index.md", "The site.\n")
+    # an output the tools write, ignored on purpose and absent here, as on a fresh CI checkout: the guard used to
+    # pass it only where the folder existed (CAOS_Contraste's frontend/gate-output/shots)
+    _put(tree, "docs/a.md", "The gate writes its screenshots to `web/out/shots`; see [the folder](../web/out/).\n")
+    ok = _run("check_doc_paths.py", str(tree))
+    assert ok.returncode == 0, ok.stdout
+    # neither in the repository nor ignored
+    _put(tree, "docs/b.md", "Read `web/report.txt`.\n")
+    bad = _run("check_doc_paths.py", str(tree))
+    assert bad.returncode == 1 and "docs/b.md:1: names web/report.txt" in bad.stdout
+    # a link that leaves the repository names nothing the repository holds
+    _put(tree, "docs/b.md", "See [elsewhere](../../elsewhere.md).\n")
+    away = _run("check_doc_paths.py", str(tree))
+    assert away.returncode == 1 and "outside the repository" in away.stdout
+
+
 def test_residue_marker_flags_the_placeholder_name_and_not_the_plugin_name():
     sys.path.insert(0, str(SCRIPTS))
     import check_template_residue as r
@@ -100,6 +119,20 @@ def test_residue_marker_flags_the_placeholder_name_and_not_the_plugin_name():
     assert marker.search('"name": "CAOS Product"')
     assert not marker.search("name: 'caos-product-html',")
     assert not marker.search('"name": "contraste-frontend"')
+
+
+def test_residue_marker_flags_the_example_variants_and_not_a_hyphenated_id():
+    sys.path.insert(0, str(SCRIPTS))
+    import check_template_residue as r
+
+    marker = dict(r.MARKERS)["the example immunisation variants"]
+    assert marker.search("export const COVERAGE = [")
+    assert marker.search("import { COVERAGE, type Selection } from './model';")
+    assert marker.search("return COVERAGE.map((v) => ({ v }));")
+    assert marker.search("the herd threshold is 1 - 1/R0")
+    assert not marker.search('{"id": "F-SCALED-COVERAGE", "severity": "S3"}')
+    assert not marker.search("COVERAGE-LEVELS")
+    assert not marker.search("UNCONDITIONAL_COVERAGE = 0.99")
 
 
 def test_residue_guard_scans_the_helper_scripts_and_skips_its_own_tests(tmp_path):
