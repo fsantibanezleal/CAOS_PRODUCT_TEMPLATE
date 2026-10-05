@@ -21,12 +21,17 @@ SKIP = re.compile(r"^(?:[a-z]+:|#|mailto:)|[<>{}*$]|\.\.\.")
 
 
 def tracked() -> list[str]:
-    out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    return [ln.strip() for ln in out.splitlines() if ln.strip()]
+    # tracked and untracked, ignored excluded: a tree not yet committed is checked too
+    cmd = ["git", "ls-files", "--cached", "--others", "--exclude-standard"]
+    out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    return sorted({ln.strip() for ln in out.splitlines() if ln.strip()})
 
 
 def main() -> int:
-    files = [f for f in tracked() if (ROOT / f).exists()]
+    files = [f for f in tracked() if (ROOT / f).is_file()]
+    if not any(f.endswith(".md") for f in files):
+        print("doc paths: no Markdown file to check; this is not a product tree")
+        return 1
     tops = {f.split("/", 1)[0] for f in files}
     missing: list[str] = []
     for rel in files:
