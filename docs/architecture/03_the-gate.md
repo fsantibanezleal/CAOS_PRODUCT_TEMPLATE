@@ -1,16 +1,19 @@
-# The live-vs-precompute gate
+# The lane gate
 
-`data-pipeline/pipeline/core/gate.py :: classify_lane()`. A case runs **live** in the browser (Pyodide) iff , 
-by MEASUREMENT, never by hand-wave:
+`data-pipeline/pipeline/core/gate.py :: classify_lane()` decides, per case and by measurement, whether the case is
+light enough to be re-run live in the browser:
 
-- it is **pure-Python**, AND
-- its wheels are a subset of the Pyodide-safe set (`LIVE_WHEELS`, e.g. `{numpy}`), AND
-- `run_ms ≤ RUN_MS_GATE` (interaction budget), AND
-- `trace_bytes ≤ TRACE_BYTES_GATE` (small artifact).
+- the engine is light (pure Python, with its wheels within a small allowed set: a proxy for an engine small enough to
+  port or to run client side), and
+- one run finishes within `RUN_MS_GATE` (1500 ms), and
+- the committed trace is within `TRACE_BYTES_GATE` (256 KiB).
 
-Otherwise the case is **precompute**: the offline pipeline bakes the artifact and the SPA replays it. Either way,
-a committed artifact always exists, so the site replays instantly on first paint (ADR-0054).
+Otherwise the case is `precompute`: the pipeline bakes it and the web only replays it. Either way a committed
+artifact exists, so the site shows every case on first load.
 
-The verdict + the measured numbers are written into the manifest (`gate` field) and CI fails if `manifest.lane`
-disagrees with the gate, so a heavy model can never be mislabeled "live". The EXAMPLE SIR case is pure-Python +
-numpy + small ⇒ classified `live`.
+The verdict and the measured numbers are written into the manifest (`gate`), and `scripts/check_artifacts.py`
+fails when a manifest's `lane` disagrees with its gate, so a heavy case cannot be labelled live. The Benchmark page
+measures the live engine again in the reader's browser against the same run budget.
+
+This is the pipeline's gate. The web has its own, measured on the built site: `npm run gate` (`caos-shell-gate`,
+see [07, deploy](07_deploy.md)).

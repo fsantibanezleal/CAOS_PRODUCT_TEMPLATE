@@ -1,16 +1,18 @@
-# data-pipeline/, the offline engine (`pipeline`)
+# data-pipeline/, the offline engine
 
-Rename `pipeline` → `pipeline` per product. The **single source of physics/algorithm truth**; `frontend/` and
-`app/` consume it, never re-implement it. Its own venv: **`.venv-pipeline`** (heavy SOTA engines, local-only).
+The scripts of the product's science, invoked by path (`python data-pipeline/run.py`); the product declares no
+package of its own. They run in `.venv-pipeline` (`scripts/setup.sh` or `scripts/setup.ps1`), on a workstation, never in CI.
 
-## Layout (the package lives directly under `data-pipeline/`)
-- `pipeline/pipeline.py`, orchestrator + CLI (`python data-pipeline/run.py [all|<case>] [--seed N]`)
-- `pipeline/registry.py`, cases grouped by CATEGORY · `pipeline/live.py`, Pyodide live entrypoint
-- `pipeline/io/`, `contract.py` (**CONTRACT 1**) · `formats.py` (standard readers/writers) · `schema.py` (types)
-- `pipeline/core/`, `rng.py` (seeded determinism) · `trace.py` · `manifest.py` (**CONTRACT 2**) · `gate.py`
-- `pipeline/model/`, the shared pure-Python core (Pyodide-safe); EXAMPLE = SIR
-- `pipeline/stages/`, `preprocess → feature_extraction → train → infer → evaluate → export`
-- `pipeline/cases/`, documented cases
+## Layout
 
-Setup + run: `scripts/setup.{sh,ps1}` then `scripts/precompute.{sh,ps1}`. See
-[../docs/architecture/05_precompute-pipeline.md](../docs/architecture/05_precompute-pipeline.md).
+- `pipeline/pipeline.py`: the orchestrator and its CLI (`python data-pipeline/run.py [all|<case>] [--seed N]
+  [--output <sandbox>]`)
+- `pipeline/registry.py`: the cases, grouped by category, and the default case
+- `pipeline/io/`: `contract.py` (contract 1), `formats.py` (readers and writers), `schema.py` (types)
+- `pipeline/core/`: `rng.py` (seeded determinism), `trace.py` and `manifest.py` (contract 2), `gate.py` (the lane
+  gate), `expect.py` (the expected ranges every result is checked against)
+- `pipeline/model/`: the engine (the example is SIR)
+- `pipeline/stages/`: preprocess, feature extraction, train, infer, evaluate, export
+- `pipeline/cases/`: the cases, each with its bilingual title, category, expected band and expected ranges
+
+See [../docs/architecture/05_precompute-pipeline.md](../docs/architecture/05_precompute-pipeline.md).

@@ -1,85 +1,66 @@
-# CAOS product template, a REAL product repo (not a demo)
+# CAOS product template
 
-<!-- BADGE HEADER (ADR-0065), copy this block to the top of an instantiated product README.
-     Replace <OWNER>/<REPO> and the CI workflow filename. Every badge here is auto-updating and truthful.
-     Allowed: CI (from Actions), license, latest version/tag, live demo, and arXiv ONLY once a real preprint exists.
-     FORBIDDEN: hand-typed count/claim badges (tests N passing, languages N, coverage unless from CI, agents N, ...)
-     and supply-chain-security theater (OpenSSF Scorecard, SLSA, VirusTotal) unless the repo actually ships signed
-     installable binaries. A badge that states something a tool does not verify live is vanity, do not add it.
-[![CI](https://img.shields.io/github/actions/workflow/status/<OWNER>/<REPO>/ci.yml?branch=main&label=CI)](https://github.com/<OWNER>/<REPO>/actions)
-[![License](https://img.shields.io/github/license/<OWNER>/<REPO>)](LICENSE)
-[![Version](https://img.shields.io/github/v/tag/<OWNER>/<REPO>?label=version&sort=semver)](https://github.com/<OWNER>/<REPO>/tags)
-[![Live demo](https://img.shields.io/badge/demo-live-2ea44f)](https://<SLUG>.fasl-work.com)
--->
+[![CI](https://img.shields.io/github/actions/workflow/status/fsantibanezleal/CAOS_PRODUCT_TEMPLATE/ci.yml?branch=main&label=CI)](https://github.com/fsantibanezleal/CAOS_PRODUCT_TEMPLATE/actions)
+[![License](https://img.shields.io/github/license/fsantibanezleal/CAOS_PRODUCT_TEMPLATE)](LICENSE)
+[![Version](https://img.shields.io/github/v/tag/fsantibanezleal/CAOS_PRODUCT_TEMPLATE?label=version&sort=semver)](https://github.com/fsantibanezleal/CAOS_PRODUCT_TEMPLATE/tags)
 
-This is the **canonical template** every Faena/CAOS data-product repo is instantiated from. It exists because
-ad-hoc products (bespoke scripts, baked cases, no reproducible env, no data contract) kept shipping, they
-*look* done but **cannot be applied to new data**, so they are demos, not tools. This template makes the standard
-**executable**: clone it, run two scripts, and you have a reproducible offline pipeline that ingests data in a
-**standard format**, processes it through **typed, seeded, tested stages**, emits **committed standard-format
-artifacts + a manifest**, and feeds a web app that **replays** them, and that any third party can point at
-**their own data**.
+The repository every CAOS product starts from (ADR-0057). It is a working product on the first day: an offline
+pipeline that bakes cases and checks them, committed artifacts that a web workbench replays, a live engine that
+re-runs a case in the browser, five documentation pages, and the guards and the measured gate that keep all of it
+honest. The domain is a placeholder (the SIR epidemic model) so that every part has something real to carry.
 
-It is modelled on the validated exemplar **CAOS_SIMLAB** (`simlab/pipeline.py`, `requirements-*.txt`,
-`scripts/setup+precompute`, `docs/frameworks`, `data/artifacts`, `manifests/`).
+A product is made from it with one command, and from then on the guards list what of the example remains until it
+is replaced.
 
-## The two data contracts (the thing that was missing everywhere)
+## What is in it
 
-A product is only real if data flows through **two enforced contracts**:
+| Part | Where | What holds it |
+|---|---|---|
+| The pipeline: named stages, seeded, each case checked against its expected ranges | `data-pipeline/` | `tests/`, run in a sandbox that fails if a test writes a committed artifact |
+| Contract 1, ingestion: bad values rejected with a reason, unusual ones flagged | `data-pipeline/pipeline/io/contract.py` | `tests/test_contract.py` |
+| Contract 2, artifacts: index, manifests and traces, bilingual, versioned | `data/derived/` | `scripts/check_artifacts.py`, `frontend/src/lib/contract.test.ts` (both directions) |
+| The live engine, a TypeScript port of the Python one | `frontend/src/engine/` | `frontend/src/engine/sir.parity.test.ts` (every baked trace, first-order convergence) |
+| The web: the workbench and five documentation routes on the shared shell | `frontend/src/` | `npm run gate` (`caos-shell-gate`: every route, tab and case, five sizes, both themes, both languages) |
+| The design, every requirement with the gate that fails it | `docs/design/` | `scripts/check_sdd.py` |
+| One version, one deploy place, no example left behind | `VERSION`, `deploy/TARGET` | `scripts/check_version_coherence.py`, `scripts/check_deploy_place.py`, `scripts/check_template_residue.py` |
 
-1. **Ingestion contract, `raw → processing`.** `data-pipeline/pipeline/io/contract.py` (shipped as `pipeline`) defines the required schema (columns,
-   units, ranges) of an input dataset and an explicit **outlier policy** (reject / clip / flag). This is the
-   *"bring your own data"* gate: a user's dataset is accepted iff it satisfies the contract. Documented in
-   [docs/data-contract.md](docs/data-contract.md).
-2. **Artifact contract, `processing → web`.** Every canonical pipeline run writes a compact,
-   standard-format artifact and a `manifests/<case>.json` (params, seed, run_ms, bytes, gate verdict,
-   format/version). The web replay lane loads only these. A separately named reduced live engine may compute
-   valid interactive results when its parity/latency/memory gates pass; it never overwrites or masquerades
-   as canonical offline truth. A TS type mirrors the manifest schema so contract drift fails the build.
-
-If either contract is missing, the product is a demo. CI enforces both.
-
-## Quickstart (proves the template runs end-to-end)
+## Run it
 
 ```bash
-# 1. create the reproducible environment (.venv + pinned per-need requirements)
-./scripts/setup.sh                      # or scripts/setup.ps1 on Windows PowerShell
-
-# 2. run the offline pipeline over every case → data/artifacts/ + manifests/
-./scripts/precompute.sh                 # or scripts/precompute.ps1
-
-# 3. the tests (determinism, both data contracts, the gate, parity)
-.venv/bin/python -m pytest              # .venv/Scripts/python.exe on Windows
-
-# 4. the web app consumes the artifacts (copy-data enforces the artifact contract)
-cd web && npm install && node copy-data.mjs && npm run dev
+./scripts/setup.sh                       # .venv-pipeline with the pinned pipeline requirements (setup.ps1 on Windows)
+./scripts/precompute.sh                  # the canonical bake into data/derived (a release operation, never CI)
+.venv-pipeline/bin/python -m pytest      # the pipeline tests, sandboxed (.venv-pipeline/Scripts/python.exe on Windows)
+cd frontend
+npm ci
+npm run build                            # copies the declared artifacts, type-checks, bundles, materialises the routes
+npm test                                 # contract both ways, engine parity, the artifact layer
+npm run preview                          # serves dist/ the way GitHub Pages does
+npm run gate                             # the measured gate on the build
 ```
 
-## How to instantiate this template for a NEW product
+## Make a product from it
 
-See [docs/guides/00_instantiate.md](docs/guides/00_instantiate.md). In short: copy this tree, **delete the
-`.template-source` sentinel** (this arms the residue guard, `scripts/check_template_residue.py`, which then
-fails CI if any example pipeline or placeholder text survives), rename the `pipeline` package (in
-`data-pipeline/`) to `pipeline`, **replace the EXAMPLE engine** (the SIR model in
-`data-pipeline/pipeline/model/` + `stages/`) with your
-product's complete research-chosen classical→SOTA→frontier method registry. Every promised method must
-pass ADR-0069's vertical acceptance contract and be documented in `docs/frameworks/`, pinned in
-`requirements-precompute.txt` or `requirements-gpu.txt`, and actually executed by the pipeline. Write the
-ingestion contract, split policy, cases/variants, and fill the `docs/` wiki **as you build, not at the end**.
+Create the product repository from this template on GitHub, clone it, and run:
 
-## Hard rules this template bakes in
+```bash
+python scripts/instantiate.py --slug <slug> --name "<Name>" --repo <Repository> \
+  --deploy pages --domain <slug>.fasl-work.com --visibility public \
+  --tagline-en "<one line>" --tagline-es "<una línea>"
+```
 
-- **The deep research is binding, not decoration.** Every engine/solver/library the research selected lives in
-  `docs/frameworks/<tool>/` *and* `requirements-precompute.txt`, and the pipeline actually uses it. No hand-rolled
-  substitute for a SOTA engine the research prescribed.
-- **The repository is the product.** It implements ingest, preprocess, dataset/split, feature extraction,
-  training/fine-tuning, inference, evaluation, export, and validation for every promised method. The web is
-  the companion workbench, not a substitute for those engines.
-- **Canonical science is offline.** Tests run in sandboxes; release bake is explicit; deployment verifies
-  checksums and publishes existing evidence. Deploy never trains, benchmarks, or mutates canonical artifacts.
-- **Standard formats end-to-end** (`data-pipeline/pipeline/io/formats.py`): domain-standard in, compact-standard out.
-- **Reproducible**: pinned requirements per need; `scripts/setup`; CI installs them and runs a pipeline smoke.
-- **Applicable to new data**: the ingestion contract is the bring-your-own-data door.
-- **Versioned** (X.XX.XXX, CHANGELOG + tags from day 1) with **license/attribution hygiene**.
+It writes the product's identity, licence, version and deploy place, removes the template's sentinel and blueprint
+files, bakes, tests and builds once, and prints what of the example remains. The full procedure, and what the
+product replaces next, is [docs/guides/00_instantiate.md](docs/guides/00_instantiate.md).
 
-See [docs/architecture/01_overview.md](docs/architecture/01_overview.md) for the full rationale.
+## The rules it carries
+
+- Write the SDD before the code; every requirement names its gate (ADR-0075).
+- The research is binding: every engine the research selected is pinned, documented in `docs/frameworks/` and run
+  by the pipeline.
+- Canonical science is offline. CI runs cheap checks; the bake and the pipeline tests run on a workstation; a deploy
+  publishes the committed artifacts and never recomputes them (ADR-0069, ADR-0074).
+- The web is built on the shared shell and measured before it ships; the base carries the rules, so a product does
+  not re-implement them (ADR-0078).
+- English in the repository; every reader-facing string in English and Spanish (ADR-0011, ADR-0066).
+
+Licensed under the MIT License (see [LICENSE](LICENSE)).
