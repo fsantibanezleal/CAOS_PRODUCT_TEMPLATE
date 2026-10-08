@@ -10,6 +10,7 @@ import {
   pick,
   useShellLang,
   useWorkbenchState,
+  ViewsRow,
   type BiText,
 } from '@fasl-work/caos-app-shell';
 import { UPlotChart } from '@fasl-work/caos-app-shell/chart';
@@ -219,7 +220,7 @@ export function CompareView({ sel }: { sel: Selection | null }) {
   const bars = (value: (r: NonNullable<typeof rows>[number]) => number) =>
     rows.map((r) => ({ id: r.v.id, label: r.v.label, value: value(r), highlight: r.v.share === sel.coverage }));
   return (
-    <div className="caos-views-row">
+    <ViewsRow>
       <PlotCard fill title={{ en: 'Attack rate by immunisation', es: 'Tasa de ataque por inmunización' }} lane="live" provenance="synthetic" dataKey={stateKey}>
         <BarChart
           height="fill"
@@ -236,7 +237,7 @@ export function CompareView({ sel }: { sel: Selection | null }) {
           data={bars((r) => r.run.peakI)}
         />
       </PlotCard>
-    </div>
+    </ViewsRow>
   );
 }
 
