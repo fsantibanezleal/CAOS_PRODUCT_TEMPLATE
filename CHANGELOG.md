@@ -2,6 +2,53 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.03.000], 2026-10-07
+
+The base on the shell 0.9.3 (CAOS_MANAGE `plans/app-shell`; research in
+`wip/template-archetype/base-unify-audit-2026-10-07.md`): a product instantiated from this release starts on the
+shell's tokens, its three route types, its bar chart and text kit, and the gate's checks of text in drawings, Spanish
+numbers, sticky lists and contrast, and its guards hold the shell pin and judge product CSS by what it restyles.
+
+### Changed
+
+- The web runs on `@fasl-work/caos-app-shell` **0.9.3, pinned exactly** (it was `^0.7.2`: a product instantiated from
+  the template floated to any later 0.x and shipped a shell it never gated; issue #19). With 0.9.3 a rail knob draws
+  its value on its label's row (CAOS_APP_SHELL#77), so the example's rail is two lines shorter.
+- The comparison of immunisation variants is the shell's `BarChart` (horizontal, filling its card, the variant on
+  screen highlighted) in a `ViewsRow`; the hand-drawn bars with a fixed 56px axis margin and unfitted labels are
+  gone. The chart marks ("peak", "this case") are drawn by the shell on the right side of their line, inside the plot,
+  haloed.
+- `check_web_baseline.py` judges each product CSS rule by the classes of its subject (the last compound), against the
+  shell's `components` and `modifiers` (`reserved-classes.json` since 0.8.0): restyling a shell component fails, a
+  modifier alone (`.on`) fails, a modifier joined to the product's own class (`.my-row.on`) passes. Until 0.8.0 the
+  list reserved the words, and a product could not write `.my-row.on`.
+
+### Added
+
+- `check_web_baseline.py` fails a shell pin that is a range, or that differs from the installed package (issue #19).
+
+### Fixed
+
+- `check_version_coherence.py` reads code, not history: a version in a Python comment or docstring, in a
+  TypeScript or JavaScript comment, or in the prose of the documentation pages (`frontend/src/pages/`,
+  `frontend/src/content/`) passes; one in code fails (issue #19: on CAOS_Fragmenta 23 of 26 reports were history, and
+  its Implementation page cites the release a measurement was made at). It takes the repository root as an argument,
+  so its tests plant both kinds in a throwaway tree.
+- The build wrote `dist/build.json` in `closeBundle`, which also runs when the build fails, so a failed build reported
+  an ENOENT on `build.json` instead of its own error; it is written in `writeBundle`.
+
+### Verified
+
+On the shell 0.9.3, 2026-10-08:
+
+- `pytest`: 24 tests (three new for the guards: code against history versions, the subject of a CSS rule, the exact
+  pin); `ruff check`.
+- `npm test` 20 of 20; `npm run build`; every guard (`check_live.py` runs after a deploy, with its URL).
+- `caos-shell-gate` on the built example: 0 failures in 331 states (five sizes, both themes, both languages, the
+  wide-font pass at 390 and 1280 px); captures read, the comparison opened by `?view=compare` at 1280 and 390 px.
+- `check_version_coherence.py` keeps its lines within 110 characters, so a product whose linter checks line length
+  takes it unchanged (CAOS_Fragmenta's does).
+
 ## [0.02.004], 2026-10-05
 
 Two defects found while CAOS_Contraste built its case C05 (issues #13 and #16), and the base on the shell 0.7.2.

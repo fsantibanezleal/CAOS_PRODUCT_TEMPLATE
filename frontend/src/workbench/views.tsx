@@ -1,15 +1,16 @@
 // The views of the selected case. Each is a PlotCard with its lane and provenance, keyed by the selection it shows;
 // a view whose data is not there yet declares data-state="loading" (the gate waits for it, a reader sees why).
 import {
+  BarChart,
   Equation,
   PlotCard,
-  Stage,
   SubTabs,
   Verdict,
   formatNumber,
   pick,
   useShellLang,
   useWorkbenchState,
+  ViewsRow,
   type BiText,
 } from '@fasl-work/caos-app-shell';
 import { UPlotChart } from '@fasl-work/caos-app-shell/chart';
@@ -206,15 +207,9 @@ function FinalSizeView({ sel }: { sel: Selection | null }) {
   );
 }
 
-/** The smallest 1, 2, 2.5 or 5 times a power of ten at or above x: an axis whose ticks a reader can read. */
-function niceCeil(x: number): number {
-  const p = 10 ** Math.floor(Math.log10(x));
-  return ([1, 2, 2.5, 5, 10].find((m) => m * p >= x) ?? 10) * p;
-}
-
-/** Peak and attack rate of the case under each immunisation variant, run live. */
+/** Peak and attack rate of the case under each immunisation variant, run live, on the shell's bar chart: margins
+ * measured from the labels, the variant on screen highlighted, values in the interface language. */
 export function CompareView({ sel }: { sel: Selection | null }) {
-  const lang = useShellLang();
   const stateKey = useWorkbenchState()?.stateKey;
   const rows = useMemo(() => {
     if (!sel) return null;
@@ -222,59 +217,27 @@ export function CompareView({ sel }: { sel: Selection | null }) {
     return COVERAGE.map((v) => ({ v, run: simulate({ ...p, beta: sel.beta, gamma: sel.gamma, vaccinated: v.share }) }));
   }, [sel]);
   if (!sel || !rows) return <Pending label={LOADING} />;
-  const metrics: { id: string; title: BiText; value: (r: NonNullable<typeof rows>[number]) => number; fmt: (x: number) => string }[] = [
-    { id: 'attack', title: { en: 'Attack rate by immunisation', es: 'Tasa de ataque por inmunización' }, value: (r) => r.run.attackRate, fmt: (x) => formatNumber(x, lang, { percent: true, decimals: 1 }) },
-    { id: 'peak', title: { en: 'Peak infected by immunisation', es: 'Pico de contagiados por inmunización' }, value: (r) => r.run.peakI, fmt: (x) => formatNumber(x, lang, { decimals: 0 }) },
-  ];
+  const bars = (value: (r: NonNullable<typeof rows>[number]) => number) =>
+    rows.map((r) => ({ id: r.v.id, label: r.v.label, value: value(r), highlight: r.v.share === sel.coverage }));
   return (
-    <div className="caos-views-row">
-      {metrics.map((m) => {
-        const values = rows.map(m.value);
-        const max = niceCeil(Math.max(...values) || 1);
-        return (
-          <PlotCard key={m.id} fill title={m.title} lane="live" provenance="synthetic" dataKey={stateKey}>
-            <Stage label={m.title}>
-              {({ width, height }) => {
-                const left = 56;
-                const bottom = 40;
-                const bw = (width - left - 12) / rows.length;
-                const ticks = [0, 0.25, 0.5, 0.75, 1];
-                return (
-                  <svg width={width} height={height} role="img" aria-label={pick(m.title, lang)}>
-                    {ticks.map((q) => {
-                      const y = height - bottom - q * (height - bottom - 16);
-                      return (
-                        <g key={q}>
-                          <line x1={left} y1={y} x2={width - 8} y2={y} stroke="var(--color-border)" />
-                          <text x={left - 6} y={y + 4} textAnchor="end" fontSize={11} fill="var(--color-fg-subtle)">
-                            {m.fmt(q * max)}
-                          </text>
-                        </g>
-                      );
-                    })}
-                    {rows.map((r, k) => {
-                      const h = ((height - bottom - 16) * m.value(r)) / max;
-                      const active = r.v.share === sel.coverage;
-                      return (
-                        <g key={r.v.id}>
-                          <rect x={left + 8 + k * bw} y={height - bottom - h} width={bw - 16} height={h} fill={active ? 'var(--color-accent)' : 'var(--color-fg-faint)'} />
-                          <text x={left + 8 + k * bw + (bw - 16) / 2} y={height - bottom + 16} textAnchor="middle" fontSize={11} fill="var(--color-fg-subtle)">
-                            {pick(r.v.label, lang)}
-                          </text>
-                          <text x={left + 8 + k * bw + (bw - 16) / 2} y={height - bottom - h - 6} textAnchor="middle" fontSize={11} fill="var(--color-fg)">
-                            {m.fmt(m.value(r))}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                );
-              }}
-            </Stage>
-          </PlotCard>
-        );
-      })}
-    </div>
+    <ViewsRow>
+      <PlotCard fill title={{ en: 'Attack rate by immunisation', es: 'Tasa de ataque por inmunización' }} lane="live" provenance="synthetic" dataKey={stateKey}>
+        <BarChart
+          height="fill"
+          title={{ en: 'Attack rate by immunisation', es: 'Tasa de ataque por inmunización' }}
+          axis={{ label: { en: 'Attack rate', es: 'Tasa de ataque' }, format: { percent: true, decimals: 1 } }}
+          data={bars((r) => r.run.attackRate)}
+        />
+      </PlotCard>
+      <PlotCard fill title={{ en: 'Peak infected by immunisation', es: 'Pico de contagiados por inmunización' }} lane="live" provenance="synthetic" dataKey={stateKey}>
+        <BarChart
+          height="fill"
+          title={{ en: 'Peak infected by immunisation', es: 'Pico de contagiados por inmunización' }}
+          axis={{ label: { en: 'Peak infected', es: 'Pico de contagiados' }, unit: { en: 'people', es: 'personas' }, format: { decimals: 0 } }}
+          data={bars((r) => r.run.peakI)}
+        />
+      </PlotCard>
+    </ViewsRow>
   );
 }
 
