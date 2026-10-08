@@ -10,6 +10,9 @@ Static checks on frontend/src, against the installed shell (node_modules/@fasl-w
     chip); a modifier joined to the app's own class (`.my-row.on`) passes (reserved-classes.json, shell 0.8.0);
   - the shell is pinned exactly (`"@fasl-work/caos-app-shell": "0.8.0"`, never a range), and the installed package is
     that version (ADR-0078 section 5: the build that was gated is the build that ships);
+  - a shell entry the source imports comes with its stylesheet (`styles.css` for the shell, `chart.css` for
+    `/chart`): this guard reads both from the installed package, so a class the browser never receives a rule for
+    passed as styled, and a chart without `chart.css` has no height and is never drawn (CAOS_Fragmenta, 2026-10-08);
   - no App tab named after the plumbing (contract, trace, learned models, bring your own data);
   - no toLocaleString() without a locale, and no toFixed() in a view (numbers go through formatNumber);
   - no <img> of an .svg (an image cannot read the page's theme tokens);
@@ -32,6 +35,12 @@ VAR_DEF = re.compile(r"(--[a-zA-Z0-9-]+)\s*:")
 CLASS_RULE = re.compile(r"\.(-?[_a-zA-Z][_a-zA-Z0-9-]*)")
 CLASSNAME = re.compile(r"className=(?:\"([^\"]*)\"|'([^']*)'|\{\s*['\"]([^'\"]*)['\"]\s*\})")
 TAB_LABEL = re.compile(r"\blabel:\s*\{\s*en:\s*'([^']*)'")
+SHELL_IMPORT = re.compile(r"""(?:from|import)\s+['"](@fasl-work/caos-app-shell(?:/[a-z]+)?)['"]""")
+# The stylesheet each shell entry needs, and what a reader sees without it.
+STYLESHEETS = {
+    "@fasl-work/caos-app-shell": ("styles.css", "the shell renders unstyled"),
+    "@fasl-work/caos-app-shell/chart": ("chart.css", "a filling chart has no height and is never drawn"),
+}
 BANNED_TABS = re.compile(r"\b(contract|trace|learned models?|bring your own)\b", re.I)
 
 
@@ -110,6 +119,15 @@ def main() -> int:
         errs.append(f"frontend/package.json pins the shell as {pin!r}: pin it exactly (\"{installed}\"), never a range")
     elif pin != installed:
         errs.append(f"the installed shell is {installed}, the pin is {pin}: run npm ci")
+
+    sources = "".join(p.read_text(encoding="utf-8") for p in code_files() + css_files())
+    entries = set(SHELL_IMPORT.findall(sources))
+    for entry, (sheet, effect) in STYLESHEETS.items():
+        if entry in entries and f"@fasl-work/caos-app-shell/{sheet}" not in sources:
+            errs.append(
+                f"the source imports {entry} and never '@fasl-work/caos-app-shell/{sheet}': "
+                f"import it in the entry file ({effect})"
+            )
 
     for f in code_files() + css_files():
         rel = f.relative_to(ROOT).as_posix()
