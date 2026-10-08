@@ -182,6 +182,8 @@ def test_version_guard_reads_code_not_history(tmp_path):
     _put(root, "data-pipeline/pipeline/a.py", '"""Until 0.02.004 the guard read comments."""\n'
          "# measured at 0.01.000\nX = 1  # since 0.02.000\n")
     _put(root, "frontend/src/a.ts", "// until 0.02.003\n/* history: 0.01.000\n and 0.02.000 */\nexport const u = 'https://x.org/a'; // 0.02.001\n")
+    # the documentation pages are prose: a release they cite is history
+    _put(root, "frontend/src/pages/Implementation.tsx", "export const p = 'Measured at 0.02.000 between Windows and Linux.';\n")
     ok = _run("check_version_coherence.py", str(root))
     assert ok.returncode == 0, ok.stdout
     _put(root, "data-pipeline/pipeline/b.py", '__version__ = "0.02.004"\n')
