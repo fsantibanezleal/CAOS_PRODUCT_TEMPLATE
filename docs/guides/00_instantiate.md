@@ -45,8 +45,12 @@ before the next starts.
    with a parity test, as `sir.parity.test.ts` does. If none can, the workbench replays only and declares
    `replayOnly`.
 6. **The workbench.** Rewrite `frontend/src/workbench/`: the case's question groups, its variants, its parameters
-   and live values in the rail. Views are `PlotCard`s with lane, provenance and the selection key; drawings go in a
-   `Stage` or a `UPlotChart`; a table sits above the drawing of the same numbers.
+   and live values in the rail. Views are `PlotCard`s with lane, provenance and the selection key; curves go in a
+   `UPlotChart`, categories in a `BarChart`, anything else in a `Stage` whose labels are measured with the shell's text
+   kit (`fitLabel`, `niceTicks`); a table sits above the drawing of the same numbers. A product that is not about
+   cases (a hub, an explorer, a console) replaces the workbench with the shell's `SurfacePage` and runs the gate with
+   `--workbench ''`. The structure, tokens, icons and numbers are the shell's (its `docs/`); write CSS only for the
+   product's own widgets, never for a shell class (`check_web_baseline.py`).
 7. **The pages and the diagrams.** Rewrite `frontend/src/pages/` from the product's dossiers (equations with
    captions, references with DOIs that resolve) and the five diagrams in `frontend/src/architecture/` (bilingual,
    shell tokens only).
@@ -57,7 +61,8 @@ before the next starts.
 
 In separate steps: the sandboxed tests, the canonical bake (`scripts/precompute.sh`), `scripts/check_artifacts.py`,
 `npm run build`, `npm test`, `npm run gate`, and every guard in `.github/workflows/ci.yml`. Read the gate's
-captures (written under `frontend/`, in gate-output/shots) yourself: the gate measures, it does not judge content.
+captures yourself (`frontend/gate-output/index.html` shows every capture by route, the failures first): the gate
+measures, it does not judge content.
 
 A release bumps `VERSION`, `frontend/package.json` and the top of `CHANGELOG.md` together, merges `develop` into
 `main` through a pull request, and tags `vX.XX.XXX`. The deploy runs after CI succeeds on `main` and checks the live
