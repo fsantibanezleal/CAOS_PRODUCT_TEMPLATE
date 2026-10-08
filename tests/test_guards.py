@@ -227,3 +227,23 @@ def test_web_baseline_requires_an_exact_shell_pin(tmp_path):
     assert caret.returncode == 1 and "pin it exactly" in caret.stdout
     stale = _run("check_web_baseline.py", str(_web_tree(tmp_path / "b", "0.7.2", ".my-row { color: red; }\n")))
     assert stale.returncode == 1 and "the installed shell is 0.8.0, the pin is 0.7.2" in stale.stdout
+
+
+def test_web_baseline_requires_the_stylesheet_of_every_shell_entry_it_imports(tmp_path):
+    """CAOS_PRODUCT_TEMPLATE#22: a product drew the shell's chart without chart.css, and the chart had no height."""
+    shell = "@fasl-work/caos-app-shell"
+    bare = _web_tree(tmp_path / "a", "0.8.0", ".my-row { color: red; }\n")
+    _put(bare, "frontend/src/main.tsx", f"import {{ AppShell }} from '{shell}';\nimport {{ UPlotChart }} from '{shell}/chart';\n")
+    res = _run("check_web_baseline.py", str(bare))
+    assert res.returncode == 1
+    assert f"imports {shell} and never '{shell}/styles.css'" in res.stdout
+    assert f"imports {shell}/chart and never '{shell}/chart.css'" in res.stdout
+    styled = _web_tree(tmp_path / "b", "0.8.0", f"@import '{shell}/chart.css';\n.my-row {{ color: red; }}\n")
+    _put(styled, "frontend/src/main.tsx", f"import {{ AppShell }} from '{shell}';\nimport '{shell}/styles.css';\n")
+    _put(styled, "frontend/src/views.tsx", f"import {{ UPlotChart }} from '{shell}/chart';\n")
+    ok = _run("check_web_baseline.py", str(styled))
+    assert ok.returncode == 0, ok.stdout
+    # the shell alone, with no chart entry, needs no chart stylesheet
+    plain = _web_tree(tmp_path / "c", "0.8.0", ".my-row { color: red; }\n")
+    _put(plain, "frontend/src/main.tsx", f"import {{ AppShell }} from '{shell}';\nimport '{shell}/styles.css';\n")
+    assert _run("check_web_baseline.py", str(plain)).returncode == 0

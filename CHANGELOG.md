@@ -2,6 +2,30 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.03.001], 2026-10-08
+
+A guard for a failure the base's gate could report but not explain (issue #22), and the example on the shell 0.10.0.
+
+### Added
+
+- `check_web_baseline.py` fails when the source imports a shell entry and never its stylesheet: the shell needs
+  `styles.css`, and `@fasl-work/caos-app-shell/chart` needs `chart.css`, imported from a source file or from the
+  app's CSS. Without `chart.css` a filling chart has no height and is never drawn. CAOS_Fragmenta moved its parity
+  plot onto the shell's chart without it, and the gate said only that a stage never got a size. The guard could not
+  see it before: it reads both stylesheets from the installed shell, so a class the browser never receives a rule
+  for passed as styled.
+
+### Changed
+
+- The web runs on `@fasl-work/caos-app-shell` 0.10.0, pinned exactly: reference lines, point sizes and picking in the
+  plane on `UPlotChart` (what a parity plot needs), and every chart declares how many ticks each axis labels.
+
+### Verified
+
+- `pytest`: 25 tests (one new: the stylesheet of every shell entry the source imports); `ruff check`; every guard.
+- `npm test` 20 of 20; `npm run build`; `caos-shell-gate` on the built example: 0 failures in 331 states; captures
+  read.
+
 ## [0.03.000], 2026-10-07
 
 The base on the shell 0.9.3 (CAOS_MANAGE `plans/app-shell`; research in

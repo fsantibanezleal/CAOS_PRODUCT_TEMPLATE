@@ -95,4 +95,4 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0071 | the page is the viewport; one tab row; drawing at least half the viewport | the shell's `CaseWorkbench`; the gate (G5, G6) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
-| ADR-0078 | rules live in the base | shell 0.9.3 (pinned exactly) and this template; no product re-implements them |
+| ADR-0078 | rules live in the base | shell 0.10.0 (pinned exactly) and this template; no product re-implements them |
