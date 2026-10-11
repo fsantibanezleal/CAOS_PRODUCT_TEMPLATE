@@ -61,7 +61,12 @@ export function Workbench() {
   const unavailable = index.state === 'unavailable' ? index.reason : loaded.state === 'unavailable' ? loaded.reason : null;
   const moved = data && knobs && (knobs.beta !== data.manifest.params.beta || knobs.gamma !== data.manifest.params.gamma);
 
-  const rail = (
+  // An unavailable case has no parameters to show: its knobs would read 0, which is not data.
+  const knobRail = unavailable ? (
+    <p className="caos-pending" data-state="unavailable">
+      {lang === 'es' ? 'Los parámetros de este caso aún no están disponibles.' : "This case's parameters are not available yet."}
+    </p>
+  ) : (
     <>
       <Knob
         id="beta"
@@ -87,6 +92,12 @@ export function Workbench() {
         disabled={!knobs}
         onChange={(gamma) => knobs && setParams({ ...knobs, gamma })}
       />
+    </>
+  );
+
+  const rail = (
+    <>
+      {knobRail}
       {index.state === 'error' && <p role="alert">{index.error}</p>}
       <LiveValues sel={sel} />
     </>
