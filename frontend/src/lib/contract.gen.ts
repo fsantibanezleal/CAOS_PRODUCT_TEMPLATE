@@ -97,7 +97,7 @@ export interface paths {
         };
         /**
          * What is real in this build (catalog row readiness).
-         * @description The committed readiness document, with the api row set to available and provenance real, because the API answering is the evidence.
+         * @description The committed readiness document, with the api row set to status real, state available and provenance real, because the API answering is the evidence.
          */
         get: operations["getReadiness"];
         put?: never;
@@ -112,41 +112,29 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ParamsRecord: components["schemas"]["params-record.schema"];
-        CaseIndex: components["schemas"]["case-index.schema"];
-        CaseManifest: components["schemas"]["case-manifest.schema"];
-        Trace: components["schemas"]["trace.schema"];
-        SurrogateModel: components["schemas"]["surrogate-model.schema"];
-        Readiness: components["schemas"]["readiness.schema"];
-        Health: {
-            /** @constant */
-            status: "ok";
-        };
-        NotFoundBody: {
-            detail: string;
-        };
-        UnavailableBody: {
-            detail: {
-                /** @constant */
-                state: "missing";
-                reason: {
-                    en: string;
-                    es: string;
-                };
-            };
-        };
-        /** @description The product version format X.XX.XXX. */
-        version: string;
-        /** @description Every reader-facing string is bilingual at the source. */
-        text: {
-            en: string;
-            es: string;
+        /**
+         * ParamsRecord
+         * @description Contract 1 (ingestion), catalog row params-record 1.0.0: one operating point as accepted by data-pipeline/pipeline/io/contract.py validate_rows. The raw source is a table (CSV) with the columns case_id, beta, gamma, N, I0 and an optional days; values arrive as text and are parsed, never coerced: a row that fails a rule below is rejected with a reason, and a row with R0 = beta / gamma above 20 is accepted and flagged. Cross-field rule the schema cannot state: I0 <= N. EXAMPLE domain: an SIR epidemic; a product replaces the fields.
+         */
+        ParamsRecord: {
+            /** @description The case identifier. */
+            case_id: string;
+            /** @description Effective contact rate, 1/day. */
+            beta: number;
+            /** @description Recovery rate, 1/day. */
+            gamma: number;
+            /** @description Population, individuals. */
+            N: number;
+            /** @description Initial infected, individuals; at most N. */
+            I0: number;
+            /** @description Horizon in days; 160 when the source leaves it empty. */
+            days: number;
         };
         /**
          * CaseIndex
          * @description Contract 2 (artifact), catalog row case-index 2.0.0: the flat inventory of every baked case, written by data-pipeline/pipeline/core/manifest.py build_index to data/derived/manifests/index.json. Rules the schema cannot state, checked by the producer and consumer tests: n_cases equals the number of entries, default_case is one of their case_id values, and the entries are sorted by case_id.
          */
-        "case-index.schema": {
+        CaseIndex: {
             /** @constant */
             schema: "example.index/v2";
             /** @description The product version that baked the index; older than VERSION means the bake is stale. */
@@ -159,21 +147,12 @@ export interface components {
                 category: components["schemas"]["text"];
                 manifest_path: string;
             }[];
-            $defs: {
-                /** @description Every reader-facing string is bilingual at the source. */
-                text: {
-                    en: string;
-                    es: string;
-                };
-                /** @description The product version format X.XX.XXX. */
-                version: string;
-            };
         };
         /**
          * CaseManifest
          * @description Contract 2 (artifact), catalog row case-manifest 3.0.0: the authoritative record of one baked case, written by data-pipeline/pipeline/core/manifest.py build_case_manifest to data/derived/manifests/<case>.json. A pure function of (params, seed): no wall-clock time. Rules the schema cannot state, checked by scripts/check_artifacts.py: artifact.bytes equals the size of the file at artifact.path, and lane equals gate.lane.
          */
-        "case-manifest.schema": {
+        CaseManifest: {
             /** @constant */
             schema: "example.manifest/v3";
             case_id: string;
@@ -231,22 +210,12 @@ export interface components {
                     number
                 ];
             };
-            $defs: {
-                /** @description Every reader-facing string is bilingual at the source. */
-                text: {
-                    en: string;
-                    es: string;
-                };
-                /** @description The product version format X.XX.XXX. */
-                version: string;
-            };
         };
-        series: number[];
         /**
          * Trace
          * @description Contract 2 (artifact), catalog row trace 1.0.0: the compact replay artifact of one case, written by data-pipeline/pipeline/core/trace.py to data/derived/<case>/trace.json. The trajectory is decimated to at most 200 points; t, S, I and R have the same length (a rule the schema cannot state; the producer test checks it).
          */
-        "trace.schema": {
+        Trace: {
             /** @constant */
             schema: "example.trace/v1";
             case_id: string;
@@ -266,15 +235,64 @@ export interface components {
                 /** @description Share of the population ever infected. */
                 attack_rate: number;
             };
-            $defs: {
-                series: number[];
-            };
         };
         /**
-         * @description available: the real producer answered. partial: some of it exists (missing lists the rest). stale: an older bake answered (reason says how old). provider: the row's provider answered (provenance says which kind). training: a model slot answered with the released model or the baseline while a newer model trains, or with the baseline while no released model exists. missing: nothing answered.
-         * @enum {unknown}
+         * SurrogateModel
+         * @description Model slot, catalog row surrogate-model 1.0.0: the released surrogate bundle models/surrogate.json written by data-pipeline/pipeline/stages/train.py and read by stages/evaluate.py. Slot input: r0 = beta / gamma (dimensionless, > 0). Slot output: the peak infected fraction peak_I / N, in [0, 1] (the predictor clamps). When no valid bundle exists the baseline data-pipeline/pipeline/model/baseline.py answers: 1 - (1 + ln r0) / r0 for r0 > 1, else 0 (the SIR peak with S0 = 1 and I0 near 0). EXAMPLE: a real product's bundle is its exported model (ONNX, say) plus a card like this one.
          */
-        state: "available" | "partial" | "stale" | "provider" | "training" | "missing";
+        SurrogateModel: {
+            /** @constant */
+            kind: "linear-lstsq";
+            /**
+             * @description The design-matrix columns, in order.
+             * @constant
+             */
+            basis: [
+                "1",
+                "r0",
+                "ln(r0)",
+                "1/r0"
+            ];
+            /** @description One coefficient per basis column. */
+            coeffs: number[];
+        };
+        /**
+         * Readiness
+         * @description Catalog row readiness 1.0.0 (ADR-0080 decision 4): what is real in this build, per catalog row except readiness itself, written by data-pipeline/pipeline/core/readiness.py to data/derived/readiness.json from docs/contracts/catalog.md and the repository state, and read by the frontend and the dormant API. Deterministic: the product version and the catalog's SHA-256 identify it, no wall-clock time. The states and what each surface does with them: docs/contracts/catalog.md, section Missing-data states.
+         */
+        Readiness: {
+            /** @constant */
+            schema: "example.readiness/v1";
+            product_version: components["schemas"]["version"];
+            /** @description SHA-256 of docs/contracts/catalog.md (its UTF-8 bytes with CRLF normalised to LF) the document was computed from. */
+            catalog_sha256: string;
+            contracts: components["schemas"]["entry"][];
+        };
+        Health: {
+            /** @constant */
+            status: "ok";
+        };
+        NotFoundBody: {
+            detail: string;
+        };
+        UnavailableBody: {
+            detail: {
+                /** @constant */
+                state: "missing";
+                reason: {
+                    en: string;
+                    es: string;
+                };
+            };
+        };
+        /** @description Every reader-facing string is bilingual at the source. */
+        text: {
+            en: string;
+            es: string;
+        };
+        /** @description The product version format X.XX.XXX. */
+        version: string;
+        series: number[];
         entry: {
             /** @description The catalog row id. */
             id: string;
@@ -297,90 +315,10 @@ export interface components {
             missing: string[];
         } & (unknown & unknown & unknown & unknown & unknown & unknown);
         /**
-         * Readiness
-         * @description Catalog row readiness 1.0.0 (ADR-0080 decision 4): what is real in this build, per catalog row except readiness itself, written by data-pipeline/pipeline/core/readiness.py to data/derived/readiness.json from docs/contracts/catalog.md and the repository state, and read by the frontend and the dormant API. Deterministic: the product version and the catalog's SHA-256 identify it, no wall-clock time. The states and what each surface does with them: docs/contracts/catalog.md, section Missing-data states.
+         * @description available: the real producer answered. partial: some of it exists (missing lists the rest). stale: an older bake answered (reason says how old). provider: the row's provider answered (provenance says which kind). training: a model slot answered with the released model or the baseline while a newer model trains, or with the baseline while no released model exists. missing: nothing answered.
+         * @enum {unknown}
          */
-        "readiness.schema": {
-            /** @constant */
-            schema: "example.readiness/v1";
-            product_version: components["schemas"]["version"];
-            /** @description SHA-256 of docs/contracts/catalog.md (its UTF-8 bytes with CRLF normalised to LF) the document was computed from. */
-            catalog_sha256: string;
-            contracts: components["schemas"]["entry"][];
-            $defs: {
-                entry: {
-                    /** @description The catalog row id. */
-                    id: string;
-                    /** @description The catalog row's contract version (semver). */
-                    version: string;
-                    /**
-                     * @description The catalog's design status: real once the real producer serves the row, active while its provider does.
-                     * @enum {unknown}
-                     */
-                    status: "real" | "active";
-                    /**
-                     * @description What actually served the row in this build; null when nothing did (state missing).
-                     * @enum {unknown}
-                     */
-                    provenance: "real" | "stub" | "simulator" | "fixture" | "baseline" | null;
-                    state: components["schemas"]["state"];
-                    /** @description Why the state is not available; null only when it is. */
-                    reason: components["schemas"]["text"] | null;
-                    /** @description For partial: what is absent (file paths, rejected record ids). Empty otherwise. */
-                    missing: string[];
-                } & (unknown & unknown & unknown & unknown & unknown & unknown);
-                /**
-                 * @description available: the real producer answered. partial: some of it exists (missing lists the rest). stale: an older bake answered (reason says how old). provider: the row's provider answered (provenance says which kind). training: a model slot answered with the released model or the baseline while a newer model trains, or with the baseline while no released model exists. missing: nothing answered.
-                 * @enum {unknown}
-                 */
-                state: "available" | "partial" | "stale" | "provider" | "training" | "missing";
-                /** @description Every reader-facing string is bilingual at the source. */
-                text: {
-                    en: string;
-                    es: string;
-                };
-                /** @description The product version format X.XX.XXX. */
-                version: string;
-            };
-        };
-        /**
-         * ParamsRecord
-         * @description Contract 1 (ingestion), catalog row params-record 1.0.0: one operating point as accepted by data-pipeline/pipeline/io/contract.py validate_rows. The raw source is a table (CSV) with the columns case_id, beta, gamma, N, I0 and an optional days; values arrive as text and are parsed, never coerced: a row that fails a rule below is rejected with a reason, and a row with R0 = beta / gamma above 20 is accepted and flagged. Cross-field rule the schema cannot state: I0 <= N. EXAMPLE domain: an SIR epidemic; a product replaces the fields.
-         */
-        "params-record.schema": {
-            /** @description The case identifier. */
-            case_id: string;
-            /** @description Effective contact rate, 1/day. */
-            beta: number;
-            /** @description Recovery rate, 1/day. */
-            gamma: number;
-            /** @description Population, individuals. */
-            N: number;
-            /** @description Initial infected, individuals; at most N. */
-            I0: number;
-            /** @description Horizon in days; 160 when the source leaves it empty. */
-            days: number;
-        };
-        /**
-         * SurrogateModel
-         * @description Model slot, catalog row surrogate-model 1.0.0: the released surrogate bundle models/surrogate.json written by data-pipeline/pipeline/stages/train.py and read by stages/evaluate.py. Slot input: r0 = beta / gamma (dimensionless, > 0). Slot output: the peak infected fraction peak_I / N, in [0, 1] (the predictor clamps). When no valid bundle exists the baseline data-pipeline/pipeline/model/baseline.py answers: 1 - (1 + ln r0) / r0 for r0 > 1, else 0 (the SIR peak with S0 = 1 and I0 near 0). EXAMPLE: a real product's bundle is its exported model (ONNX, say) plus a card like this one.
-         */
-        "surrogate-model.schema": {
-            /** @constant */
-            kind: "linear-lstsq";
-            /**
-             * @description The design-matrix columns, in order.
-             * @constant
-             */
-            basis: [
-                "1",
-                "r0",
-                "ln(r0)",
-                "1/r0"
-            ];
-            /** @description One coefficient per basis column. */
-            coeffs: number[];
-        };
+        state: "available" | "partial" | "stale" | "provider" | "training" | "missing";
     };
     responses: {
         /** @description No such case or artifact. */
@@ -464,7 +402,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["case-index.schema"];
+                    "application/json": components["schemas"]["CaseIndex"];
                 };
             };
             503: components["responses"]["Unavailable"];
@@ -487,7 +425,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["case-manifest.schema"];
+                    "application/json": components["schemas"]["CaseManifest"];
                 };
             };
             404: components["responses"]["NotFound"];
@@ -511,7 +449,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["trace.schema"];
+                    "application/json": components["schemas"]["Trace"];
                 };
             };
             404: components["responses"]["NotFound"];
@@ -532,7 +470,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["readiness.schema"];
+                    "application/json": components["schemas"]["Readiness"];
                 };
             };
             503: components["responses"]["Unavailable"];
