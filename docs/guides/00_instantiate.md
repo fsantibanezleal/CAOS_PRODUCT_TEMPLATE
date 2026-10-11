@@ -25,22 +25,42 @@ The script writes `product.json`, the frontend package name, `VERSION` (0.01.000
 then it bakes, tests and builds once and runs `scripts/check_template_residue.py`. That list is the work that
 follows.
 
-## 2. Replace the example, unit by unit
+## 2. Size the product and fix its contracts first
+
+Contract-first parallel delivery (ADR-0080): before any unit is built, the product is sized (repositories,
+components, modules with their owner units, every boundary, the tool versions verified on primary sources, the
+machine limits, the parallel units with disjoint write scopes) in the coordination records, and its contracts are
+written here, in [`docs/contracts/catalog.md`](../contracts/catalog.md): one row per boundary and per model slot,
+each with its schema file, an example, the tests of both sides, its missing-data behavior and a provider (a fixture,
+a simulator, a stub, or a baseline for a model slot). Replace the example's rows, schemas and provider tree with the
+product's, regenerate the web's types (`cd frontend && npm run contracts:types`), recompute the readiness
+(`python data-pipeline/run.py readiness`), and run `scripts/check_contracts.py` until it passes.
+
+The walking skeleton comes next: the site built on the provider tree
+(`CAOS_DATA_ROOT=docs/contracts/fixtures/data/derived npm run build`) and the API serving it, deployed so the UI and
+the integration are checked from the first week. Every provider is labelled on the site by the readiness document
+and listed by `scripts/check_skeleton.py` until its real producer replaces it; none may remain at a release.
+
+## 3. Replace the example, unit by unit
 
 Build vertically: each unit (a method, a case family, a page) is finished, with its code, tests and documentation,
-before the next starts.
+before the next starts; units whose write scopes are disjoint are built at once, against the fixed contracts.
 
 1. **The engine.** Replace `data-pipeline/pipeline/model/` and the stage bodies with the method ladder of the SDD.
    Each method meets its acceptance criterion (ADR-0069) and gets a card in `docs/frameworks/`, its dependency
    pinned in `data-pipeline/requirements.txt` (or the precompute or GPU file).
 2. **Contract 1.** Rewrite `data-pipeline/pipeline/io/contract.py` for the product's raw data (columns, units,
-   ranges, outlier policy) with a sample in `data/examples/`; update `tests/test_contract.py` and `data/README.md`.
+   ranges, outlier policy) with a sample in `data/examples/`, to the params-record schema the catalog fixed (the
+   test holds the schema's bounds equal to the code's); update `tests/test_contract.py`,
+   `tests/contracts/test_params_record.py` and `data/README.md`.
 3. **The cases.** Rewrite `data-pipeline/pipeline/cases/` and the registry: bilingual titles, categories and expected
    bands, and numeric expected ranges for every case (`core/expect.py` fails the bake outside them). Set the default
    case. Document the coverage matrix in `docs/cases/`.
-4. **Contract 2.** Rename the schema ids (`example.*`) to the product's, change the trace and manifest shapes as the
-   method needs, and change `frontend/src/lib/contract.types.ts` with them: the descriptors and `contract.test.ts`
-   fail on any key or type that one side has and the other does not.
+4. **Contract 2.** Rename the schema ids (`example.*`) to the product's and change the trace and manifest shapes as
+   the method needs, in the schema files first (bump the catalog row's version), then the producers, the generated
+   types (`npm run contracts:types`) and the descriptors in `frontend/src/lib/contract.types.ts`: the build fails
+   while the generated types are not current, and `tests/contracts/` and `contract.test.ts` fail on any key or type
+   that one side has and the other does not.
 5. **The live engine.** If a method runs live, port it to `frontend/src/engine/` and hold it to the baked artifacts
    with a parity test, as `sir.parity.test.ts` does. If none can, the workbench replays only and declares
    `replayOnly`.
@@ -57,7 +77,7 @@ before the next starts.
 8. **The SDD requirements.** Replace `docs/design/features/workbench/` with the product's features; every
    requirement names a test or guard that exists.
 
-## 3. Verify, then release
+## 4. Verify, then release
 
 In separate steps: the sandboxed tests, the canonical bake (`scripts/precompute.sh`), `scripts/check_artifacts.py`,
 `npm run build`, `npm test`, `npm run gate`, and every guard in `.github/workflows/ci.yml`. Read the gate's
