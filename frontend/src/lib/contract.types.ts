@@ -85,7 +85,35 @@ export interface CaseIndex {
   cases: CaseIndexEntry[];
 }
 
-export const SCHEMAS = { trace: 'example.trace/v1', manifest: 'example.manifest/v3', index: 'example.index/v2' } as const;
+/** The declared state of a catalog row (docs/contracts/catalog.md, Missing-data states). */
+export type ContractState = 'available' | 'partial' | 'stale' | 'provider' | 'training' | 'missing';
+
+/** What served a catalog row in this build; null when nothing did. */
+export type Provenance = 'real' | 'stub' | 'simulator' | 'fixture' | 'baseline';
+
+export interface ReadinessEntry {
+  id: string;
+  version: string;
+  status: 'real' | 'active';
+  provenance: Provenance | null;
+  state: ContractState;
+  reason: Text | null;
+  missing: string[];
+}
+
+export interface Readiness {
+  schema: string; // "example.readiness/v1"
+  product_version: string;
+  catalog_sha256: string;
+  contracts: ReadinessEntry[];
+}
+
+export const SCHEMAS = {
+  trace: 'example.trace/v1',
+  manifest: 'example.manifest/v3',
+  index: 'example.index/v2',
+  readiness: 'example.readiness/v1',
+} as const;
 
 /** A run-time description of a value: a primitive, a bilingual text, an array of a kind, an object, a map, or a
  * kind that may also be null (an optional bound, an absent reference). */
@@ -147,6 +175,25 @@ export const INDEX = {
   default_case: 'string',
   cases: { array: { object: { case_id: 'string', title: 'text', category: 'text', manifest_path: 'string' } satisfies Record<keyof CaseIndexEntry, Kind> } },
 } satisfies Record<keyof CaseIndex, Kind>;
+
+export const READINESS = {
+  schema: 'string',
+  product_version: 'string',
+  catalog_sha256: 'string',
+  contracts: {
+    array: {
+      object: {
+        id: 'string',
+        version: 'string',
+        status: 'string',
+        provenance: { nullable: 'string' },
+        state: 'string',
+        reason: { nullable: 'text' },
+        missing: { array: 'string' },
+      } satisfies Record<keyof ReadinessEntry, Kind>,
+    },
+  },
+} satisfies Record<keyof Readiness, Kind>;
 
 /** Every way `value` departs from `kind`, with its path; empty when it conforms. Booleans are not numbers. */
 export function conform(value: unknown, kind: Kind, path = '$'): string[] {
