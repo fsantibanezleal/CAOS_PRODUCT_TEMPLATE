@@ -2,12 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "case-manifest.schema.json",
   "title": "CaseManifest",
-  "description": "Contract 2 (artifact), catalog row case-manifest 3.0.0: the authoritative record of one baked case, written by data-pipeline/pipeline/core/manifest.py build_case_manifest to data/derived/manifests/<case>.json. A pure function of (params, seed): no wall-clock time. Rules the schema cannot state, checked by scripts/check_artifacts.py: artifact.bytes equals the size of the file at artifact.path, and lane equals gate.lane.",
+  "description": "Contract 2 (artifact), catalog row case-manifest 4.0.0: the authoritative record of one baked case, written by data-pipeline/pipeline/core/manifest.py build_case_manifest to data/derived/manifests/<case>.json. A pure function of (params, seed): no wall-clock time. Rules the schema cannot state, checked by scripts/check_artifacts.py: artifact.bytes equals the size of the file at artifact.path, and lane equals gate.lane.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "case_id", "title", "category", "real_or_synthetic", "expected_band", "engine", "params", "seed", "artifact", "lane", "gate", "flags", "metrics", "expect"],
+  "required": ["schema", "case_id", "title", "category", "real_or_synthetic", "expected_band", "engine", "params", "seed", "artifact", "lane", "gate", "flags", "metrics", "models", "expect"],
   "properties": {
-    "schema": {"const": "example.manifest/v3"},
+    "schema": {"const": "example.manifest/v4"},
     "case_id": {"type": "string", "minLength": 1},
     "title": {"$ref": "#/$defs/text"},
     "category": {"$ref": "#/$defs/text"},
@@ -71,6 +71,12 @@
       "type": "object",
       "description": "Evaluation metrics of this bake (the surrogate model slot's held-out error, among others).",
       "additionalProperties": {"type": "number"}
+    },
+    "models": {
+      "type": "object",
+      "description": "Per model slot (catalog row id), what produced this bake's metrics: the released bundle (real) or the slot's baseline.",
+      "propertyNames": {"pattern": "^[a-z0-9][a-z0-9-]*$"},
+      "additionalProperties": {"enum": ["real", "baseline"]}
     },
     "expect": {
       "type": "object",

@@ -33,8 +33,9 @@ which a reader's own data enters ([guide 02](../guides/02_bring-your-own-data.md
 
 - `data/derived/manifests/index.json` (`example.index/v2`): every case with its bilingual title and category, and the
   case the App opens on;
-- `manifests/<case>.json` (`example.manifest/v3`): parameters, seed, engine and version, the artifact and its byte
-  size, the lane verdict, the evaluation metrics, the expected ranges, and the bilingual expected band;
+- `manifests/<case>.json` (`example.manifest/v4`): parameters, seed, engine and version, the artifact and its byte
+  size, the lane verdict, the evaluation metrics and the model that produced them (released or baseline), the
+  expected ranges, and the bilingual expected band;
 - `<case>/trace.json` (`example.trace/v1`): at most 200 points of the trajectory and its summary.
 
 ## The model slot
@@ -60,7 +61,7 @@ not dirty the tree.
 ## The walking skeleton
 
 `docs/contracts/fixtures/data/derived/` is a provider tree in the layout of `data/derived/`: one case, its
-manifest and trace, the index, and a readiness document that says provider for every row. The site builds on it
+manifest and trace, the index, and a readiness document that says provider for every row but the dormant api. The site builds on it
 (`CAOS_DATA_ROOT=docs/contracts/fixtures/data/derived npm run build`) and the API serves it
 (`DATA_DIR=docs/contracts/fixtures/data/derived`), so a product's frontend and API are deployed and checked before
 its first real bake, and every contract test runs against it and against the bake with the same assertions.
