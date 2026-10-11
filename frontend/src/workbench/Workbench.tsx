@@ -5,8 +5,10 @@ import { CaseWorkbench, Knob, Readout, useShellLang, useWorkbenchState, type Cas
 import { useEffect, useMemo, useState } from 'react';
 import { loadCase, loadIndex, useArtifact, type CaseData } from '../api/artifacts';
 import { simulate } from '../engine/sir';
+import { caseAbsent } from '../readiness/readiness';
+import { useReadiness } from '../readiness/useReadiness';
 import { COVERAGE, type Selection } from './model';
-import { CompareView, ContextView, DynamicsView, ValidationView } from './views';
+import { CompareView, ContextView, DynamicsView, UnavailableContext, ValidationView } from './views';
 
 function LiveValues({ sel }: { sel: Selection | null }) {
   const stateKey = useWorkbenchState()?.stateKey;
@@ -28,6 +30,7 @@ function LiveValues({ sel }: { sel: Selection | null }) {
 
 export function Workbench() {
   const lang = useShellLang();
+  const readiness = useReadiness();
   const index = useArtifact((s) => loadIndex(s), []);
   const [caseId, setCaseId] = useState<string | null>(null);
   const selected = caseId ?? (index.state === 'ready' ? index.data.default_case : null);
@@ -49,7 +52,13 @@ export function Workbench() {
     return { data, beta: knobs.beta, gamma: knobs.gamma, coverage, run };
   }, [data, knobs, coverage]);
 
-  const cases: CaseDef[] = index.state === 'ready' ? index.data.cases.map((c) => ({ id: c.case_id, name: c.title[lang], category: c.category[lang] })) : [];
+  // A case the readiness document lists as absent stays in the selector, marked, so its reason can be read.
+  const absent = lang === 'es' ? ' (aún no disponible)' : ' (not available yet)';
+  const cases: CaseDef[] =
+    index.state === 'ready'
+      ? index.data.cases.map((c) => ({ id: c.case_id, name: c.title[lang] + (caseAbsent(readiness ?? null, c.case_id, c.manifest_path) ? absent : ''), category: c.category[lang] }))
+      : [];
+  const unavailable = index.state === 'unavailable' ? index.reason : loaded.state === 'unavailable' ? loaded.reason : null;
   const moved = data && knobs && (knobs.beta !== data.manifest.params.beta || knobs.gamma !== data.manifest.params.gamma);
 
   const rail = (
@@ -84,6 +93,7 @@ export function Workbench() {
   );
 
   return (
+    <UnavailableContext.Provider value={unavailable}>
     <CaseWorkbench
       caseId={selected ?? ''}
       source={data?.manifest.real_or_synthetic}
@@ -109,5 +119,6 @@ export function Workbench() {
       compare={{ label: { en: 'Compare immunisation', es: 'Comparar inmunización' }, lane: 'live', provenance: 'synthetic', content: <CompareView sel={sel} /> }}
       context={{ content: <ContextView sel={sel} /> }}
     />
+    </UnavailableContext.Provider>
   );
 }
