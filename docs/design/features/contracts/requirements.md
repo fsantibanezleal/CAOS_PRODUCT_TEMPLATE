@@ -10,7 +10,7 @@ reasons are its section Missing-data states.
 | CT-002 | THE provider tree SHALL satisfy the same schemas and cross-field rules as the bake. | `tests/contracts/test_documents.py::test_fixture_tree_validates` |
 | CT-003 | IF a document drifts from its schema (an extra key, a missing key, a wrong type), THEN THE contract tests SHALL fail. | `tests/contracts/test_documents.py::test_drifted_documents_are_rejected` |
 | CT-004 | THE schema of contract 1 SHALL hold the same bounds as the code that applies it. | `tests/contracts/test_params_record.py::test_schema_valid_records_are_accepted` |
-| CT-005 | WHEN a schema file changes, THE web build SHALL fail until the generated types are regenerated. | `frontend/scripts/gen-contract-types.mjs`, run by `npm run build` |
+| CT-005 | WHEN a schema change alters the generated types, THE web build SHALL fail until they are regenerated. | `frontend/scripts/gen-contract-types.mjs`, run by `npm run build` |
 | CT-006 | THE web SHALL read the committed bake and the provider tree with the same assertions. | `frontend/src/lib/contract.test.ts::the readiness document conforms and lists the catalog rows in order` |
 | CT-007 | THE generated API response bodies SHALL be the document types. | `frontend/src/lib/api.contract.test.ts::200 bodies` |
 | CT-008 | THE bake SHALL write a readiness document equal to a fresh computation from the catalog and the repository. | `tests/contracts/test_readiness.py::test_committed_readiness_is_current` |
@@ -30,4 +30,10 @@ reasons are its section Missing-data states.
 | CT-022 | THE site SHALL label a view with the most severe state of its rows, in the order missing, partial, training, provider, stale, available. | `frontend/src/readiness/readiness.test.ts::order: missing, partial, training, provider, stale, available; the most severe wins` |
 | CT-023 | IF the readiness document cannot be read, THEN THE site SHALL keep every view working and say readiness unknown. | `frontend/src/readiness/readiness.test.ts::a fetch that fails resolves to null, names the cause on the console, and is asked for once` |
 | CT-024 | IF the readiness lists a case's trace as absent, THEN THE site SHALL say not available yet with the reason and never fetch it. | `frontend/src/readiness/readiness.test.ts::loadCase rejects with ArtifactUnavailable naming the path and the reason, and never fetches the trace` |
+| CT-026 | IF a catalog row's status is other than real or active, THEN THE readiness computation SHALL fail, so the row is never published as real. | `tests/contracts/test_readiness.py::test_check_readiness_reports_an_unknown_status` |
+| CT-027 | THE API SHALL serve a manifest only for an indexed case and an artifact only for a path an indexed manifest names. | `tests/contracts/test_api.py::test_every_document_under_the_root_is_served_as_declared_or_404` |
+| CT-028 | IF a committed document cannot be read, THEN THE API SHALL answer 503 with state missing and the reason, never 500. | `tests/contracts/test_api.py::test_an_unreadable_index_is_a_503` |
+| CT-029 | WHEN the readiness declares a manifest or an artifact absent in a partial row, THE build and the artifact check SHALL go on with a warning, and SHALL stop for an absence it does not declare. | `tests/contracts/test_partial_bake.py::test_an_undeclared_absent_trace_stops` |
+| CT-030 | THE CI SHALL validate every committed document against its schema file, constraints included. | `tests/contracts/test_check_documents.py::test_a_pattern_violation_fails` |
+| CT-031 | WHILE the committed metrics come from the baseline, THE readiness SHALL say so, even after a released bundle appears. | `tests/contracts/test_readiness.py::test_a_baseline_bake_stays_baseline_after_a_bundle_appears` |
 | CT-025 | WHILE the branch is main, THE CI SHALL fail when a catalog row is still served by a provider. | `.github/workflows/ci.yml`, step "Rows still served by a provider" |

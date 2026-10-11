@@ -36,7 +36,7 @@ the sizing's parallel units, built at once against the fixed rows.
   coerced; an unusual value (R0 above 20) is accepted and flagged into the manifest.
 - Artifacts (case-index, case-manifest, trace, contract 2): `data/derived/manifests/index.json`
   (`example.index/v2`: cases with bilingual titles and categories, the default case), one manifest per case
-  (`example.manifest/v3`: parameters, seed, engine and version, artifact, lane verdict, metrics, expected ranges,
+  (`example.manifest/v4`: parameters, seed, engine and version, artifact, lane verdict, metrics and the model behind them, expected ranges,
   bilingual expected band) and one trace per case (`example.trace/v1`: at most 200 points, summary). The web's
   types are generated from the schema files (`frontend/src/lib/contract.gen.ts`), and
   `frontend/src/lib/contract.test.ts` reads every committed document and the provider tree against them in both

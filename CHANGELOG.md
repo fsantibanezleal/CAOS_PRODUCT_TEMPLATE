@@ -56,6 +56,13 @@ against contracts fixed first.
 
 - The API answered `GET /api/cases` with `{"cases": []}`, a body that is not an index, when no bake existed; it now
   answers 503 with state `missing` and the reason.
+- From the release's adversarial review: a catalog status other than `real` or `active` fails the readiness
+  computation instead of being published as real; the API serves only indexed manifests and the artifacts they name
+  (it served the index and the readiness as artifacts) and answers 503, never 500, for an unreadable document; a bake
+  the readiness declares partial builds, with a warning per declared absence, so the frontend's partial handling
+  reaches the site; `scripts/check_documents.py` validates every committed document against its schema in CI
+  (constraints the generated types do not carry); the manifest is `example.manifest/v4` and records which model
+  produced its metrics, so a baseline bake stays labelled after a bundle appears.
 
 ## [0.03.001], 2026-10-08
 
