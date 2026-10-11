@@ -60,7 +60,7 @@
       "get": {
         "operationId": "getReadiness",
         "summary": "What is real in this build (catalog row readiness).",
-        "description": "The committed readiness document, with the api row set to available and provenance real, because the API answering is the evidence.",
+        "description": "The committed readiness document, with the api row set to status real, state available and provenance real, because the API answering is the evidence.",
         "responses": {
           "200": {"description": "The readiness document.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Readiness"}}}},
           "503": {"$ref": "#/components/responses/Unavailable"}
