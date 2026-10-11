@@ -193,6 +193,79 @@ def test_state_training_with_an_invalid_bundle(repo):
     assert (e["state"], e["provenance"]) == ("training", "baseline")
 
 
+def set_status(r: Path, row_id: str, status: str) -> None:
+    """Rewrite the status cell of catalog row ``row_id`` in the repository copy ``r``."""
+    cat = r / "docs" / "contracts" / "catalog.md"
+    text = cat.read_text(encoding="utf-8")
+    row = next(ln for ln in text.splitlines() if ln.startswith(f"| {row_id} |"))
+    cells = row.split("|")
+    cells[-2] = f" {status} "
+    cat.write_text(text.replace(row, "|".join(cells)), encoding="utf-8")
+
+
+@pytest.mark.parametrize("bad", ["stub", "live", "Active", "REAL", "real extra", "baseline", ""])
+def test_a_status_other_than_real_or_active_fails(repo, bad):
+    set_status(repo, "case-index", bad)
+    with pytest.raises(ValueError) as exc:
+        readiness.compute(repo_root=repo, derived_root=repo / "data" / "derived", models_dir=repo / "models")
+    assert "case-index" in str(exc.value) and "real" in str(exc.value) and "active" in str(exc.value)
+
+
+def test_table_padding_is_formatting_not_a_status(repo):
+    set_status(repo, "case-index", "   real   ")
+    assert entry(run(repo), "case-index")["state"] == "available"
+
+
+def test_check_readiness_reports_an_unknown_status(repo):
+    set_status(repo, "case-index", "stub")
+    p = _check(repo)
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert "case-index" in p.stdout and "real" in p.stdout and "active" in p.stdout
+    assert "Traceback" not in p.stdout + p.stderr
+
+
+def bake_with_the_baseline(r: Path) -> None:
+    """Re-bake the repository copy's derived tree with no released bundle in reach: every manifest is a baseline's."""
+    shutil.rmtree(r / "data" / "derived")
+    pipeline.run_all(output_root=r / "data" / "derived", train=False)
+    shutil.rmtree(r / "data" / "derived" / "models", ignore_errors=True)
+    (r / "data" / "derived" / "readiness.json").unlink()
+
+
+def test_a_baseline_bake_stays_baseline_after_a_bundle_appears(repo):
+    assert (repo / "models" / "surrogate.json").is_file()  # a valid released bundle is in place now
+    bake_with_the_baseline(repo)
+    for m in (repo / "data" / "derived" / "manifests").glob("EX*.json"):
+        assert json.loads(m.read_text(encoding="utf-8"))["models"] == {"surrogate-model": "baseline"}
+    e = entry(run(repo), "surrogate-model")
+    assert (e["state"], e["provenance"]) == ("training", "baseline")
+    assert e["reason"] == fill(template("a manifest records that the baseline produced"))
+
+
+def test_one_baseline_manifest_is_enough(repo):
+    path = repo / "data" / "derived" / "manifests" / "EX01_subcritical.json"
+    m = json.loads(path.read_text(encoding="utf-8"))
+    m["models"] = {"surrogate-model": "baseline"}
+    write_json(path, m)
+    assert entry(run(repo), "surrogate-model")["provenance"] == "baseline"
+
+
+def test_a_real_bake_with_a_bundle_is_available(repo):
+    for m in (repo / "data" / "derived" / "manifests").glob("EX*.json"):
+        assert json.loads(m.read_text(encoding="utf-8"))["models"] == {"surrogate-model": "real"}
+    assert entry(run(repo), "surrogate-model")["state"] == "available"
+
+
+def test_the_baseline_rule_comes_before_the_marker(repo):
+    path = repo / "data" / "derived" / "manifests" / "EX01_subcritical.json"
+    m = json.loads(path.read_text(encoding="utf-8"))
+    m["models"] = {"surrogate-model": "baseline"}
+    write_json(path, m)
+    (repo / "models" / "training").mkdir()
+    (repo / "models" / "training" / "surrogate-model").write_text("started", encoding="utf-8")
+    assert entry(run(repo), "surrogate-model")["provenance"] == "baseline"
+
+
 def test_state_training_with_the_marker(repo):
     (repo / "models" / "training").mkdir()
     (repo / "models" / "training" / "surrogate-model").write_text("started", encoding="utf-8")

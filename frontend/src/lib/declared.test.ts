@@ -52,3 +52,43 @@ describe('the declared files of the site', () => {
     expect(missing).toEqual(['readiness.json']);
   });
 });
+
+describe('a declared-partial bake builds', () => {
+  const partial = join(root, 'partial');
+  const putPartial = (rel: string, doc: unknown) => {
+    mkdirSync(dirname(join(partial, rel)), { recursive: true });
+    writeFileSync(join(partial, rel), JSON.stringify(doc));
+  };
+  const readiness = (missing: string[], state = 'partial') => ({
+    contracts: [{ id: 'trace', state, missing }, { id: 'params-record', state: 'partial', missing: ['some_case_id'] }],
+  });
+  const setup = (doc: unknown) => {
+    putPartial('manifests/index.json', { cases: [{ case_id: 'A', manifest_path: 'manifests/A.json' }, { case_id: 'B', manifest_path: 'manifests/B.json' }] });
+    putPartial('manifests/A.json', { artifact: { path: 'A/trace.json' } });
+    putPartial('manifests/B.json', { artifact: { path: 'B/trace.json' } });
+    putPartial('A/trace.json', {});
+    if (doc !== null) putPartial('readiness.json', doc);
+  };
+  it('tolerates an absent file that the readiness lists in a partial row, and only that one', () => {
+    setup(readiness(['B/trace.json']));
+    const { missing, tolerated } = declaredFiles(partial);
+    expect(missing).toEqual(['B/trace.json']);
+    expect(tolerated).toEqual(['B/trace.json']);
+  });
+  it('does not tolerate an absent file that the readiness does not list', () => {
+    setup(readiness(['A/other.json']));
+    const { missing, tolerated } = declaredFiles(partial);
+    expect(missing).toEqual(['B/trace.json']);
+    expect(tolerated).toEqual([]);
+  });
+  it('lists nothing as declared-absent for a row whose state is not partial', () => {
+    setup(readiness(['B/trace.json'], 'available'));
+    expect(declaredFiles(partial).tolerated).toEqual([]);
+  });
+  it('tolerates nothing when the readiness is absent or unreadable', () => {
+    setup(null);
+    expect(declaredFiles(partial).tolerated).toEqual([]);
+    putPartial('readiness.json', 'not an object');
+    expect(declaredFiles(partial).tolerated).toEqual([]);
+  });
+});

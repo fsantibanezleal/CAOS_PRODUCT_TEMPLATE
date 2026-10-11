@@ -43,6 +43,24 @@ function catalogIds(): string[] {
   return ids;
 }
 
+/** The model slots of the catalog: the rows whose `model io` cell is not `-`. */
+function modelSlots(): string[] {
+  const slots: string[] = [];
+  let inTable = false;
+  let ioColumn = -1;
+  for (const line of readFileSync(catalogUrl, 'utf8').split(/\r?\n/)) {
+    if (line.startsWith('## ')) {
+      inTable = line.trim() === '## Contracts';
+      continue;
+    }
+    if (!inTable || !line.startsWith('|')) continue;
+    const cells = line.split('|').slice(1, -1).map((c) => c.trim());
+    if (cells[0] === 'id') ioColumn = cells.findIndex((c) => c.toLowerCase() === 'model io');
+    else if (!/^-+$/.test(cells[0]) && ioColumn >= 0 && cells[ioColumn] !== '-') slots.push(cells[0]);
+  }
+  return slots;
+}
+
 function readFrom(root: URL, rel: string): unknown {
   const url = new URL(rel, root);
   if (!existsSync(url)) throw new Error(`missing committed document: ${fileURLToPath(url)}`);
@@ -71,6 +89,12 @@ for (const [label, root] of Object.entries(roots)) {
         expect(m.schema).toBe(SCHEMAS.manifest);
         expect(m.case_id).toBe(entry.case_id);
         expect(m.lane).toBe(m.gate.lane);
+        // models: only catalog model slots (a row with a model io cell), each real or baseline
+        expect(Object.keys(m.models).length).toBeGreaterThan(0);
+        for (const [slot, which] of Object.entries(m.models)) {
+          expect(modelSlots()).toContain(slot);
+          expect(['real', 'baseline']).toContain(which);
+        }
         const t = read(m.artifact.path) as Trace;
         expect(conform(t, { object: TRACE })).toEqual([]);
         expect(t.schema).toBe(SCHEMAS.trace);
@@ -114,6 +138,9 @@ describe('CONTRACT 2: the checker', () => {
     const body = { detail: { state: 'missing', reason: { en: 'x', es: 'y' } } };
     expect(conform(body, { object: UNAVAILABLE })).toEqual([]);
     expect(conform({ detail: { state: 'missing' } }, { object: UNAVAILABLE }).join('')).toMatch(/reason: declared by the web/);
+  });
+  it('the model slots are the catalog rows with a model io cell', () => {
+    expect(modelSlots()).toEqual(['surrogate-model']);
   });
   it('the catalog table is parsed: seven rows, readiness among them', () => {
     expect(catalogIds()).toEqual(['params-record', 'case-index', 'case-manifest', 'trace', 'surrogate-model', 'readiness', 'api']);

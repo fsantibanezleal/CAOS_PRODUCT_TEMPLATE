@@ -60,6 +60,11 @@ def _messages(v: Draft202012Validator, instance: Any) -> list[str]:
     return [f"{'/'.join(str(p) for p in e.absolute_path) or '$'}: {e.message}" for e in found]
 
 
+def component_errors(name: str, instance: Any) -> list[str]:
+    """Every way ``instance`` departs from the OpenAPI component ``name`` (for example UnavailableBody)."""
+    return _messages(_validator_for(f"{BASE}api.openapi.json#/components/schemas/{name}"), instance)
+
+
 def _escape(token: str) -> str:
     return token.replace("~", "~0").replace("/", "~1")
 

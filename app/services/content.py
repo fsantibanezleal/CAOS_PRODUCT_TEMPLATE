@@ -1,5 +1,9 @@
 """Read the committed documents (index, manifests, artifacts, readiness) as they are. Read-only, path-traversal guarded.
 
+Only what the index lists is served: a manifest of an indexed case, an artifact an indexed manifest names (never the
+index, the readiness or a manifest as an "artifact"), so no route answers with a body its OpenAPI response does not
+declare. A document that exists but is not JSON raises ``Unreadable``, which the router answers as a declared 503.
+
 Nothing here knows a product's manifest shape beyond contract 2's two forms: one artifact (`artifact: {path}` at the
 manifest's top level) or several (`artifacts: [{path, ...}]`, one per variant). The documents are served unchanged;
 their shapes are checked by scripts/check_artifacts.py and the web's contract test, never re-declared here.
@@ -13,17 +17,29 @@ from typing import Any
 from ..config import REPO_ROOT, Settings
 
 
+class Unreadable(Exception):
+    """A committed document exists but cannot be read as JSON; ``rel`` is its path under the derived root."""
+
+    def __init__(self, rel: str) -> None:
+        super().__init__(rel)
+        self.rel = rel
+
+
 def _derived() -> Path:
     return (REPO_ROOT / Settings().data_dir).resolve()
 
 
 def _read(rel: str) -> Any | None:
-    """A committed JSON document under the derived root, or None (missing, not JSON, or outside the root)."""
+    """A committed JSON document under the derived root, or None (missing, or outside the root). Raises ``Unreadable``
+    when the file is there but is not valid JSON."""
     root = _derived()
     p = (root / rel).resolve()
     if p.suffix != ".json" or (p != root and root not in p.parents) or not p.is_file():
         return None
-    return json.loads(p.read_text(encoding="utf-8"))
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:  # ValueError covers a JSON syntax error and bytes that are not UTF-8
+        raise Unreadable(rel) from exc
 
 
 def load_index() -> dict | None:
@@ -44,10 +60,18 @@ def load_readiness() -> dict | None:
     return doc
 
 
+def _entries() -> list[dict]:
+    index = load_index()
+    cases = index.get("cases", []) if isinstance(index, dict) else []
+    return [e for e in cases if isinstance(e, dict) and isinstance(e.get("manifest_path"), str)]
+
+
 def load_manifest(case_id: str) -> dict | None:
-    if "/" in case_id or "\\" in case_id or case_id.startswith("."):
-        return None
-    return _read(f"manifests/{case_id}.json")
+    """The manifest of an indexed case, or None for any other id (the index itself, a path, a case not baked)."""
+    for entry in _entries():
+        if entry.get("case_id") == case_id:
+            return _read(entry["manifest_path"])
+    return None
 
 
 def artifact_paths(manifest: dict) -> list[str]:
@@ -59,4 +83,13 @@ def artifact_paths(manifest: dict) -> list[str]:
 
 
 def load_artifact(rel: str) -> Any | None:
-    return _read(rel)
+    """An artifact some indexed manifest names, by exactly that path, or None. A manifest that cannot be read names
+    nothing here (it is reported on its own route)."""
+    for entry in _entries():
+        try:
+            manifest = _read(entry["manifest_path"])
+        except Unreadable:
+            continue
+        if isinstance(manifest, dict) and rel in artifact_paths(manifest):
+            return _read(rel)
+    return None

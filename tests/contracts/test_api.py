@@ -103,3 +103,71 @@ def test_get_only(monkeypatch):
     c = client(monkeypatch, DERIVED_ROOTS["bake"])
     for method in ("post", "put", "patch", "delete"):
         assert getattr(c, method)("/api/cases").status_code == 405, method
+
+
+def test_only_indexed_documents_are_served(monkeypatch):
+    """The declared bodies of /api/artifacts are traces and of /api/cases/{id}/manifest manifests: a document that is
+    neither (the readiness, the index, a manifest read as an artifact, the index read as a case) is a 404."""
+    c = client(monkeypatch, DERIVED_ROOTS["bake"])
+    for rel in ("readiness.json", "manifests/index.json", "manifests/EX02_epidemic.json"):
+        body = get_checked(c, f"/api/artifacts/{rel}", "/api/artifacts/{rel_path}", 404)
+        assert body == {"detail": "no such artifact"}, rel
+    body = get_checked(c, "/api/cases/index/manifest", "/api/cases/{case_id}/manifest", 404)
+    assert body == {"detail": "unknown case"}
+
+
+def test_every_document_under_the_root_is_served_as_declared_or_404(monkeypatch):
+    """No path under data/derived answers 200 with a body that fails the OpenAPI response schema."""
+    c = client(monkeypatch, DERIVED_ROOTS["bake"])
+    for p in sorted(DERIVED_ROOTS["bake"].rglob("*.json")):
+        rel = p.relative_to(DERIVED_ROOTS["bake"]).as_posix()
+        r = c.get(f"/api/artifacts/{rel}")
+        assert r.status_code in (200, 404), rel
+        assert response_errors("/api/artifacts/{rel_path}", "get", r.status_code, r.json()) == [], rel
+        stem = p.stem
+        r = c.get(f"/api/cases/{stem}/manifest")
+        assert r.status_code in (200, 404), stem
+        assert response_errors("/api/cases/{case_id}/manifest", "get", r.status_code, r.json()) == [], stem
+
+
+def corrupt_copy(tmp_path, rel: str):
+    """A copy of the bake with the document ``rel`` replaced by text that is not JSON."""
+    import shutil
+
+    root = tmp_path / "derived"
+    shutil.copytree(DERIVED_ROOTS["bake"], root)
+    (root / rel).write_text("{not json", encoding="utf-8")
+    return root
+
+
+def unreadable(rel: str) -> dict:
+    return {"detail": {"state": "missing", "reason": {"en": f"The document {rel} is unreadable.",
+                                                      "es": f"El documento {rel} no se puede leer."}}}
+
+
+def test_an_unreadable_index_is_a_503(monkeypatch, tmp_path):
+    c = client(monkeypatch, corrupt_copy(tmp_path, "manifests/index.json"))
+    for path, template in (("/api/cases", "/api/cases"), ("/api/cases/EX01_subcritical/manifest", "/api/cases/{case_id}/manifest"),
+                           ("/api/artifacts/EX01_subcritical/trace.json", "/api/cases")):  # see the note below
+        assert get_checked(c, path, template, 503) == unreadable("manifests/index.json"), path
+
+
+def test_an_unreadable_manifest_is_a_503(monkeypatch, tmp_path):
+    c = client(monkeypatch, corrupt_copy(tmp_path, "manifests/EX01_subcritical.json"))
+    body = get_checked(c, "/api/cases/EX01_subcritical/manifest", "/api/cases/{case_id}/manifest", 503)
+    assert body == unreadable("manifests/EX01_subcritical.json")
+    assert c.get("/api/cases/EX02_epidemic/manifest").status_code == 200  # the other cases work
+
+
+def test_an_unreadable_artifact_is_a_503(monkeypatch, tmp_path):
+    c = client(monkeypatch, corrupt_copy(tmp_path, "EX01_subcritical/trace.json"))
+    # api.openapi.json declares no 503 for /api/artifacts/{rel_path} (a docs gap reported to the main session): the
+    # body is held to the Unavailable response every other route declares
+    body = get_checked(c, "/api/artifacts/EX01_subcritical/trace.json", "/api/cases", 503)
+    assert body == unreadable("EX01_subcritical/trace.json")
+
+
+def test_an_unreadable_readiness_is_a_503(monkeypatch, tmp_path):
+    c = client(monkeypatch, corrupt_copy(tmp_path, "readiness.json"))
+    body = get_checked(c, "/api/readiness", "/api/readiness", 503)
+    assert body == unreadable("readiness.json")
