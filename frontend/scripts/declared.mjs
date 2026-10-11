@@ -16,7 +16,21 @@ export function artifactPaths(manifest) {
   return [];
 }
 
-/** Every declared file under `derived`, the ones missing, and the manifests that name no artifact. */
+/** The paths the readiness document declares absent: the `missing` of every row whose state is `partial` (catalog:
+ * Missing-data states). Empty when the document is absent, unreadable or not the readiness shape: nothing is tolerated
+ * then, and the build stops on any absent file as before. */
+export function declaredAbsent(derived) {
+  try {
+    const doc = JSON.parse(readFileSync(join(derived, READINESS_REL), 'utf8'));
+    const rows = Array.isArray(doc?.contracts) ? doc.contracts : [];
+    return rows.filter((r) => r && r.state === 'partial' && Array.isArray(r.missing)).flatMap((r) => r.missing.filter((m) => typeof m === 'string'));
+  } catch {
+    return [];
+  }
+}
+
+/** Every declared file under `derived`, the ones missing (`missing`), the part of those the readiness declares absent
+ * (`tolerated`: a partial bake builds without them), and the manifests that name no artifact. */
 export function declaredFiles(derived) {
   const index = JSON.parse(readFileSync(join(derived, INDEX_REL), 'utf8'));
   const declared = [INDEX_REL, READINESS_REL, ...(Array.isArray(index.files) ? index.files : [])];
@@ -30,5 +44,7 @@ export function declaredFiles(derived) {
     declared.push(...paths);
   }
   const unique = [...new Set(declared)];
-  return { index, declared: unique, missing: unique.filter((rel) => !existsSync(join(derived, rel))), problems };
+  const absent = unique.filter((rel) => !existsSync(join(derived, rel)));
+  const allowed = new Set(declaredAbsent(derived));
+  return { index, declared: unique, missing: absent, tolerated: absent.filter((rel) => allowed.has(rel)), problems };
 }

@@ -11,6 +11,12 @@ from ..model.sir import simulate
 from .train import predict
 
 
+def models_used(model: dict | None) -> dict[str, str]:
+    """Which model answered, per model slot of the catalog (here only ``surrogate-model``): ``real`` when the released
+    bundle did, ``baseline`` when none was valid. The manifest records it beside the metrics (contract case-manifest)."""
+    return {"surrogate-model": "baseline" if model is None else "real"}
+
+
 def run(model: dict | None, holdout_params: list[SIRParams]) -> dict:
     """``model`` None means no released bundle: the analytic baseline answers (model/baseline.py)."""
     preds, truths = [], []

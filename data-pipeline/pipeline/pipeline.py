@@ -106,7 +106,7 @@ def precompute(
     run_ms = _engine_ms(params)
     metrics = evaluate.run(model, _holdout_params(seed))
     return export.run(case=case, params=params, result=result, seed=seed, run_ms=run_ms,
-                      flags=rep.flagged, metrics=metrics, expect=expect, derived_dir=str(paths.root),
+                      flags=rep.flagged, metrics=metrics, models=evaluate.models_used(model), expect=expect, derived_dir=str(paths.root),
                       manifests_dir=str(paths.manifests))
 
 
