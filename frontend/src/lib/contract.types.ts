@@ -10,9 +10,6 @@ import type { components } from './contract.gen';
 
 type Schemas = components['schemas'];
 
-/** The generator renders each schema file's own `$defs` as a property; it is not a key of the document. */
-type Keys<T> = Exclude<keyof T, '$defs'>;
-
 /** Every reader-facing string is bilingual at the source. */
 export type Text = Schemas['text'];
 
@@ -67,7 +64,7 @@ export const TRACE = {
   I: { array: 'number' },
   R: { array: 'number' },
   summary: { object: TRACE_SUMMARY },
-} satisfies Record<Keys<Trace>, Kind>;
+} satisfies Record<keyof Trace, Kind>;
 
 export const MANIFEST = {
   schema: 'string',
@@ -95,7 +92,7 @@ export const MANIFEST = {
   flags: { array: { map: 'string' } },
   metrics: { map: 'number' },
   expect: { map: { array: 'number' } },
-} satisfies Record<Keys<CaseManifest>, Kind>;
+} satisfies Record<keyof CaseManifest, Kind>;
 
 export const INDEX = {
   schema: 'string',
@@ -103,7 +100,7 @@ export const INDEX = {
   n_cases: 'integer',
   default_case: 'string',
   cases: { array: { object: { case_id: 'string', title: 'text', category: 'text', manifest_path: 'string' } satisfies Record<keyof CaseIndexEntry, Kind> } },
-} satisfies Record<Keys<CaseIndex>, Kind>;
+} satisfies Record<keyof CaseIndex, Kind>;
 
 /** The 503 body of the API: the state and the bilingual reason. */
 export const UNAVAILABLE = { detail: { object: { state: 'string', reason: 'text' } } } satisfies Record<keyof UnavailableBody, Kind>;
@@ -125,7 +122,7 @@ export const READINESS = {
       } satisfies Record<keyof ReadinessEntry, Kind>,
     },
   },
-} satisfies Record<Keys<Readiness>, Kind>;
+} satisfies Record<keyof Readiness, Kind>;
 
 /** Every way `value` departs from `kind`, with its path; empty when it conforms. Booleans are not numbers. */
 export function conform(value: unknown, kind: Kind, path = '$'): string[] {
