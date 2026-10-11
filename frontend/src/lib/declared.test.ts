@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 // @ts-expect-error: a plain ES module shared with the build script
-import { artifactPaths, declaredFiles } from '../../scripts/declared.mjs';
+import { artifactPaths, declaredFiles, READINESS_REL } from '../../scripts/declared.mjs';
 
 const root = mkdtempSync(join(tmpdir(), 'declared-'));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -33,12 +33,22 @@ describe('the declared files of the site', () => {
     put('manifests/B.json', { artifacts: [{ path: 'B/v1.json' }, { path: 'B/v2.json' }] });
     put('B/v1.json', {});
     put('manifests/C.json', { title: 'no artifact' });
+    put('readiness.json', {});
     const { declared, missing, problems } = declaredFiles(root);
     expect(declared).toEqual([
-      'manifests/index.json', 'contract/index.json', 'manifests/A.json', 'A/trace.json', 'manifests/B.json',
+      'manifests/index.json', 'readiness.json', 'contract/index.json', 'manifests/A.json', 'A/trace.json', 'manifests/B.json',
       'B/v1.json', 'B/v2.json', 'manifests/C.json',
     ]);
     expect(missing).toEqual(['contract/index.json', 'B/v2.json']);
     expect(problems).toEqual(['manifests/C.json: names no artifact (artifact or artifacts)']);
+  });
+  it('declares the readiness document right after the index, and reports it missing when absent', () => {
+    expect(READINESS_REL).toBe('readiness.json');
+    const bare = join(root, 'bare');
+    mkdirSync(join(bare, 'manifests'), { recursive: true });
+    writeFileSync(join(bare, 'manifests/index.json'), JSON.stringify({ cases: [] }));
+    const { declared, missing } = declaredFiles(bare);
+    expect(declared).toEqual(['manifests/index.json', 'readiness.json']);
+    expect(missing).toEqual(['readiness.json']);
   });
 });
