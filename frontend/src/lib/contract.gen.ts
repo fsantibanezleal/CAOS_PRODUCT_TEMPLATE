@@ -77,7 +77,7 @@ export interface paths {
         };
         /**
          * An artifact a manifest names (catalog row trace), by its path under data/derived.
-         * @description rel_path may contain slashes (for example EX02_epidemic/trace.json); a path that leaves data/derived or is not a .json file is not found.
+         * @description rel_path may contain slashes (for example EX02_epidemic/trace.json); only a path an indexed manifest names is served; anything else is not found, and an artifact that cannot be read is unavailable.
          */
         get: operations["getArtifact"];
         put?: never;
@@ -457,6 +457,7 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFound"];
+            503: components["responses"]["Unavailable"];
         };
     };
     getReadiness: {

@@ -45,6 +45,8 @@ jobs:
         run: python scripts/check_contracts.py docs/contracts/catalog.md --repo-root .
       - name: The readiness document is current with the catalog and the bake (ADR-0080)
         run: python scripts/check_readiness.py
+      - name: Every committed document valid against its schema file (ADR-0080)
+        run: pip install jsonschema==4.26.0 && python scripts/check_documents.py
       - name: Rows still served by a provider (listed while building; none on main)
         run: |
           set +e
