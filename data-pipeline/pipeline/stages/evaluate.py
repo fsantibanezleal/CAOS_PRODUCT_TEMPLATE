@@ -6,15 +6,17 @@ from __future__ import annotations
 import numpy as np
 
 from ..io.schema import SIRParams
+from ..model.baseline import peak_frac
 from ..model.sir import simulate
 from .train import predict
 
 
-def run(model: dict, holdout_params: list[SIRParams]) -> dict:
+def run(model: dict | None, holdout_params: list[SIRParams]) -> dict:
+    """``model`` None means no released bundle: the analytic baseline answers (model/baseline.py)."""
     preds, truths = [], []
     for p in holdout_params:
         r0 = (p.beta / p.gamma) if p.gamma > 0 else 1e-6
-        preds.append(predict(model, r0))
+        preds.append(peak_frac(r0) if model is None else predict(model, r0))
         truths.append((simulate(p).peak_I / p.N) if p.N > 0 else 0.0)
     preds, truths = np.array(preds), np.array(truths)
     ss_res = float(np.sum((preds - truths) ** 2))

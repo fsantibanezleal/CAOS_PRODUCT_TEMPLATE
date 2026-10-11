@@ -14,7 +14,7 @@ from app.services import content  # noqa: E402
 
 def test_serves_the_index_every_manifest_and_every_artifact_it_names():
     index = content.load_index()
-    assert index["cases"], "the committed index lists the baked cases"
+    assert index is not None and index["cases"], "the committed index lists the baked cases"
     for entry in index["cases"]:
         m = content.load_manifest(entry["case_id"])
         assert m is not None and m["case_id"] == entry["case_id"]
@@ -36,3 +36,19 @@ def test_nothing_outside_the_derived_root():
     assert content.load_artifact("../../package.json") is None
     assert content.load_manifest("../index") is None
     assert content.load_manifest("..\\index") is None
+
+
+def test_an_absent_index_is_none_not_an_empty_index(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    assert content.load_index() is None
+    assert content.load_readiness() is None
+    assert content.load_manifest("EX01_subcritical") is None
+
+
+def test_readiness_is_the_committed_document_with_the_api_row_available():
+    doc = content.load_readiness()
+    assert doc is not None
+    api = next(e for e in doc["contracts"] if e["id"] == "api")
+    assert (api["state"], api["provenance"], api["reason"], api["missing"]) == ("available", "real", None, [])
+    others = [e["state"] for e in doc["contracts"] if e["id"] != "api"]
+    assert others  # the other rows are served unchanged
