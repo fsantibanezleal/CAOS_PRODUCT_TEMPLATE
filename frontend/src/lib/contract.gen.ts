@@ -150,11 +150,11 @@ export interface components {
         };
         /**
          * CaseManifest
-         * @description Contract 2 (artifact), catalog row case-manifest 3.0.0: the authoritative record of one baked case, written by data-pipeline/pipeline/core/manifest.py build_case_manifest to data/derived/manifests/<case>.json. A pure function of (params, seed): no wall-clock time. Rules the schema cannot state, checked by scripts/check_artifacts.py: artifact.bytes equals the size of the file at artifact.path, and lane equals gate.lane.
+         * @description Contract 2 (artifact), catalog row case-manifest 4.0.0: the authoritative record of one baked case, written by data-pipeline/pipeline/core/manifest.py build_case_manifest to data/derived/manifests/<case>.json. A pure function of (params, seed): no wall-clock time. Rules the schema cannot state, checked by scripts/check_artifacts.py: artifact.bytes equals the size of the file at artifact.path, and lane equals gate.lane.
          */
         CaseManifest: {
             /** @constant */
-            schema: "example.manifest/v3";
+            schema: "example.manifest/v4";
             case_id: string;
             title: components["schemas"]["text"];
             category: components["schemas"]["text"];
@@ -202,6 +202,10 @@ export interface components {
             /** @description Evaluation metrics of this bake (the surrogate model slot's held-out error, among others). */
             metrics: {
                 [key: string]: number;
+            };
+            /** @description Per model slot (catalog row id), what produced this bake's metrics: the released bundle (real) or the slot's baseline. */
+            models: {
+                [key: string]: "real" | "baseline";
             };
             /** @description The checked expectation of the case: [low, high] per result metric. */
             expect: {

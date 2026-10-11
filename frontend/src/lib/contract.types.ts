@@ -36,7 +36,7 @@ export type NotFoundBody = Schemas['NotFoundBody'];
 
 export const SCHEMAS = {
   trace: 'example.trace/v1',
-  manifest: 'example.manifest/v3',
+  manifest: 'example.manifest/v4',
   index: 'example.index/v2',
   readiness: 'example.readiness/v1',
 } as const satisfies { trace: Trace['schema']; manifest: CaseManifest['schema']; index: CaseIndex['schema']; readiness: Readiness['schema'] };
@@ -91,6 +91,7 @@ export const MANIFEST = {
   },
   flags: { array: { map: 'string' } },
   metrics: { map: 'number' },
+  models: { map: 'string' },
   expect: { map: { array: 'number' } },
 } satisfies Record<keyof CaseManifest, Kind>;
 

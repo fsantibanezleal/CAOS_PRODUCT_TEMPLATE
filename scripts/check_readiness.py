@@ -42,7 +42,11 @@ def main() -> int:
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else HERE
     derived = root / "data" / "derived"
     path = derived / "readiness.json"
-    fresh = readiness.compute(repo_root=root, derived_root=derived, models_dir=root / "models")
+    try:
+        fresh = readiness.compute(repo_root=root, derived_root=derived, models_dir=root / "models")
+    except ValueError as exc:  # a catalog the rules do not accept: nothing can be published from it
+        print(f"readiness: invalid catalog\n  {exc}")
+        return 1
     if not path.is_file():
         print(f"readiness: stale\n  {path} is absent\n  fix: {FIX}")
         return 1

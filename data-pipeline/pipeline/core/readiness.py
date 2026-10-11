@@ -22,6 +22,8 @@ CATALOG_REL = "docs/contracts/catalog.md"
 INDEX_REL = "manifests/index.json"
 PARAMS_REL = "data/examples/params.csv"
 MARKER_REL = "training/surrogate-model"
+STATUSES = ("real", "active")  # the catalog's status vocabulary (its Contracts section), exactly, lower case
+MODEL_SLOT = "surrogate-model"
 
 # the catalog's reasons as (en, es) templates, in the order of its Missing-data table
 T_PROVIDER = ("Served by its provider ({provider}); the real producer is not built yet.",
@@ -36,6 +38,9 @@ T_NO_PARAMS = ("No source table; the bake uses the registry's cases.",
 T_REJECTED = ("{n} of {total} rows rejected by contract 1.", "{n} de {total} filas rechazadas por el contrato 1.")
 T_NO_BUNDLE = ("No released surrogate; the analytic baseline answers.",
                "No hay un sustituto publicado; responde la línea base analítica.")
+T_BASELINE_BAKE = ("The bake's metrics come from the analytic baseline; bake again to use the released surrogate.",
+                   "Las métricas de la generación vienen de la línea base analítica; genere de nuevo para usar el "
+                   "sustituto publicado.")
 T_TRAINING = ("The released surrogate answers; a newer one is training.",
               "Responde el sustituto publicado; uno más nuevo está en entrenamiento.")
 T_API = ("The API lane is dormant; the site reads the committed documents.",
@@ -92,6 +97,7 @@ class _Facts:
         self.manifests_missing: list[str] = []
         self.artifacts_total = 0
         self.artifacts_missing: list[str] = []
+        self.baseline_bake = False  # a manifest records that the slot's baseline produced its metrics
         if self.index:
             for entry in self.index.get("cases", []):
                 rel = entry["manifest_path"]
@@ -100,6 +106,9 @@ class _Facts:
                 if not isinstance(manifest, dict):
                     self.manifests_missing.append(rel)
                     continue
+                models = manifest.get("models")
+                if isinstance(models, dict) and models.get(MODEL_SLOT) == "baseline":
+                    self.baseline_bake = True
                 for art in _artifact_paths(manifest):
                     self.artifacts_total += 1
                     if not (derived_root / art).is_file():
@@ -129,6 +138,9 @@ def _rule(row: dict[str, str], f: _Facts) -> dict:
     """The first rule of the catalog's Missing-data table that matches ``row``."""
     rid = row["id"]
     provider = row.get("provider", "").replace("`", "")
+    if row["status"] not in STATUSES:
+        raise ValueError(f"catalog row {rid!r}: status {row['status']!r} is not one of "
+                         f"{' or '.join(repr(s) for s in STATUSES)} (lower case, no other value)")
     if row["status"] == "active":
         return _entry(row, "provider", provider.split(":", 1)[0] or "stub", _fill(T_PROVIDER, provider=provider))
     derived = rid in ("case-index", "case-manifest", "trace")
@@ -149,6 +161,8 @@ def _rule(row: dict[str, str], f: _Facts) -> dict:
                       f.params_rejected)
     if rid == "surrogate-model" and not f.bundle_ok:
         return _entry(row, "training", "baseline", _fill(T_NO_BUNDLE))
+    if rid == MODEL_SLOT and f.baseline_bake:
+        return _entry(row, "training", "baseline", _fill(T_BASELINE_BAKE))
     if rid == "surrogate-model" and f.marker:
         return _entry(row, "training", "real", _fill(T_TRAINING))
     if rid == "api":
