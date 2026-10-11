@@ -1,4 +1,4 @@
-// The files the site serves from data/derived (T3): the index, every manifest it lists, every artifact each
+// The files the site serves from data/derived (T3): the index, the readiness document, every manifest it lists, every artifact each
 // manifest names (one `artifact`, or a list of `artifacts` for variants baked apart), and the further files the
 // index declares in `files` (a product's contract declarations, say). Shared by copy-data.mjs and its test, so the
 // rule the build applies is the rule the test checks.
@@ -6,6 +6,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export const INDEX_REL = 'manifests/index.json';
+/** The readiness document (catalog: Missing-data states): always declared, so a build without it stops. */
+export const READINESS_REL = 'readiness.json';
 
 /** The artifact paths a manifest names, in order. */
 export function artifactPaths(manifest) {
@@ -17,7 +19,7 @@ export function artifactPaths(manifest) {
 /** Every declared file under `derived`, the ones missing, and the manifests that name no artifact. */
 export function declaredFiles(derived) {
   const index = JSON.parse(readFileSync(join(derived, INDEX_REL), 'utf8'));
-  const declared = [INDEX_REL, ...(Array.isArray(index.files) ? index.files : [])];
+  const declared = [INDEX_REL, READINESS_REL, ...(Array.isArray(index.files) ? index.files : [])];
   const problems = [];
   for (const entry of index.cases) {
     declared.push(entry.manifest_path);

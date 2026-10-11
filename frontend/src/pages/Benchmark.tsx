@@ -3,9 +3,10 @@
 // artifacts or measured here; none is typed in.
 import { DocPage, DocSection, PlotCard, Verdict, formatNumber, useShellLang } from '@fasl-work/caos-app-shell';
 import { useEffect, useState } from 'react';
-import { loadAllCases, useArtifact, type CaseData } from '../api/artifacts';
+import { loadAllCases, useArtifact, type CaseData, type Loaded } from '../api/artifacts';
 import { simulate } from '../engine/sir';
 import { P, useT } from '../content/bi';
+import { ReadinessNote } from '../readiness/ReadinessNote';
 
 interface Timing {
   caseId: string;
@@ -47,11 +48,25 @@ function useTimings(cases: CaseData[] | null): Timing[] | null {
   return out;
 }
 
+const ARTIFACT_ROWS = ['case-index', 'case-manifest', 'trace'];
+
+/** What stands where the cases would be: loading, the error, or not available yet with the reason. */
+function Pending({ all, wait }: { all: Loaded<{ cases: unknown[] }>; wait: string }) {
+  const lang = useShellLang();
+  const t = useT();
+  if (all.state === 'unavailable') return <p className="caos-pending" data-state="unavailable">{all.reason[lang]}</p>;
+  if (all.state === 'error') return <p className="caos-pending" data-state="error">{all.error}</p>;
+  if (all.state === 'ready') {
+    return <p className="caos-pending" data-state="unavailable">{t('Not available yet: no case of this build has its artifacts.', 'Aún no disponible: ningún caso de esta versión tiene sus artefactos.')}</p>;
+  }
+  return <p className="caos-pending" data-state="loading">{wait}</p>;
+}
+
 export function Benchmark() {
   const lang = useShellLang();
   const t = useT();
   const all = useArtifact((s) => loadAllCases(s), []);
-  const cases = all.state === 'ready' ? all.data.cases : null;
+  const cases = all.state === 'ready' && all.data.cases.length ? all.data.cases : null;
   const timings = useTimings(cases);
   const ready = cases && timings;
   const worst = ready ? Math.max(...cases.map((c, i) => timings[i].medianMs / c.manifest.gate.run_ms_budget)) : 0;
@@ -63,6 +78,12 @@ export function Benchmark() {
           en="The pipeline's lane gate decides, per case, whether the live engine may re-run it in the browser: the engine must be light, the committed trace small, and the run fast. This page reads each budget from the manifest and measures the live engine here, as the median of seven timed batches of runs, so the verdict is about this browser on this device."
           es="La compuerta de carril del pipeline decide, por caso, si el motor en vivo puede volver a correrlo en el navegador: el motor debe ser liviano, la traza comprometida pequeña y la corrida rápida. Esta página lee cada presupuesto desde el manifiesto y mide aquí el motor en vivo, como la mediana de siete lotes de corridas medidos, así que el veredicto es sobre este navegador en este dispositivo."
         />
+        <ReadinessNote ids={ARTIFACT_ROWS} />
+        {all.state === 'ready' && all.data.absent.map((a) => (
+          <p key={a.caseId} className="caos-pending" data-state="unavailable">
+            {a.title[lang]}: {a.reason[lang]}
+          </p>
+        ))}
         {ready ? (
           <>
             <PlotCard title={{ en: 'The live lane on this device', es: 'El carril en vivo en este dispositivo' }} lane="live" provenance="synthetic">
@@ -102,9 +123,7 @@ export function Benchmark() {
             </table>
           </>
         ) : (
-          <p className="caos-pending" data-state={all.state === 'error' ? 'error' : 'loading'}>
-            {all.state === 'error' ? all.error : t('Loading the artifacts and timing the live engine', 'Cargando los artefactos y midiendo el motor en vivo')}
-          </p>
+          <Pending all={all} wait={t('Loading the artifacts and timing the live engine', 'Cargando los artefactos y midiendo el motor en vivo')} />
         )}
       </DocSection>
       <DocSection title={{ en: 'The surrogate', es: 'El sustituto' }} noRefsReason={{ en: 'Measures this build.', es: 'Mide esta compilación.' }}>
@@ -112,6 +131,7 @@ export function Benchmark() {
           en="The pipeline also trains a small surrogate that predicts the peak share from the case parameters, and evaluates it on twenty held-out parameter sets drawn with a seed disjoint from training. It is there to show where a learned model sits in the pipeline; its error is reported, not hidden."
           es="El pipeline también entrena un sustituto pequeño que predice la fracción del pico a partir de los parámetros del caso, y lo evalúa en veinte conjuntos de parámetros reservados, sorteados con una semilla disjunta del entrenamiento. Está ahí para mostrar dónde se ubica un modelo aprendido en el pipeline; su error se reporta, no se oculta."
         />
+        <ReadinessNote ids={['surrogate-model']} />
         {cases ? (
           (() => {
             const sets = [...new Set(cases.map((c) => JSON.stringify(c.manifest.metrics)))];
@@ -147,9 +167,7 @@ export function Benchmark() {
             );
           })()
         ) : (
-          <p className="caos-pending" data-state={all.state === 'error' ? 'error' : 'loading'}>
-            {t('Loading the artifacts', 'Cargando los artefactos')}
-          </p>
+          <Pending all={all} wait={t('Loading the artifacts', 'Cargando los artefactos')} />
         )}
       </DocSection>
     </DocPage>
