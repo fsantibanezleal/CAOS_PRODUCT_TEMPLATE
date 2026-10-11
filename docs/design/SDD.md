@@ -21,17 +21,33 @@ Non-goals, each something a reader could reasonably assume:
 - A learned model of record. The surrogate exists to show where a trained model sits in the pipeline and how its
   held-out error is reported.
 
-## Contracts
+## Sizing and contracts
 
-- Ingestion (contract 1, `data-pipeline/pipeline/io/contract.py`): each case's parameters are validated before a
-  run. A missing, non-numeric, NaN or out-of-range value is rejected with its reason, never coerced; an unusual
-  value (R0 above 20) is accepted and flagged into the manifest.
-- Artifacts (contract 2): `data/derived/manifests/index.json` (`example.index/v2`: cases with bilingual titles
-  and categories, the default case), one manifest per case (`example.manifest/v3`: parameters, seed, engine and
-  version, artifact, lane verdict, metrics, expected ranges, bilingual expected band) and one trace per case
-  (`example.trace/v1`: 200 points, two decimals, summary). The web declares the same shapes in
-  `frontend/src/lib/contract.types.ts`, and `frontend/src/lib/contract.test.ts` reads every committed artifact
-  against them in both directions.
+The design rests on two artifacts of contract-first parallel delivery (ADR-0080): the sizing, kept with the
+coordination records outside the product (for this release: the repositories, components, modules with their owner
+units, the seven boundaries, the technology versions verified on primary sources, the machine limits and three
+parallel units with disjoint write scopes), and the contract catalog, kept here,
+[`docs/contracts/catalog.md`](../contracts/catalog.md). Every boundary below is a catalog row with one schema file,
+an example, a test on each side, its missing-data behavior, a provider and a swap test; the units of a feature are
+the sizing's parallel units, built at once against the fixed rows.
+
+- Ingestion (params-record, contract 1, `data-pipeline/pipeline/io/contract.py`): each case's parameters are
+  validated before a run. A missing, non-numeric, NaN or out-of-range value is rejected with its reason, never
+  coerced; an unusual value (R0 above 20) is accepted and flagged into the manifest.
+- Artifacts (case-index, case-manifest, trace, contract 2): `data/derived/manifests/index.json`
+  (`example.index/v2`: cases with bilingual titles and categories, the default case), one manifest per case
+  (`example.manifest/v3`: parameters, seed, engine and version, artifact, lane verdict, metrics, expected ranges,
+  bilingual expected band) and one trace per case (`example.trace/v1`: at most 200 points, summary). The web's
+  types are generated from the schema files (`frontend/src/lib/contract.gen.ts`), and
+  `frontend/src/lib/contract.test.ts` reads every committed document and the provider tree against them in both
+  directions.
+- The model slot (surrogate-model): r0 to the peak infected fraction; the analytic baseline answers while no
+  trained bundle is released, behind the same contract.
+- Readiness: `data/derived/readiness.json`, what is real in this build, row by row, in one of six declared states;
+  the site labels what a provider, a stale bake or the baseline serves, and shows not available yet for what is
+  missing.
+- The dormant API (api, `docs/contracts/api.openapi.json`): GET only; 503 with the declared state when a document
+  is absent.
 
 ## Lanes
 
@@ -82,6 +98,10 @@ fonts, and 34 KB of artifacts, measured on the 2026-10-04 build). The target is 
 - Risk: a test rewrites the committed artifacts. Kill: the session guard in `tests/conftest.py` fails the run.
 - Risk: the site looks right and is not (a blank drawing, a dead control, a broken deep link). Kill: the measured
   gate (`npm run gate`) fails before a deploy.
+- Risk: a contract changes on one side only. Kill: the generated types fail the web build when they are not
+  current, and the contract tests of both sides read the same schema files.
+- Risk: a provider ships as if it were the product. Kill: the readiness document labels it on every view, and
+  `scripts/check_skeleton.py` lists every row still on a provider.
 
 ## ADR fit
 
@@ -89,10 +109,11 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 
 | ADR | Rule | Carried by |
 |---|---|---|
-| ADR-0057 | two contracts, named stages, lanes | `data-pipeline/`, `frontend/src/lib/contract.types.ts` |
+| ADR-0057 | two contracts, named stages, lanes | `data-pipeline/`, `docs/contracts/catalog.md` (the two contracts are its rows) |
 | ADR-0058 | architecture modal, five themed bilingual tabs | `frontend/src/architecture/`, validated by the shell on mount |
 | ADR-0069 | method vertical with its acceptance criterion | this SDD, the parity and convergence tests |
 | ADR-0071 | the page is the viewport; one tab row; drawing at least half the viewport | the shell's `CaseWorkbench`; the gate (G5, G6) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
 | ADR-0078 | rules live in the base | shell 0.10.0 (pinned exactly) and this template; no product re-implements them |
+| ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |
