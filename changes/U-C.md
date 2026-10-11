@@ -1,0 +1,5 @@
+- The site reads `readiness.json` (declared by the build right after the index, so a build without it stops) and labels what it shows: a note on the workbench, Experiments and Benchmark for the stale, provider, partial and training states, with the reason taken from the document; an explicit not available yet, never an empty chart, for what is missing; readiness unknown, with a console error, when the document cannot be read.
+- A case whose manifest or trace the readiness document lists as absent says not available yet with the reason and is marked in the case selector; the other cases still work.
+- Implementation gains a section "What is real in this build" with the readiness table (state, provenance, reason per contract row).
+- `CAOS_DATA_ROOT` selects the tree `copy-data.mjs` copies (default `data/derived`; `docs/contracts/fixtures/data/derived` builds the walking skeleton on the provider tree) and the script prints the root it used.
+- Tests: `frontend/src/readiness/readiness.test.ts` (consumer and swap test of readiness 1.0.0) and the declared-files test for `readiness.json`.
