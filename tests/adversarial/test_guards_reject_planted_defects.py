@@ -57,7 +57,7 @@ def test_sdd_a_validation_table_that_omits_one_requirement(repo: Path) -> None:
 
 
 def test_sdd_a_validation_gate_naming_a_renamed_test(repo: Path) -> None:
-    edit(repo, "docs/design/features/contracts/validation.md", "test_state_stale", "test_state_stale_renamed")
+    edit(repo, "docs/design/features/contracts/validation.md", "test_adversarial_state_stale", "test_state_stale_renamed")
     r = guard(repo, "check_sdd.py")
     assert r.returncode == 1 and "test_state_stale_renamed" in r.stdout, r.stdout
 
@@ -191,6 +191,13 @@ def test_versions_the_digest_is_the_same_with_windows_line_endings(repo: Path) -
     r = guard(repo, "check_contract_versions.py", "--update")
     assert r.returncode == 0, r.stdout
     assert json.loads((repo / "docs/contracts/versions.lock.json").read_text(encoding="utf-8")) == json.loads(lock_before)
+    # a stub guard that only prints OK passes everything above; one real byte changed in a CRLF file must still fail it
+    trace = repo / "docs/contracts/schemas/trace.schema.json"
+    raw = trace.read_bytes()
+    assert b"\r\n" in raw and b"Time, days." in raw, "the schema was not converted, so nothing was proved"
+    trace.write_bytes(raw.replace(b"Time, days.", b"Time, in days.", 1))
+    r = guard(repo, "check_contract_versions.py")
+    assert r.returncode == 1 and "trace" in r.stdout and "without a version bump" in r.stdout, r.stdout
 
 
 # ---------------------------------------------------------------- check_tech_matrix
@@ -229,16 +236,16 @@ def test_readiness_a_catalog_edited_without_recomputing_the_document(repo: Path)
 
 
 def test_readiness_a_row_whose_status_the_rules_do_not_know(repo: Path) -> None:
-    edit(repo, CATALOG, "tests/contracts/test_surrogate.py::test_swap_baseline_and_trained | real |",
-         "tests/contracts/test_surrogate.py::test_swap_baseline_and_trained | done |")
+    edit(repo, CATALOG, "tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained | real |",
+         "tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained | done |")
     r = guard(repo, "check_readiness.py")
     assert r.returncode == 1 and "invalid catalog" in r.stdout and "done" in r.stdout, r.stdout
 
 
 def test_skeleton_a_row_still_served_by_a_provider_is_listed_with_exit_2(repo: Path) -> None:
     """The CI step turns exit 2 into a failure on main (ci.yml, 'Rows still served by a provider')."""
-    edit(repo, CATALOG, "tests/contracts/test_surrogate.py::test_swap_baseline_and_trained | real |",
-         "tests/contracts/test_surrogate.py::test_swap_baseline_and_trained | active |")
+    edit(repo, CATALOG, "tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained | real |",
+         "tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained | active |")
     r = guard(repo, "check_skeleton.py", CATALOG)
     assert r.returncode == 2 and "surrogate-model" in r.stdout and "still served by a provider" in r.stdout, r.stdout
     ci = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -246,7 +253,7 @@ def test_skeleton_a_row_still_served_by_a_provider_is_listed_with_exit_2(repo: P
 
 
 def test_skeleton_a_status_the_vocabulary_does_not_know_is_malformed(repo: Path) -> None:
-    edit(repo, CATALOG, "tests/contracts/test_surrogate.py::test_swap_baseline_and_trained | real |",
-         "tests/contracts/test_surrogate.py::test_swap_baseline_and_trained | finished |")
+    edit(repo, CATALOG, "tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained | real |",
+         "tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained | finished |")
     r = guard(repo, "check_skeleton.py", CATALOG)
     assert r.returncode == 1 and "finished" in r.stdout, r.stdout
