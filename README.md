@@ -17,8 +17,10 @@ is replaced.
 | Part | Where | What holds it |
 |---|---|---|
 | The pipeline: named stages, seeded, each case checked against its expected ranges | `data-pipeline/` | `tests/`, run in a sandbox that fails if a test writes a committed artifact |
-| Contract 1, ingestion: bad values rejected with a reason, unusual ones flagged | `data-pipeline/pipeline/io/contract.py` | `tests/test_contract.py` |
-| Contract 2, artifacts: index, manifests and traces, bilingual, versioned | `data/derived/` | `scripts/check_artifacts.py`, `frontend/src/lib/contract.test.ts` (both directions) |
+| The contract catalog: every boundary and the model slot, one schema file each, a provider and a swap test (ADR-0080) | `docs/contracts/` | `scripts/check_contracts.py`, `scripts/check_skeleton.py`, `tests/contracts/` |
+| Contract 1, ingestion: bad values rejected with a reason, unusual ones flagged | `data-pipeline/pipeline/io/contract.py` | `tests/test_contract.py`, `tests/contracts/test_params_record.py` |
+| Contract 2, artifacts: index, manifests and traces, bilingual, versioned | `data/derived/` | `scripts/check_artifacts.py`, `tests/contracts/test_documents.py`, `frontend/src/lib/contract.test.ts` (both directions, types generated from the schemas) |
+| Missing data and untrained models as declared states: what is real in this build, shown on every view | `data/derived/readiness.json` | `scripts/check_readiness.py`, `tests/contracts/test_readiness.py`, `frontend/src/readiness/readiness.test.ts` |
 | The live engine, a TypeScript port of the Python one | `frontend/src/engine/` | `frontend/src/engine/sir.parity.test.ts` (every baked trace, first-order convergence) |
 | The web: the workbench and five documentation routes on the shared shell | `frontend/src/` | `npm run gate` (`caos-shell-gate`: every route, tab and case, five sizes, both themes, both languages) |
 | The design, every requirement with the gate that fails it | `docs/design/` | `scripts/check_sdd.py` |

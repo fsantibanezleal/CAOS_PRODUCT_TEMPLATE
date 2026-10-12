@@ -1,14 +1,16 @@
 {
   "name": "caos-product-frontend",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.4.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "predev": "node scripts/copy-data.mjs",
     "dev": "vite",
     "prebuild": "node scripts/copy-data.mjs",
-    "build": "tsc --noEmit && vite build && node scripts/materialize-routes.mjs",
+    "contracts:types": "node scripts/gen-contract-types.mjs",
+    "contracts:check": "node scripts/gen-contract-types.mjs --check",
+    "build": "node scripts/gen-contract-types.mjs --check && tsc --noEmit && vite build && node scripts/materialize-routes.mjs",
     "preview": "node scripts/serve.mjs",
     "test": "vitest run",
     "gate": "node scripts/gate.mjs"
@@ -28,6 +30,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "openapi-typescript": "7.13.0",
     "playwright": "^1.63.0",
     "typescript": "~5.9.3",
     "vite": "^8.3.2",
