@@ -9,7 +9,7 @@ from typing import Any
 from .. import __version__
 from .trace import TRACE_SCHEMA
 
-MANIFEST_SCHEMA = "example.manifest/v3"
+MANIFEST_SCHEMA = "example.manifest/v4"
 INDEX_SCHEMA = "example.index/v2"
 
 
@@ -23,6 +23,7 @@ def build_case_manifest(
     gate: dict,
     flags: list[dict],
     metrics: dict,
+    models: dict[str, str],
     expect: dict,
 ) -> dict:
     # Deterministic: a pure function of (params, seed). No wall-clock here (would dirty git on re-run), the
@@ -42,6 +43,7 @@ def build_case_manifest(
         "gate": gate,
         "flags": flags,
         "metrics": metrics,
+        "models": models,  # per model slot: "real" (the released bundle) or "baseline" produced the metrics
         "expect": expect,
     }
 

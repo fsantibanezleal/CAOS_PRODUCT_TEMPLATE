@@ -59,7 +59,7 @@
   <rect class="bx" x="331" y="92" width="238" height="70" rx="6"/>
   <text class="it l-en" x="343" y="112">Index, manifests, traces</text>
   <text class="it l-es" x="343" y="112">Índice, manifiestos, trazas</text>
-  <text class="cd mono" x="343" y="130">index/v2 · manifest/v3 · trace/v1</text>
+  <text class="cd mono" x="343" y="130">index/v2 · manifest/v4 · trace/v1</text>
   <text class="sub l-en" x="343" y="148">small, reviewable, in git</text>
   <text class="sub l-es" x="343" y="148">pequeños, revisables, en git</text>
   <rect class="bx" x="331" y="174" width="238" height="70" rx="6"/>
