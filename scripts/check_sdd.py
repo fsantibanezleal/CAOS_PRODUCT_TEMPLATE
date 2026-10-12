@@ -80,6 +80,7 @@ QUESTION = re.compile(r"^\s*- Q: \S")
 ANSWER = re.compile(r"^\s+A: \S")
 LIMITS = re.compile(r"^\s*Limits: \S")
 MIN_SOURCES = 3
+CLAIM_WORDS, INTRO_WORDS, OUTCOME_WORDS, VALUE_WORDS, QA_WORDS, LIMITS_WORDS = 3, 8, 3, 4, 3, 5  # distinct words that say something
 SOURCE = re.compile(r"\b10\.\d{4,9}/[^\s)>\]|]+|https?://[^\s)>\]|]+")
 UNVERIFIED = re.compile(r"^\s*(?:[-*+]\s+)?(?:\*\*)?UNVERIFIED(?:\*\*)?\s*:", re.M)
 PLACEHOLDER = {"-", "?", "todo", "unknown", "n/a", "na", "tbd", "..."}
@@ -94,12 +95,27 @@ STATUS_ANY = re.compile(r"^Status:\s*(\S*)\s*$", re.M | re.I)
 HTML_COMMENT = re.compile(r"<!--.*?(?:-->|\Z)", re.S)
 CODE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".mjs", ".sh", ".ps1"}
 PLACEHOLDER_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "example.com", "example.org", "example.net", "example.edu"}
+# words that fill a place without saying anything; a text made only of them, or with too few other distinct words, is a placeholder
+FILLER = {"tbd", "tba", "tbc", "todo", "fixme", "xxx", "lorem", "ipsum", "dolor", "sit", "amet", "placeholder", "unknown", "n/a", "na",
+          "none", "foo", "bar", "baz", "asdf", "qwerty", "x", "y", "z"}
+TOKEN = re.compile(r"[A-Za-z0-9%][A-Za-z0-9%.'/-]*")
+# what a number is not: a date, a year after a preposition or standing alone, or an index (``Step 1``, ``item 2``, ``3.``)
+DATE = re.compile(r"(?<![\d-])\d{4}-\d{2}(?:-\d{2})?(?![\d-])")
+YEAR_AFTER = re.compile(r"(?i)\b(?:since|in|by|from|until|till|during|before|after|as of|year|fy|circa)\s+(?:19|20|21)\d{2}\b")
+YEAR_ALONE = re.compile(r"(?<![\w.,-])(?:19|20|21)\d{2}(?=\s*(?:$|[.,;:)]))")
+ENUMERATOR = re.compile(r"(?i)(?<![A-Za-z\d-])(?:step|item|point|part|phase|row|table|figure|fig|section|chapter|question|q)\.?\s*\d+\b")
+LEADING_INDEX = re.compile(r"^\s*\(?\d+[.):]\s+")
+DOI_REGISTRANT_PLACEHOLDER = re.compile(r"^(?:0+|1234|12345|9999)$")
+DOI_SUFFIX_PLACEHOLDER = re.compile(r"(?i)^(?:fake|example|test|placeholder|tbd|todo|xxx|dummy|made-?up|lorem)")
+LOCAL_ONLY = re.compile(r"local-only:\s*(?P<why>[^|;]+)", re.I)
+MATH_FENCE = re.compile(r"^\s*(?:```+|~~~+)\s*(?:math|latex|tex)\b", re.I)
 
 
 # ---------------------------------------------------------------- markup
 
-def strip_fences(text: str) -> str:
-    """The text without fenced code blocks (``` and ~~~, closed by the same fence; an unclosed one runs to the end)."""
+def strip_fences(text: str, mark_math: bool = False) -> str:
+    """The text without fenced code blocks (``` and ~~~, closed by the same fence; an unclosed one runs to the end).
+    ``mark_math`` leaves a ``$$`` line where a math block was, so that a check for equations still sees it."""
     out: list[str] = []
     fence: str | None = None
     for line in text.replace("\r\n", "\n").split("\n"):
@@ -107,6 +123,8 @@ def strip_fences(text: str) -> str:
         if fence is None:
             if m:
                 fence = m.group(1)
+                if mark_math and MATH_FENCE.match(line):
+                    out.append("$$")
             else:
                 out.append(line)
         elif m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and not line.strip().lstrip(fence[0]).strip():
@@ -118,9 +136,9 @@ def strip_comments(text: str) -> str:
     return HTML_COMMENT.sub("", text.replace("\r\n", "\n"))
 
 
-def strip_markup(text: str) -> str:
+def strip_markup(text: str, mark_math: bool = False) -> str:
     """The text a reader sees as structure: no fenced blocks and no HTML comments."""
-    return strip_comments(strip_fences(text))
+    return strip_comments(strip_fences(text, mark_math))
 
 
 def section_text(text: str, name: str) -> str | None:
@@ -156,10 +174,12 @@ def canonical_source(raw: str) -> str | None:
     """One key per work: a DOI however written, or a URL; None for a placeholder (example, localhost, .example hosts)."""
     raw = raw.rstrip(".,;")
     m = re.match(r"^https?://(?:dx\.)?doi\.org/(10\..+)$", raw, re.I)
-    if m:
-        return "doi:" + m[1].lower()
-    if raw.startswith("10."):
-        return "doi:" + raw.lower()
+    doi = m[1] if m else raw if raw.startswith("10.") else None
+    if doi is not None:
+        parts = re.match(r"^10\.(\d+)/(.*)$", doi)
+        if parts and (DOI_REGISTRANT_PLACEHOLDER.match(parts[1]) or DOI_SUFFIX_PLACEHOLDER.match(parts[2])):
+            return None  # 10.0000/fake and 10.1234/example are not works
+        return "doi:" + doi.lower()
     m = re.match(r"^https?://([^/:?#]+)(?::\d+)?([^?#]*)(\?[^#]*)?", raw, re.I)
     if not m:
         return None
@@ -235,22 +255,45 @@ def sections_findings(text: str) -> list[str]:
 # ---------------------------------------------------------------- the executive brief
 
 def outline(text: str) -> list[tuple[int, str, int]]:
-    """Level-2 and level-3 headings outside code fences, as (level, title, line index)."""
+    """Level-2 and level-3 headings of already-stripped text, as (level, title, line index). A level-2 title has its
+    ``N.`` prefix dropped, as the twelve-section check does, so that ``## 2. Executive brief`` is the brief."""
     out: list[tuple[int, str, int]] = []
-    fenced = False
     for i, line in enumerate(text.splitlines()):
-        if FENCE.match(line):
-            fenced = not fenced
-        elif not fenced:
-            m = HEADING.match(line)
-            if m:
-                out.append((len(m["hashes"]), m["title"].strip(), i))
+        m = HEADING.match(line)
+        if m:
+            level = len(m["hashes"])
+            title = LEVEL2.match(line)["title"] if level == 2 else m["title"].strip()
+            out.append((level, title, i))
     return out
 
 
+def words(text: str) -> list[str]:
+    """The distinct words of a text that say something: markup and punctuation off, placeholder words (TBD, lorem ...) out."""
+    seen: dict[str, None] = {}
+    for tok in TOKEN.findall(re.sub(r"[`*_]", " ", text)):
+        tok = tok.strip(".,;:'/-").lower()
+        if tok and tok not in FILLER:
+            seen[tok] = None
+    return list(seen)
+
+
+def too_short(text: str, floor: int) -> bool:
+    """True when the text has fewer than ``floor`` distinct words that say something: empty, a placeholder or a stub."""
+    return len(words(text)) < floor
+
+
 def is_number(text: str) -> bool:
-    """Digits standing alone (a unit may follow); the 0 of R0 or the 19 of COVID-19 is part of a name, not a number."""
-    return NUMBER.search(text) is not None
+    """Digits standing alone (a unit may follow); the 0 of R0 or the 19 of COVID-19 is part of a name, not a number, and
+    neither is a date, a year (``since 2026``, ``in 2026`` or a lone ``2026``) or an index (``Step 1``, ``item 2``, ``3.``)."""
+    cleaned = LEADING_INDEX.sub("", text)
+    for pattern in (DATE, YEAR_AFTER, ENUMERATOR, YEAR_ALONE):
+        cleaned = pattern.sub(" ", cleaned)
+    return NUMBER.search(cleaned) is not None
+
+
+def instantiated() -> bool:
+    """A product made from the template carries ``.template-version``; the template itself does not."""
+    return (ROOT / ".template-version").is_file()
 
 
 def cited_findings(text: str, where: str) -> list[str]:
@@ -260,25 +303,34 @@ def cited_findings(text: str, where: str) -> list[str]:
         return [f"{where} has no '(source: ...)' or '(assumption: ...)' after the claim"]
     out: list[str] = []
     if not is_number(m["claim"]):
-        out.append(f"{where} states no number in its claim (many, significant and several are not numbers)")
+        out.append(f"{where} states no number in its claim (many, significant and several are not numbers; nor is a year or an index)")
+    elif too_short(m["claim"], CLAIM_WORDS):
+        out.append(f"{where} has a claim that is a placeholder or has fewer than {CLAIM_WORDS} distinct words ({m['claim'].strip()[:50]!r})")
     value = m["value"].strip()
     if m["kind"] == "assumption":
+        if instantiated():
+            out.append(f"{where} gives an assumption, which a product made from the template (.template-version is present) cannot "
+                       "ship on: replace it with a number from a source, or remove the claim")
         if len(value.split()) < 5:
             out.append(f"{where} gives an assumption with fewer than five words of reason ({value!r})")
+        elif too_short(value, 5):
+            out.append(f"{where} gives an assumption whose reason is placeholder words ({value[:50]!r})")
         return out
     for part in (p.strip().strip("`").strip() for p in value.split(";")):
         if re.match(r"10\.\d{4,9}/\S+$", part) or re.match(r"https?://\S+$", part):
+            if canonical_source(part) is None:
+                out.append(f"{where} cites a source that is a placeholder, not a work ({part!r})")
             continue
-        target = (ROOT / part.split("#")[0]).resolve()
-        inside = target == ROOT or ROOT in target.parents
-        if not part or not inside or not target.exists():
-            out.append(f"{where} cites a source that is not a DOI, an http URL or a path in the repository ({part!r})")
+        target = (ROOT / part.split("#")[0]).resolve() if part.split("#")[0] else None
+        if target is None or ROOT not in target.parents or not target.is_file():
+            out.append(f"{where} cites a source that is not a DOI, an http URL or a file in the repository ({part!r})")
     return out
 
 
 def brief_findings(text: str) -> list[str]:
-    """The executive brief (problem-context-first): its place, four parts in order, each with its own content."""
-    text = strip_comments(text)
+    """The executive brief (problem-context-first): its place, four parts in order, each with its own content. Read from
+    the text a reader sees: no fenced block (a ``~~~`` fence is closed only by ``~~~``) and no HTML comment."""
+    text = strip_markup(text, mark_math=True)
     lines = text.splitlines()
     heads = outline(text)
     twos = [(t, i) for lv, t, i in heads if lv == 2]
@@ -287,8 +339,12 @@ def brief_findings(text: str) -> list[str]:
         return [f"SDD.md has no section {BRIEF!r} (four parts, before any development): {GUIDE}"]
     pos = names.index(BRIEF.lower())
     out: list[str] = []
+    if names.count(BRIEF.lower()) > 1:
+        out.append(f"SDD.md has more than one section {BRIEF!r}: {GUIDE}")
     if "problem and non-goals" in names and pos != names.index("problem and non-goals") + 1:
         out.append(f"SDD.md section {BRIEF!r} must come right after 'Problem and non-goals': {GUIDE}")
+    if "research basis" in names and names.index("research basis") < pos:
+        out.append(f"SDD.md section {BRIEF!r} must come before 'Research basis': {GUIDE}")
     start = twos[pos][1]
     end = twos[pos + 1][1] if pos + 1 < len(twos) else len(lines)
     body = lines[start + 1:end]
@@ -299,7 +355,7 @@ def brief_findings(text: str) -> list[str]:
     if not missing and found != list(BRIEF_PARTS):
         out.append(f"SDD.md {BRIEF!r} parts must be in this order: {', '.join(BRIEF_PARTS)}: {GUIDE}")
     joined = "\n".join(body)
-    if "$" in joined or "\\(" in joined or re.search(r"^\s*(```|~~~)\s*math\b", joined, re.M | re.I):
+    if "$" in joined or "\\(" in joined:
         out.append(f"SDD.md {BRIEF!r} holds an equation ($, \\( or a math block); the brief is business language: {GUIDE}")
     for n, (title, i) in enumerate(parts):
         if title not in BRIEF_PARTS:
@@ -316,6 +372,10 @@ def brief_findings(text: str) -> list[str]:
 def initiative_findings(part: list[str]) -> list[str]:
     out: list[str] = []
     good = 0
+    prose = " ".join(ln for ln in part if ln.strip() and not BULLET.match(ln) and not ln.strip().startswith("|"))
+    if too_short(prose, INTRO_WORDS):
+        out.append(f"SDD.md Initiative has no introduction of at least {INTRO_WORDS} distinct words naming the owner and the "
+                   f"initiative (a placeholder or a stub does not count): {GUIDE}")
     for line in part:
         if not (line.lstrip().startswith("- ") and CITED.search(line)):
             continue
@@ -339,7 +399,14 @@ def outcomes_findings(part: list[str]) -> list[str]:
         if len(cells) != 3 or not all(cells):
             out.append(f"SDD.md Outcomes row {label!r} has an empty cell")
             continue
+        if too_short(cells[0], 2):
+            out.append(f"SDD.md Outcomes row {label!r} has a capability that is a placeholder or a stub")
+        if too_short(cells[1], OUTCOME_WORDS):
+            out.append(f"SDD.md Outcomes row {label!r} has a business outcome that is a placeholder or has fewer than {OUTCOME_WORDS} distinct words")
         out += cited_findings(cells[2], f"SDD.md Outcomes proof point of {label!r}")
+    capabilities = [c[0].strip().lower() for c in rows if c]
+    if len(set(capabilities)) < len(capabilities):
+        out.append(f"SDD.md Outcomes repeats a capability; each row is a different capability: {GUIDE}")
     return out
 
 
@@ -348,24 +415,43 @@ def positioning_findings(part: list[str]) -> list[str]:
     out: list[str] = []
     if len(bullets) != 4:
         out.append(f"SDD.md Positioning has {len(bullets)} bullets; exactly 4 are required: {GUIDE}")
+    labels: list[str] = []
     for b in bullets:
         if not VALUE_POINT.match(b):
             out.append(f"SDD.md Positioning bullet {b[:50]!r} is not '- **<value point>**: <the problem of that owner it answers>'")
+            continue
+        label, _, rest = b[2:].partition("**: ")
+        label = label.strip("*")
+        labels.append(label.strip().lower())
+        if too_short(label, 1) or too_short(rest, VALUE_WORDS):
+            out.append(f"SDD.md Positioning bullet {b[:50]!r} is a placeholder or a stub (a value point and at least {VALUE_WORDS} distinct words of the problem it answers)")
+    if len(set(labels)) < len(labels):
+        out.append(f"SDD.md Positioning repeats a value point; the four are different: {GUIDE}")
     return out
 
 
 def credibility_findings(part: list[str]) -> list[str]:
-    pairs = 0
+    questions: list[str] = []
     for n, line in enumerate(part):
         if not QUESTION.match(line):
             continue
         nxt = next((ln for ln in part[n + 1:] if ln.strip()), "")
-        pairs += bool(ANSWER.match(nxt))
+        if not ANSWER.match(nxt):
+            continue
+        q = line.split("Q:", 1)[1].strip()
+        a = nxt.split("A:", 1)[1].strip()
+        if not too_short(q, QA_WORDS) and not too_short(a, QA_WORDS):
+            questions.append(" ".join(q.lower().split()))
     out: list[str] = []
-    if pairs < 3:
-        out.append(f"SDD.md Credibility has {pairs} questions with answers; at least 3 are required ('- Q: ...' then '  A: ...'): {GUIDE}")
-    if not any(LIMITS.match(ln) for ln in part):
+    distinct = len(set(questions))
+    if distinct < 3:
+        out.append(f"SDD.md Credibility has {distinct} different questions with real answers; at least 3 are required ('- Q: ...' then "
+                   f"'  A: ...', each of at least {QA_WORDS} distinct words, no placeholder): {GUIDE}")
+    limits = [ln for ln in part if LIMITS.match(ln)]
+    if not limits:
         out.append(f"SDD.md Credibility has no 'Limits:' line: {GUIDE}")
+    elif all(too_short(ln.split("Limits:", 1)[1], LIMITS_WORDS) for ln in limits):
+        out.append(f"SDD.md Credibility 'Limits:' is a placeholder or has fewer than {LIMITS_WORDS} distinct words: {GUIDE}")
     return out
 
 
@@ -455,6 +541,81 @@ def py_test_state(path: Path, name: str) -> str:
     return "skipped"
 
 
+def pinned_packages() -> set[str]:
+    """The packages the repository pins in a requirements file (a documented setup installs them), lower case, ``-`` as ``_``."""
+    out: set[str] = set()
+    for path in [*ROOT.glob("requirements*.txt"), ROOT / "data-pipeline" / "requirements.txt"]:
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            m = re.match(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)", line)
+            if m and not line.lstrip().startswith(("-", "#")):
+                out.add(m[1].lower().replace("-", "_"))
+    return out
+
+
+def _chain(node: ast.AST) -> list[str]:
+    """``a.b.c(...)`` or ``a.b.c`` as ['a', 'b', 'c']; [] for anything else."""
+    node = node.func if isinstance(node, ast.Call) else node
+    parts: list[str] = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    return [node.id, *reversed(parts)] if isinstance(node, ast.Name) else []
+
+
+def _skip_reason(node: ast.AST, aliases: set[str], pinned: set[str]) -> str | None:
+    """Why this node makes a test skip for lack of something, or None: a ``skipif`` mark (or a name bound to one),
+    ``pytest.skip(...)``, or ``pytest.importorskip(<a package the repository does not pin>)``."""
+    chain = _chain(node)
+    if chain[-2:] == ["mark", "skipif"] or chain[-1:] in (["skipIf"], ["skipUnless"]):
+        return "a skipif mark"
+    if isinstance(node, ast.Name) and node.id in aliases:
+        return f"{node.id}, a skipif mark"
+    if chain == ["pytest", "skip"]:
+        return "pytest.skip"
+    if chain == ["pytest", "importorskip"] and isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.Constant):
+        package = str(node.args[0].value).split(".")[0].lower().replace("-", "_")
+        if package not in pinned:
+            return f"pytest.importorskip({package!r}), a package no requirements file pins"
+    return None
+
+
+def py_skip_condition(path: Path, name: str) -> str | None:
+    """Why a (live) Python test skips when a tool is missing, or None when it always runs: a skipif mark on the test, its
+    class or the module (``pytestmark``, or a name bound to a mark), a ``pytest.skip`` call or an ``importorskip`` of a
+    package the repository does not pin, in the test or at module level. An importorskip of a pinned package is a
+    precondition of the documented setup, not a missing tool."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except (SyntaxError, ValueError):
+        return None
+    pinned = pinned_packages()
+    alias_statements = [s for s in tree.body if isinstance(s, ast.Assign) and _skip_reason(s.value, set(), pinned) == "a skipif mark"
+                        and not any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in s.targets)]
+    aliases = {t.id for s in alias_statements for t in s.targets if isinstance(t, ast.Name)}
+    target = name.split("[")[0]
+
+    def first(nodes) -> str | None:
+        return next((r for n in nodes for r in [_skip_reason(n, aliases, pinned)] if r), None)
+
+    reason = first(n for s in tree.body if not isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                   and s not in alias_statements for n in ast.walk(s) if isinstance(n, ast.Call))
+    if reason:
+        return reason
+    for node in tree.body:
+        funcs: list[tuple[ast.AST, list[ast.expr]]] = []
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == target:
+            funcs.append((node, []))
+        elif isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
+            funcs += [(f, node.decorator_list) for f in node.body if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)) and f.name == target]
+        for fn, class_decorators in funcs:
+            found = first([*class_decorators, *fn.decorator_list]) or first(n for n in ast.walk(fn) if isinstance(n, ast.Call))
+            if found:
+                return found
+    return None
+
+
 def mask_ts(src: str) -> tuple[str, dict[int, int]]:
     """TypeScript source with comments blanked and the content of string and template literals replaced by ``_``, plus
     {index of an opening quote: index of its closing quote}. What is left is code only."""
@@ -540,8 +701,10 @@ def is_script(rel: str) -> bool:
 
 
 def adversarial_name(rel: str, name: str) -> bool:
+    """A claim a reviewer verifies, not proof: a test under tests/adversarial/, or one named ``test_adversarial_...`` (Python)
+    or ``adversarial: ...`` (a TypeScript title); ``adversarialish`` and a bare ``test_adversarial`` are not."""
     base = name.split("[")[0]
-    return rel.startswith("tests/adversarial/") or base.startswith(("test_adversarial", "adversarial"))
+    return rel.startswith("tests/adversarial/") or base.startswith(("test_adversarial_", "adversarial: "))
 
 
 def gate_findings(rel: str, rid: str, gate: str, *, adversarial: bool = False) -> list[str]:
@@ -579,6 +742,30 @@ def gate_findings(rel: str, rid: str, gate: str, *, adversarial: bool = False) -
     return out
 
 
+def skipping_findings(vrel: str, rid: str, named: list[str], check: str) -> list[str]:
+    """A validation row proves a requirement can fail only if a gate of the row runs. When every live test it names
+    skips for lack of a tool (a skipif mark, pytest.skip, an importorskip of a package no requirements file pins), CI
+    and a clone without the tool never run it: the row needs a second gate that runs without the tool, or says in its
+    check cell ``local-only: <why, at least five words>`` (a reviewed exception: the check runs where the tool is)."""
+    reasons: list[str] = []
+    for target in named:
+        path_part, _, test = target.partition("::")
+        path = (ROOT / path_part).resolve()
+        if not (ROOT in path.parents and path.is_file()) or test_state(path, test) != "ok":
+            continue  # reported by gate_findings
+        why = py_skip_condition(path, test) if path.suffix == ".py" else None
+        if why is None:
+            return []
+        reasons.append(f"{target} ({why})")
+    if not reasons:
+        return []
+    exception = LOCAL_ONLY.search(check)
+    if exception and not too_short(exception["why"], 5):
+        return []
+    return [f"{vrel} {rid}: every test the row names skips when a tool is missing, so it counts as not run: {'; '.join(reasons)}; "
+            "name a second gate in the row that runs without that tool, or write 'local-only: <why>' (five words or more) in its check"]
+
+
 def validation_findings(feature: Path, rel: str, ids: list[str]) -> list[str]:
     """validation.md of a live feature: every requirement ID exactly once, a stated check, an adversarial gate that is real."""
     vpath = feature / "validation.md"
@@ -604,6 +791,7 @@ def validation_findings(feature: Path, rel: str, ids: list[str]) -> list[str]:
             out.append(f"{vrel} {rid}: the gate names no test (path::name), got {cells[2].strip()[:80]!r}")
             continue
         out.extend(gate_findings(vrel, rid, cells[2], adversarial=True))
+        out.extend(skipping_findings(vrel, rid, named, cells[1]))
     for rid in ids:
         if seen.get(rid, 0) == 0:
             out.append(f"{vrel} {rid}: no validation row")
