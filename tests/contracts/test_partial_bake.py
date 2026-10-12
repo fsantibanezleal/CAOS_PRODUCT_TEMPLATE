@@ -60,7 +60,7 @@ def test_a_declared_absent_manifest_builds_with_a_warning(repo):
     assert "manifests/EX01_subcritical.json" in p.stdout and "WARN" in p.stdout
 
 
-def test_an_undeclared_absent_trace_stops(repo):
+def test_adversarial_an_undeclared_absent_trace_stops(repo):
     recompute(repo)  # the readiness says every trace is there ...
     (repo / "data" / "derived" / "EX03_fast_burn" / "trace.json").unlink()  # ... and one is not
     p = check(repo)

@@ -19,7 +19,7 @@ describe('getJSON', () => {
     await expect(getJSON('manifests/index.json')).resolves.toEqual({ ok: true });
     expect(fetch.mock.calls[0][0]).toMatch(/\/data\/manifests\/index\.json\?v=test-version$/);
   });
-  it('refuses an HTML answer (the host fallback for a missing file)', async () => {
+  it('adversarial: refuses an HTML answer (the host fallback for a missing file)', async () => {
     vi.stubGlobal('fetch', answer('<!doctype html>', 200, 'text/html'));
     vi.stubGlobal('__APP_VERSION__', 'test-version');
     await expect(getJSON('manifests/missing.json')).rejects.toThrow(ArtifactError);

@@ -5,7 +5,7 @@ import json
 from pipeline import pipeline, registry
 
 
-def test_case_deterministic_same_seed(tmp_path):
+def test_adversarial_case_deterministic_same_seed(tmp_path):
     out = tmp_path / "derived"
     a = pipeline.precompute("EX02_epidemic", seed=7, output_root=out)
     b = pipeline.precompute("EX02_epidemic", seed=7, output_root=out)

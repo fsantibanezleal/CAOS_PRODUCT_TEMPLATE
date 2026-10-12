@@ -105,7 +105,7 @@ def _predictors(tmp_path):
     return {"baseline": baseline.peak_frac, "trained": lambda r0: train.predict(committed, r0)}
 
 
-def test_swap_baseline_and_trained(tmp_path):
+def test_adversarial_swap_baseline_and_trained(tmp_path):
     """One assertion set, run for the baseline and for the trained bundle behind the same slot."""
     grid = [0.1 + 0.05 * i for i in range(int(round((20 - 0.1) / 0.05)) + 1)]
     for which, predict in _predictors(tmp_path).items():
@@ -141,7 +141,7 @@ def _spy_no_training(monkeypatch):
     monkeypatch.setattr(pipeline.train_stage, "run", boom)
 
 
-def test_no_train_without_a_bundle_reports_the_baseline(tmp_path, monkeypatch):
+def test_adversarial_no_train_without_a_bundle_reports_the_baseline(tmp_path, monkeypatch):
     _spy_no_training(monkeypatch)
     out = tmp_path / "bake"
     pipeline.run_all(seed=42, output_root=out, train=False)
