@@ -669,7 +669,7 @@ def test_sdd_rereview_a_limits_line_of_a_placeholder(sdd_repo: Path) -> None:
 
 def test_sdd_rereview_q2_an_assumption_is_refused_in_an_instantiated_product_and_accepted_in_the_template(sdd_repo: Path) -> None:
     assert sdd(sdd_repo).returncode == 0  # the template itself (no .template-version) keeps its labelled assumption
-    (sdd_repo / ".template-version").write_text("CAOS_PRODUCT_TEMPLATE 0.05.000 (tag v0.05.000)\n", encoding="utf-8")
+    (sdd_repo / ".template-version").write_text("CAOS_PRODUCT_TEMPLATE (the version it started from)\n", encoding="utf-8")
     r = sdd(sdd_repo)
     assert r.returncode == 1 and "assumption" in r.stdout and ".template-version" in r.stdout, r.stdout
     _replace_line(sdd_repo, SDD, "- A closure held one week longer than needed",
