@@ -10,8 +10,9 @@ The area is `docs/design/` (the design), `docs/contracts/` (the contracts as cod
 Research, then the executive brief, then sizing, contracts and the units.
 
 1. **Research basis.** What was researched before the plan and what it decided: each claim with a source (a DOI or a
-   URL), at least three sources, and the list of what stayed UNVERIFIED (it may say none). Section `Research basis`
-   of [`SDD.md`](SDD.md). Checked by `scripts/check_sdd.py`.
+   URL), at least three distinct sources (one work cited as a DOI and as its URL counts once; example and localhost
+   hosts count for none), and a line starting `UNVERIFIED:` for what stayed unverified (it may say none). Section
+   `Research basis` of [`SDD.md`](SDD.md). Checked by `scripts/check_sdd.py`.
 2. **Executive brief.** The problem in its real context, in business language, before any development: the
    Initiative (the owner, the initiative, the quantified reason to act now), the Outcomes, the Positioning and the
    Credibility, every number with its source or labelled an assumption. Section `Executive brief` of
@@ -21,23 +22,32 @@ Research, then the executive brief, then sizing, contracts and the units.
    technology and version matrix and the resources of each stage. The sizing's coordination records (the parallel
    units, who owns them) live with the product's coordination, not here; this repository holds the product's own
    design facts. Sections `Sizing and contracts`, `Technology and versions` and `Resources` of [`SDD.md`](SDD.md).
-   Checked by `scripts/check_sdd.py` (the resources table has no empty cell and no TBD) and
-   `scripts/check_tech_matrix.py` (the technology table is the pinned dependencies, version for version).
+   Checked by `scripts/check_sdd.py` (the twelve sections are headings outside code fences, once, in order, each with
+   a body; the resources table has one row for each of bake, tests, build and deploy and no empty or placeholder cell)
+   and `scripts/check_tech_matrix.py` (the technology table is the pinned dependencies, version for version: every
+   `requirements*.txt`, `pyproject.toml` dependencies and `frontend/package.json` including optional, peer and
+   overrides; Python pins are exact `==`; a package.json range is allowed only when the lock records the same spec at
+   its root and its locked version satisfies it, and the table holds the locked version).
 4. **Contracts.** One row per boundary and per model slot in [`../contracts/catalog.md`](../contracts/catalog.md), one
    schema file each, an example, a test on each side, the missing-data behavior and a provider. A contract is mutable
-   and versioned: its version follows its schema by semver, its history is a row per version, and
-   [`../contracts/versions.lock.json`](../contracts/versions.lock.json) holds the digest of each schema. Checked by
-   `scripts/check_contracts.py`, `scripts/check_skeleton.py`, `scripts/check_readiness.py` and
-   `scripts/check_contract_versions.py`.
+   and versioned: its version follows its schema by semver, its history is a row per version whose kind is the semver
+   step, and [`../contracts/versions.lock.json`](../contracts/versions.lock.json) holds the digest of each schema.
+   Checked by `scripts/check_contracts.py`, `scripts/check_skeleton.py`, `scripts/check_readiness.py` and
+   `scripts/check_contract_versions.py` (CI runs it with `--base`, against the schemas at a git ref, so a hand-edited
+   lock proves nothing).
 5. **Requirements.** Per feature, `features/<feature>/requirements.md`: `| ID | statement | gate |`, every statement
-   with SHALL, every gate a test or guard that exists. Checked by `scripts/check_sdd.py`.
+   with SHALL, every gate a test or guard that exists and can fail: a `path::name` that names a live test in a test file
+   (not in a string, a comment, another test's body or a skipped test), or a plain path that is a test file or a script.
+   A row that is malformed, indented or split across lines is a finding, and so is a status other than live without an
+   entry and a reason in `features/.status-allow`. Checked by `scripts/check_sdd.py`.
 6. **Tests, red first.** Each requirement and edge case becomes a test that fails for the right reason before the
    code exists (`tests/`, `frontend/src/**/*.test.ts`); the code that follows is the minimum that turns them green.
 7. **Adversarial validation.** Per feature, `features/<feature>/validation.md`: `| requirement | adversarial check |
    gate |`, one row per requirement, the check stated as what was planted or refuted ("a NaN parameter is rejected")
-   and the gate the test that plants it. The guards are attacked too: `tests/adversarial/` copies the repository,
-   plants one defect, runs the guard and asserts the exit code and the message. Checked by `scripts/check_sdd.py`
-   and `python -m pytest tests/adversarial -q`.
+   and the gate the test that plants it: a test under `tests/adversarial/`, or one named `test_adversarial_...` (Python) or
+   `it('adversarial: ...')` (TypeScript). An ordinary test proves the requirement passes, not that it can fail. The
+   guards are attacked too: `tests/adversarial/` copies the files a guard reads, plants one defect, runs the guard and
+   asserts the exit code and the message. Checked by `scripts/check_sdd.py` and `python -m pytest tests/adversarial -q`.
 
 ## Where each part lives
 
@@ -56,7 +66,12 @@ Research, then the executive brief, then sizing, contracts and the units.
 Edit the schema, bump the version in the catalog by the semver rule (removed or renamed field, narrowed type or new
 required field: major; new optional field: minor; description or example: patch), add the History row, then
 `python scripts/check_contract_versions.py --update` and `python data-pipeline/run.py readiness`, and update both sides
-in the same pull request. The check fails on a schema that changed under the same version, a version that went
-down, a lock that is not current, and a row without a History entry for its version.
+in the same pull request. The check fails on a schema that changed under the same version (against the lock, and
+against the base ref in CI), a version that went down, a lock that is not current, a History kind that is not the semver
+step, a breaking change that is not a major bump, and a row without a History entry for its version. The breaking-change
+test is a mechanical floor (a minimal JSON Schema diff, listed in the catalog); the reviewer still judges the semantic
+breaks it cannot see.
 
-CI runs the checks above in the `checks` job (seconds, ADR-0074); the product's own tests and the bake run locally.
+CI runs the checks above in the `checks` job (ADR-0074: cheap checks, no new job); the product's own tests and the bake run
+locally. The one pytest command CI may run is exactly `[pip install pytest==X.Y.Z && ]python -m pytest tests/adversarial[ -q]`;
+`scripts/check_ci_budget.py` fails on anything broader.

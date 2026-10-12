@@ -154,7 +154,7 @@ def test_openapi_document_is_valid() -> None:
     validate(cs.load_json(cs.OPENAPI), base_uri=cs.OPENAPI.as_uri())
 
 
-def test_drifted_documents_are_rejected() -> None:
+def test_adversarial_drifted_documents_are_rejected() -> None:
     index = cs.load_json(FIXTURE / "manifests" / "index.json")
     manifest = cs.load_json(FIXTURE / index["cases"][0]["manifest_path"])
     trace = cs.load_json(FIXTURE / manifest["artifact"]["path"])
@@ -187,7 +187,7 @@ def test_drifted_documents_are_rejected() -> None:
     assert cs.errors("readiness", wrong)
 
 
-def test_cross_field_rules_catch_what_the_schema_cannot(tmp_path: Path) -> None:
+def test_adversarial_cross_field_rules_catch_what_the_schema_cannot(tmp_path: Path) -> None:
     root = tmp_path / "derived"
     for p in FIXTURE.rglob("*"):
         if p.is_file():
