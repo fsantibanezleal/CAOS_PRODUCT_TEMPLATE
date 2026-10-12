@@ -2,6 +2,68 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.04.000], 2026-10-11
+
+The product side of contract-first parallel delivery (ADR-0080, issue #25): every boundary is a catalog row with one
+schema file, the web's types are generated from it, both sides are tested against it, every row has a provider, and
+missing data or an untrained model is a declared state the site and the API show. Built as three parallel units
+against contracts fixed first.
+
+### Added
+
+- `docs/contracts/catalog.md`: seven rows (params-record, case-index, case-manifest, trace, the surrogate-model slot,
+  readiness, api), each with owner, version, schema, example, producer, consumer and swap tests, missing-data
+  behavior, provider and status, and the ordered rules that give every row one of six states (available, partial,
+  stale, provider, training, missing) with bilingual reasons. `docs/contracts/schemas/` holds one JSON Schema 2020-12
+  file per document; `docs/contracts/api.openapi.json` is the OpenAPI 3.1 document of the dormant API.
+- `docs/contracts/fixtures/`: a provider tree in the layout of `data/derived/` (one case, its manifest, trace, index
+  and a readiness that says provider) and a source table. `CAOS_DATA_ROOT=docs/contracts/fixtures/data/derived`
+  builds the site on it (the walking skeleton) and `DATA_DIR` serves it from the API.
+- `frontend/scripts/gen-contract-types.mjs`: generates `frontend/src/lib/contract.gen.ts` from the OpenAPI document
+  with openapi-typescript 7.13.0, each schema file's `$defs` hoisted to one component per name; `npm run
+  contracts:types` writes it, and `npm run build` fails when it is not current.
+- `data-pipeline/pipeline/core/readiness.py`: computes `data/derived/readiness.json` from the catalog and the
+  repository (no clock: the product version and the catalog's SHA-256); every bake writes it, `python
+  data-pipeline/run.py readiness` recomputes it, and `scripts/check_readiness.py` (stdlib) fails when it is stale.
+- `data-pipeline/pipeline/model/baseline.py`: the surrogate slot's analytic baseline (the SIR peak with S0 = 1) and the
+  bundle validator; `run.py all --no-train` never trains and reports the released bundle or the baseline.
+- The dormant API serves `GET /api/readiness`.
+- The site reads the readiness document: a note on the workbench, Experiments and Benchmark for the stale, provider,
+  partial and training states, with the document's reason; not available yet, never an empty chart, for what is
+  missing, and the case marked in the selector; readiness unknown, with a console error, when the document cannot be
+  read. Implementation gains the section "What is real in this build" with the readiness table.
+- Tests on both sides of every row: `tests/contracts/` (the committed bake, a fresh sandbox bake and the provider
+  tree against the schemas; contract 1 with its bounds held equal to the code's; every readiness state through the
+  real computation with the catalog's reasons; the surrogate swap over the baseline and the trained bundle; every
+  API response against the OpenAPI document, on the bake and on the provider tree), `frontend/src/lib/contract.test.ts`
+  and `api.contract.test.ts`, `frontend/src/readiness/readiness.test.ts`.
+- `scripts/check_contracts.py` and `scripts/check_skeleton.py`, vendored from the harness, and three CI steps in the
+  `checks` job: the catalog complete with every path present, the readiness current, and the rows still on a provider
+  listed (none allowed on `main`).
+
+### Changed
+
+- `frontend/src/lib/contract.types.ts`: every exported type is an alias of the generated types (names kept); the
+  run-time descriptors are tied to them by `satisfies`.
+- `train.predict` clamps to [0, 1]; `evaluate.run` takes no bundle and uses the baseline. The catalog declares the
+  trained fit's domain: monotone to r0 = 10, past which the four-term fit turns down (the baseline holds to 20).
+- `app/` reads its settings when instantiated, so `DATA_DIR` set after import takes effect.
+- `requirements-dev.txt` pins jsonschema 4.26.0, openapi-spec-validator 0.9.0, and fastapi 0.143.0 and httpx 0.28.1
+  for the API contract tests; `requirements-api.txt` keeps its pins as comments, so the API lane stays dormant.
+- The canonical bake is re-run at 0.04.000 (manifests and index; the traces and the surrogate bundle are unchanged).
+
+### Fixed
+
+- The API answered `GET /api/cases` with `{"cases": []}`, a body that is not an index, when no bake existed; it now
+  answers 503 with state `missing` and the reason.
+- From the release's adversarial review: a catalog status other than `real` or `active` fails the readiness
+  computation instead of being published as real; the API serves only indexed manifests and the artifacts they name
+  (it served the index and the readiness as artifacts) and answers 503, never 500, for an unreadable document; a bake
+  the readiness declares partial builds, with a warning per declared absence, so the frontend's partial handling
+  reaches the site; `scripts/check_documents.py` validates every committed document against its schema in CI
+  (constraints the generated types do not carry); the manifest is `example.manifest/v4` and records which model
+  produced its metrics, so a baseline bake stays labelled after a bundle appears.
+
 ## [0.03.001], 2026-10-08
 
 A guard for a failure the base's gate could report but not explain (issue #22), and the example on the shell 0.10.0.

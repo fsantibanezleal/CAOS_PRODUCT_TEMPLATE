@@ -54,3 +54,5 @@ models/*.pth
 .DS_Store
 Thumbs.db
 *.log
+# the training marker (models/training/<contract-id>): runtime state of a long training job, never committed
+models/training/

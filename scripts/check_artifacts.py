@@ -27,6 +27,17 @@ def artifacts_of(m: dict) -> list[dict]:
     return []
 
 
+def declared_absent() -> set[str]:
+    """The paths the readiness document declares absent: the ``missing`` of every row whose state is ``partial``
+    (catalog, Missing-data states). Empty when the document is absent or unreadable: nothing is tolerated then."""
+    try:
+        rows = json.loads((DERIVED / "readiness.json").read_text(encoding="utf-8")).get("contracts", [])
+        return {m for r in rows if isinstance(r, dict) and r.get("state") == "partial"
+                for m in r.get("missing", []) if isinstance(m, str)}
+    except (OSError, ValueError, AttributeError):
+        return set()
+
+
 def main() -> int:
     idx_path = MANIFESTS / "index.json"
     if not idx_path.exists():
@@ -34,15 +45,31 @@ def main() -> int:
         return 1
     index = json.loads(idx_path.read_text(encoding="utf-8"))
     errs: list[str] = []
+    tolerated = declared_absent()
     n_art = 0
+    n_declared_absent = 0
+
+    def absent(rel: str, what: str, path: Path) -> None:
+        """A declared-absent path is a warning (a partial bake builds); any other absence is drift."""
+        nonlocal n_declared_absent
+        if rel in tolerated:
+            n_declared_absent += 1
+            print(f"WARN: {what} {rel} is absent, as readiness.json declares (partial)")
+        else:
+            errs.append(f"missing {what}: {path}")
+
     for rel in index.get("files", []) or []:
         f = DERIVED / rel
         if not f.is_file() or f.stat().st_size == 0:
-            errs.append(f"declared by the index but missing or empty: {f}")
+            if rel in tolerated and not f.exists():
+                n_declared_absent += 1
+                print(f"WARN: file {rel} is absent, as readiness.json declares (partial)")
+            else:
+                errs.append(f"declared by the index but missing or empty: {f}")
     for entry in index.get("cases", []):
         mp = DERIVED / entry["manifest_path"]
         if not mp.exists():
-            errs.append(f"missing manifest: {mp}")
+            absent(entry["manifest_path"], "manifest", mp)
             continue
         m = json.loads(mp.read_text(encoding="utf-8"))
         arts = artifacts_of(m)
@@ -52,7 +79,7 @@ def main() -> int:
             n_art += 1
             art = DERIVED / a["path"]
             if not art.exists():
-                errs.append(f"missing artifact: {art}")
+                absent(a["path"], "artifact", art)
                 continue
             size = art.stat().st_size
             if size != a.get("bytes"):
@@ -66,7 +93,8 @@ def main() -> int:
         for e in errs:
             print("  -", e)
         return 1
-    print(f"CONTRACT 2 OK: {len(index.get('cases', []))} cases, {n_art} artifacts, manifests <-> artifacts consistent.")
+    print(f"CONTRACT 2 OK: {len(index.get('cases', []))} cases, {n_art} artifacts, manifests <-> artifacts consistent"
+          + (f" ({n_declared_absent} declared absent)." if n_declared_absent else "."))
     return 0
 
 

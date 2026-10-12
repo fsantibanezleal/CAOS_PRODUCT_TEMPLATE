@@ -3,9 +3,24 @@
 import { DocPage, DocSection, PlotCard, formatNumber, useShellLang } from '@fasl-work/caos-app-shell';
 import { UPlotChart } from '@fasl-work/caos-app-shell/chart';
 import { useMemo } from 'react';
-import { loadAllCases, useArtifact } from '../api/artifacts';
+import { loadAllCases, useArtifact, type Loaded } from '../api/artifacts';
 import { finalSize } from '../engine/sir';
 import { P, useT } from '../content/bi';
+import { ReadinessNote } from '../readiness/ReadinessNote';
+
+const ARTIFACT_ROWS = ['case-index', 'case-manifest', 'trace'];
+
+/** What stands where the cases would be: the loading line, the error, or not available yet with the reason. */
+function Pending({ all }: { all: Loaded<{ cases: unknown[] }> }) {
+  const lang = useShellLang();
+  const t = useT();
+  if (all.state === 'unavailable') return <p className="caos-pending" data-state="unavailable">{all.reason[lang]}</p>;
+  if (all.state === 'error') return <p className="caos-pending" data-state="error">{all.error}</p>;
+  if (all.state === 'ready') {
+    return <p className="caos-pending" data-state="unavailable">{t('Not available yet: no case of this build has its artifacts.', 'Aún no disponible: ningún caso de esta versión tiene sus artefactos.')}</p>;
+  }
+  return <p className="caos-pending" data-state="loading">{t('Loading the artifacts', 'Cargando los artefactos')}</p>;
+}
 
 export function Experiments() {
   const lang = useShellLang();
@@ -13,6 +28,7 @@ export function Experiments() {
   const all = useArtifact((s) => loadAllCases(s), []);
   const rows = useMemo(() => {
     if (all.state !== 'ready') return null;
+    if (!all.data.cases.length) return null;
     return all.data.cases.map(({ manifest: m, trace }) => {
       const r0 = m.params.beta / m.params.gamma;
       return { m, r0, s: trace.summary, z: finalSize(r0) };
@@ -33,6 +49,12 @@ export function Experiments() {
           en="Each row is one case of the registry: its reproduction number, the peak and the attack rate of its committed trace, the share the final-size relation predicts for a fully run epidemic, and what a reader should expect to see."
           es="Cada fila es un caso del registro: su número reproductivo, el pico y la tasa de ataque de su traza comprometida, la fracción que predice la relación de tamaño final para una epidemia completa, y lo que el lector debería esperar ver."
         />
+        <ReadinessNote ids={ARTIFACT_ROWS} />
+        {all.state === 'ready' && all.data.absent.map((a) => (
+          <p key={a.caseId} className="caos-pending" data-state="unavailable">
+            {a.title[lang]}: {a.reason[lang]}
+          </p>
+        ))}
         {rows ? (
           <table className="caos-table" data-state="ready">
             <thead>
@@ -61,9 +83,7 @@ export function Experiments() {
             </tbody>
           </table>
         ) : (
-          <p className="caos-pending" data-state={all.state === 'error' ? 'error' : 'loading'}>
-            {all.state === 'error' ? all.error : t('Loading the artifacts', 'Cargando los artefactos')}
-          </p>
+          <Pending all={all} />
         )}
       </DocSection>
       <DocSection title={{ en: 'Against the theory', es: 'Contra la teoría' }} refs={['km1927', 'miller2012']}>
@@ -84,9 +104,7 @@ export function Experiments() {
             />
           </PlotCard>
         ) : (
-          <p className="caos-pending" data-state={all.state === 'error' ? 'error' : 'loading'}>
-            {t('Loading the artifacts', 'Cargando los artefactos')}
-          </p>
+          <Pending all={all} />
         )}
       </DocSection>
     </DocPage>
