@@ -8,7 +8,7 @@ Fails when a workflow:
   - installs the training stack (precompute lane, pipeline requirements, torch & co.);
   - runs a training, pipeline, bake or benchmark entry point;
   - runs a test suite in a product repo (data-pipeline/ or requirements-precompute.txt):
-    tests run locally.
+    tests run locally; the only exception is `pytest tests/adversarial` (the guards' planted-defect suite).
 Stdlib only, so it runs before any install.
 Usage: python scripts/check_ci_budget.py [repo_dir]
 """
@@ -31,6 +31,9 @@ PIPELINE_RUN = re.compile(
     r"\bcompare_bakes\b|\bbake\b|lab\.pipeline\b|-m\s+\S+\.pipeline\b"
 )
 PYTEST = re.compile(r"(^|[\s;&|])(python\s+-m\s+)?pytest\b")
+# the one suite CI may run: the adversarial plants of the guards (copies of the guards' inputs, standard library and
+# pytest only, seconds); the product's own tests stay local
+ADVERSARIAL = re.compile(r"pytest\s+tests/adversarial\b")
 
 
 def check_workflow(path: Path, product: bool) -> list[str]:
@@ -85,7 +88,7 @@ def check_workflow(path: Path, product: bool) -> list[str]:
             continue
         if PIPELINE_RUN.search(line):
             errs.append(f"{name}:{i}: trains, bakes or runs the pipeline (ADR-0074 rule 1)")
-        elif product and PYTEST.search(re.sub(r"^\s*(-\s*)?run\s*:", "", line)):
+        elif product and PYTEST.search(cmd := re.sub(r"^\s*(-\s*)?run\s*:", "", line)) and not ADVERSARIAL.search(cmd):
             errs.append(f"{name}:{i}: runs the test suite in CI; tests run locally (ADR-0074 rule 3)")
     return errs
 
