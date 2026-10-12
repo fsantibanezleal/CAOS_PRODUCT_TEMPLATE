@@ -8,7 +8,11 @@ Fails when a workflow:
   - installs the training stack (precompute lane, pipeline requirements, torch & co.);
   - runs a training, pipeline, bake or benchmark entry point;
   - runs a test suite in a product repo (data-pipeline/ or requirements-precompute.txt):
-    tests run locally; the only exception is `pytest tests/adversarial` (the guards' planted-defect suite).
+    tests run locally; the only exception is one command, matched whole (`re.fullmatch`) after the backslash
+    line continuations of a `run:` block are joined: `[pip install pytest==X.Y.Z && ]python -m pytest tests/adversarial[ -q]`
+    (the guards' planted-defect suite). A second command, another path, `..`, a config or plugin option
+    (`-c`, `--rootdir`, `-o`, `--override-ini`, `-p`, `--pyargs`) or a trailing comment is a test run and a finding.
+    `pip install pytest==X.Y.Z` on a line of its own installs, it does not run a suite.
 Stdlib only, so it runs before any install.
 Usage: python scripts/check_ci_budget.py [repo_dir]
 """
@@ -30,10 +34,32 @@ PIPELINE_RUN = re.compile(
     r"data-pipeline/\S+\.py|\brun_all\b|\bprecompute\b|\bbenchmark\b|stages\.train|--epochs\b|"
     r"\bcompare_bakes\b|\bbake\b|lab\.pipeline\b|-m\s+\S+\.pipeline\b"
 )
-PYTEST = re.compile(r"(^|[\s;&|])(python\s+-m\s+)?pytest\b")
+PYTEST = re.compile(r"(^|[\s;&|(])(python3?\s+-m\s+)?pytest\b")
+PIP_INSTALL = re.compile(r"\bpip3?\s+install\b[^;&|\n]*")
 # the one suite CI may run: the adversarial plants of the guards (copies of the guards' inputs, standard library and
-# pytest only, seconds); the product's own tests stay local
-ADVERSARIAL = re.compile(r"pytest\s+tests/adversarial\b")
+# pytest only); the product's own tests stay local. The whole command must be this, nothing before, after or between.
+ADVERSARIAL = re.compile(r"(?:pip install pytest==\d+\.\d+\.\d+ && )?python -m pytest tests/adversarial(?: -q)?")
+
+
+def runs_a_suite(cmd: str) -> bool:
+    """True when the command starts pytest (a ``pip install pytest==X`` only installs it)."""
+    return PYTEST.search(PIP_INSTALL.sub(" ", cmd)) is not None
+
+
+def logical_lines(text: str) -> list[tuple[int, str]]:
+    """The file's lines as (first line number, text), a line ending in a backslash joined with the next one."""
+    out: list[tuple[int, str]] = []
+    pending: tuple[int, str] | None = None
+    for i, raw in enumerate(text.splitlines(), 1):
+        first, line = (pending[0], pending[1] + " " + raw.strip()) if pending is not None else (i, raw)
+        if line.rstrip().endswith("\\"):
+            pending = (first, line.rstrip()[:-1].rstrip())
+            continue
+        pending = None
+        out.append((first, line))
+    if pending is not None:
+        out.append(pending)
+    return out
 
 
 def check_workflow(path: Path, product: bool) -> list[str]:
@@ -76,7 +102,7 @@ def check_workflow(path: Path, product: bool) -> list[str]:
         if not t and not r:
             errs.append(f"{name}: job '{j}' has no timeout-minutes (ADR-0074 rule 5)")
 
-    for i, line in enumerate(text.splitlines(), 1):
+    for i, line in logical_lines(text):
         s = line.strip()
         if s.startswith("#"):
             continue
@@ -86,9 +112,10 @@ def check_workflow(path: Path, product: bool) -> list[str]:
         is_cmd = re.match(r"^\s*(-\s*)?run\s*:", line) or re.match(r"^\s{10,}\S", line)
         if not is_cmd:
             continue
+        cmd = re.sub(r"^\s*(-\s*)?run\s*:\s*(\|[+-]?|>[+-]?)?", "", line).strip()
         if PIPELINE_RUN.search(line):
             errs.append(f"{name}:{i}: trains, bakes or runs the pipeline (ADR-0074 rule 1)")
-        elif product and PYTEST.search(cmd := re.sub(r"^\s*(-\s*)?run\s*:", "", line)) and not ADVERSARIAL.search(cmd):
+        elif product and runs_a_suite(cmd) and not ADVERSARIAL.fullmatch(cmd):
             errs.append(f"{name}:{i}: runs the test suite in CI; tests run locally (ADR-0074 rule 3)")
     return errs
 
