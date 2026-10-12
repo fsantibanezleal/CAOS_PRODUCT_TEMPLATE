@@ -22,7 +22,7 @@ def test_a_value_outside_its_range_is_named():
         check("EX", {"attack_rate": (0.9, 0.95)}, _result(10.0, 20.0, 0.75))
 
 
-def test_a_case_without_expectations_or_with_an_unknown_metric_fails():
+def test_adversarial_a_case_without_expectations_or_with_an_unknown_metric_fails():
     with pytest.raises(ExpectationError, match="no expected range"):
         check("EX", {}, _result(1.0, 1.0, 0.1))
     with pytest.raises(ExpectationError, match="unknown expected metric 'peak'"):

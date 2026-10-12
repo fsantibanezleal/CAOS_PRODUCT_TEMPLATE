@@ -50,7 +50,7 @@ def test_accepted_records_match_the_schema() -> None:
         assert cs.errors("params-record", asdict(p)) == [], p.case_id
 
 
-def test_schema_valid_records_are_accepted() -> None:
+def test_adversarial_schema_valid_records_are_accepted() -> None:
     schema = cs.load_json(cs.SCHEMAS / "params-record.schema.json")
     # the schema's bounds are the contract's RANGES
     for name in FIELDS:

@@ -25,16 +25,49 @@ The script writes `product.json`, the frontend package name, `VERSION` (0.01.000
 then it bakes, tests and builds once and runs `scripts/check_template_residue.py`. That list is the work that
 follows.
 
-## 2. Size the product and fix its contracts first
+## 2. Write the specification area, then fix the contracts
 
-Contract-first parallel delivery (ADR-0080): before any unit is built, the product is sized (repositories,
-components, modules with their owner units, every boundary, the tool versions verified on primary sources, the
-machine limits, the parallel units with disjoint write scopes) in the coordination records, and its contracts are
-written here, in [`docs/contracts/catalog.md`](../contracts/catalog.md): one row per boundary and per model slot,
-each with its schema file, an example, the tests of both sides, its missing-data behavior and a provider (a fixture,
-a simulator, a stub, or a baseline for a model slot). Replace the example's rows, schemas and provider tree with the
-product's, regenerate the web's types (`cd frontend && npm run contracts:types`), recompute the readiness
-(`python data-pipeline/run.py readiness`), and run `scripts/check_contracts.py` until it passes.
+The map is [`docs/design/README.md`](../design/README.md). In this order, each step with its guard
+(`scripts/check_sdd.py`, `check_tech_matrix.py`, `check_contract_versions.py`, `check_contracts.py`,
+`check_readiness.py`, `check_skeleton.py`; CI runs them all):
+
+1. **Research basis.** Before the plan, research the real state of the art and persist it. In
+   [`docs/design/SDD.md`](../design/SDD.md) replace the example's `Research basis`: what was decided, each claim with
+   a DOI or URL (at least three distinct works), and a line starting `UNVERIFIED:` (`UNVERIFIED: none` if so). Never write it
+   from memory.
+2. **Executive brief.** The first thing the product writes after its research and before its sizing: the problem in
+   its real context, in business language. In [`docs/design/SDD.md`](../design/SDD.md) replace the example's
+   `Executive brief` (it follows `Problem and non-goals`): the Initiative (who owns the problem, the quantified reason
+   to act now), the Outcomes, the Positioning (four value points) and the Credibility (the questions the owner would
+   ask, and the honest limits), every number with its source or labelled an assumption. It is the core of the
+   product ("anyone can write code and release an app, but tailored on a real problem context is the expected core"),
+   `scripts/check_sdd.py` fails without it, and it is transcribed to the Introduction page's executive view. How to
+   write it: [guide 06](06_executive-brief.md); the five pages it feeds: [guide 07](07_documentation-pages.md).
+3. **Sizing.** Contract-first parallel delivery (ADR-0080): size the product (repositories, components, modules with
+   their owner units, every boundary, the machine limits, the parallel units with disjoint write scopes) in the
+   coordination records, and summarise it in `Sizing and contracts`. Fill `Technology and versions` with every pinned
+   dependency (`| component | package | version | use | alternative considered |`; Python pins exact with `==`, a
+   package.json range only with a lock that records it, and the table holds the locked version) and `Resources`
+   with one row each for the bake, the training (if any), the tests, the build and the deploy payload, memory, disk
+   and time measured or bounded (no TBD, no placeholder cell).
+4. **Contracts.** Write them in [`docs/contracts/catalog.md`](../contracts/catalog.md): one row per boundary and per
+   model slot, each with its schema file, an example, the tests of both sides, its missing-data behavior and a
+   provider (a fixture, a simulator, a stub, or a baseline for a model slot). Replace the example's rows, schemas
+   and provider tree with the product's, add a History row per contract, and run
+   `python scripts/check_contract_versions.py --update` to create the lock. Regenerate the web's types
+   (`cd frontend && npm run contracts:types`), recompute the readiness (`python data-pipeline/run.py readiness`), and
+   run `scripts/check_contracts.py` until it passes. From now on a schema change needs a version bump and a History
+   row whose kind is the semver step, and a breaking change needs a major one; CI checks it against the base ref
+   (`check_contract_versions.py --base`, which needs the `fetch-depth: 0` checkout the workflow has). The rules are
+   in the catalog.
+5. **Requirements and tests, red first.** Per feature, `docs/design/features/<feature>/requirements.md` (SHALL, each
+   with its gate); write the tests and watch them fail for the right reason before the code.
+6. **Adversarial validation.** Per feature, `validation.md`: for every requirement the check that tries to break it
+   (what was planted or refuted) and the test that does it, which must be adversarial: under `tests/adversarial/`, or
+   named `test_adversarial_...` (`it('adversarial: ...')` in TypeScript). A requirement and a validation row never
+   name a test that is skipped, only a name in a string or comment, or a prefix of a title. A feature whose status is
+   planned or superseded is listed with its reason in `docs/design/features/.status-allow`. Add the planted-defect tests
+   of the product's own guards to `tests/adversarial/`.
 
 The walking skeleton comes next: the site built on the provider tree
 (`CAOS_DATA_ROOT=docs/contracts/fixtures/data/derived npm run build`) and the API serving it, deployed so the UI and
@@ -75,7 +108,7 @@ before the next starts; units whose write scopes are disjoint are built at once,
    captions, references with DOIs that resolve) and the five diagrams in `frontend/src/architecture/` (bilingual,
    shell tokens only).
 8. **The SDD requirements.** Replace `docs/design/features/workbench/` with the product's features; every
-   requirement names a test or guard that exists.
+   requirement names a test or guard that exists, and every feature has its `validation.md`.
 
 ## 4. Verify, then release
 
