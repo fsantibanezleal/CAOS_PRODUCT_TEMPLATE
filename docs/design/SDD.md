@@ -21,6 +21,31 @@ Non-goals, each something a reader could reasonably assume:
 - A learned model of record. The surrogate exists to show where a trained model sits in the pipeline and how its
   held-out error is reported.
 
+## Research basis
+
+Done before the plan, and kept here so a reader can re-check it (ADR-0075; rule 11 section 12). The example is a
+placeholder model, so the research is short; a product's is the persisted dossier summarised claim by claim, each
+with its source. The list shows what was decided and from what; every DOI below was resolved against the Crossref
+record on 2026-10-11 (HTTP 200 each).
+
+| decision | what the research found | source |
+|---|---|---|
+| The model is the closed SIR system, dS/dt = -beta S I / N, dI/dt = beta S I / N - gamma I, dR/dt = gamma I | The threshold and the whole course follow from R0 = beta / gamma | Kermack and McKendrick 1927, https://doi.org/10.1098/rspa.1927.0118 |
+| The model family and its textbook assumptions (closed, homogeneous, deterministic) | The survey states the assumptions the non-goals list | Hethcote 2000, https://doi.org/10.1137/S0036144500371907 |
+| R0 as the threshold, and the herd threshold 1 - 1/R0 | The definition of the basic reproduction ratio and its computation | Diekmann, Heesterbeek and Metz 1990, https://doi.org/10.1007/BF00178324 |
+| The same threshold for compartmental models | R0 < 1 is the stability condition of the disease-free state | van den Driessche and Watmough 2002, https://doi.org/10.1016/S0025-5564(02)00108-6 |
+| The final-size relation z = 1 - exp(-R0 z) is the oracle independent of the time course | A closed derivation of the final size | Miller 2012, https://doi.org/10.1007/s11538-012-9749-6 |
+| Forward Euler at a quarter-day step, converging at first order | The scheme's global error is first order in the step | Hairer, Norsett and Wanner 1993, https://doi.org/10.1007/978-3-540-78862-1 |
+| Requirements are written in EARS form, each with its gate | The five EARS patterns used in the requirements files | Mavin et al. 2009, https://doi.org/10.1109/RE.2009.9 |
+
+Choices with no source because the example does not need one: the surrogate's four-term basis (a placeholder that
+shows where a trained model sits) and the 1500 ms run budget (the template's lane gate, measured in the Lanes
+section below).
+
+UNVERIFIED: what each work says beyond its title, scope and DOI record (kept in `frontend/src/content/citations.ts`):
+the page text of the works was not re-read for this release, only their Crossref records, so the "what the research
+found" cells restate the reason the example cites each work, not a quotation.
+
 ## Sizing and contracts
 
 The design rests on two artifacts of contract-first parallel delivery (ADR-0080): the sizing, kept with the
@@ -48,6 +73,57 @@ the sizing's parallel units, built at once against the fixed rows.
   missing.
 - The dormant API (api, `docs/contracts/api.openapi.json`): GET only; 503 with the declared state when a document
   is absent.
+
+## Technology and versions
+
+Every pinned dependency of `requirements-precompute.txt` (through `data-pipeline/requirements.txt`),
+`requirements-dev.txt` and `frontend/package.json`, with the version actually installed; `scripts/check_tech_matrix.py`
+fails when a pin and this table disagree. A package.json range is recorded at the version `frontend/package-lock.json`
+resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer) and Node 22 (CI).
+
+| component | package | version | use | alternative considered |
+|---|---|---|---|---|
+| engine | numpy | 2.4.6 | the SIR engine and the surrogate's least squares (numpy only, so the template installs with no native build) | scipy.integrate, rejected: a second heavy dependency for a one-line integrator |
+| tests | pytest | 9.1.1 | the pipeline, contract, guard and adversarial tests | unittest, rejected: no parametrisation or fixtures |
+| lint | ruff | 0.15.18 | lint of data-pipeline, tests, scripts and app | flake8 plus isort, rejected: two tools for one |
+| contracts | jsonschema | 4.26.0 | validates every document against its schema file | fastjsonschema, rejected: no support for the draft the schemas declare |
+| contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
+| API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
+| API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
+| shell | @fasl-work/caos-app-shell | 0.10.0 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| web | react | 19.3.0 | the UI | none: the shell requires it |
+| web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
+| web | react-router | 8.4.0 | the routes | none: the shell requires it |
+| web | zustand | 5.0.15 | the workbench selection store | redux, rejected: one store of a few keys |
+| web | katex | 0.16.47 | typeset equations on the pages | MathJax, rejected: heavier and slower to render |
+| web | lucide-react | 1.52.0 | icons | the shell's own set where it has one |
+| web | uplot | 1.6.32 | the interactive curves (`UPlotChart`) | a static SVG, rejected: no hover or zoom |
+| build | vite | 8.3.2 | bundler and dev server | webpack, rejected: slower and needs more configuration |
+| build | @vitejs/plugin-react | 6.1.1 | the React transform for vite | none |
+| build | typescript | 5.9.3 | type check of the web and the generated contract types | none |
+| build | openapi-typescript | 7.13.0 | generates `contract.gen.ts` from the OpenAPI document | hand-written types, rejected: they drift (the build checks them) |
+| build | @types/node | 24.19.1 | types of the build scripts | none |
+| build | @types/react | 19.3.0 | types of React | none |
+| build | @types/react-dom | 19.3.0 | types of React DOM | none |
+| tests | vitest | 5.0.3 | the web unit tests | jest, rejected: needs a transform for the vite config |
+| gate | playwright | 1.63.0 | the measured UI gate (`npm run gate`), local only | cypress, rejected: heavier install |
+
+## Resources
+
+What each stage needs on the development workstation (Windows 11, 2026-10-11; peak is the largest working set of the
+stage's processes, polled every 20 ms; the commands are in the release report of 0.05.000). No stage uses a GPU or a
+network after the install. Bounds are stated where a figure depends on the product: a product measures its own and
+replaces this table.
+
+| stage | memory | disk | time | where it runs |
+|---|---|---|---|---|
+| bake (`data-pipeline/run.py`, five cases, the released surrogate) | 33 MB peak | 112 KB of artifacts in `data/derived/` | 0.2 s | workstation, never CI |
+| training (the surrogate, folded into a bake with no released bundle, five cases) | 33 MB peak | 1 KB (`models/surrogate.json`) | 0.3 s | workstation, never CI |
+| tests (pytest, the whole suite: 8 s without the adversarial plants, 22.5 s with them) | 107 MB peak per process, 3.1 GB summed over the 253 processes it starts | temporary copies of the repository, a few MB each | 22.5 s | workstation (the plants alone, 11 s, also run in CI) |
+| install (`npm ci`) | 240 MB peak | 181 MB in `node_modules` | 123 s with a cold cache | workstation and CI web job |
+| build (`npm run build`) | 340 MB peak | 2.2 MB in `frontend/dist` | 3 s | workstation and CI web job |
+| web unit tests (`npm test`, 55 tests) | 110 MB peak | none | 1 s | workstation and CI web job |
+| deploy payload (GitHub Pages) | none | 2.2 MB uploaded | one Pages deploy, under 2 min | CI after main |
 
 ## Lanes
 
