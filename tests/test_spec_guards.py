@@ -42,7 +42,7 @@ A regional health authority's epidemiology unit owns the question of when to act
 
 | capability | business outcome | proof point |
 |---|---|---|
-| replay of a baked case | the planner sees the whole course before a meeting | 5 cases baked in 0.2 s (source: https://example.org/bake) |
+| replay of a baked case | the planner sees the whole course before a meeting | 5 cases baked in 0.2 s (source: https://doi.org/10.1098/rspa.1927.0118) |
 | live re-run | a what-if answered while the room waits | 0.08 ms per run (assumption: the lane budget is far above any value measured here) |
 | a labelled limit | no one mistakes the example for a forecast | 1 of 1 pages states it (source: docs/limits.md) |
 
@@ -633,7 +633,7 @@ def test_brief_outcomes_proof_point_without_a_number_fails(tmp_path):
 
 
 def test_brief_outcomes_proof_point_without_a_source_fails(tmp_path):
-    bad = BRIEF.replace(" (source: https://example.org/bake)", "")
+    bad = BRIEF.replace(" (source: https://doi.org/10.1098/rspa.1927.0118)", "")
     r = brief_run(tmp_path, brief=bad)
     assert r.returncode == 1 and "proof point" in r.stdout
 
@@ -683,6 +683,283 @@ def test_brief_an_equation_in_the_brief_fails(tmp_path):
         bad = BRIEF.replace("### Outcomes", plant + "\n\n### Outcomes", 1)
         r = brief_run(tmp_path / str(n), brief=bad)
         assert r.returncode == 1 and "equation" in r.stdout, plant
+
+
+# ---- the re-review of 0.05.000 (CAOS_MANAGE wip/product-template/rereview-0-05-000-2026-10-12.md, D3): one test per false pass
+
+FIRST_CLAIM = "- A response that starts after day 24 comes after the peak of 27345 infected people (source: https://doi.org/10.1007/BF00178324)"
+ASSUMPTION = "- The cost of one avoidable closure week is 2 million USD (assumption: a round figure chosen only to show the format)"
+Q1_LINES = ("- Q: Is this a forecast of our region?\n  A: No. It is a teaching model with textbook assumptions and no real data; the limit is stated on every page.\n"
+            "- Q: How do we know the numbers are right?\n  A: Each is read from a committed artifact and the live engine matches the baked one to 0.005 people.\n"
+            "- Q: What does it cost to run?\n  A: One workstation and 0.2 s per bake; the measured resources are in the design document.\n")
+
+
+def swapped(brief: str, old: str, new: str) -> str:
+    assert old in brief, old
+    return brief.replace(old, new, 1)
+
+
+PLACEHOLDER_BRIEF = (
+    "### Initiative\n\nTBD\n\n- TBD 1 (assumption: lorem ipsum dolor sit amet)\n\n"
+    "### Outcomes\n\nTBD\n\n| capability | business outcome | proof point |\n|---|---|---|\n"
+    + "| TBD | TBD | 1 (source: docs/limits.md) |\n" * 3
+    + "\n### Positioning\n\n" + "- **TBD**: TBD\n" * 4
+    + "\n### Credibility\n\n" + "- Q: TBD\n  A: TBD\n" * 3 + "\nLimits: TBD\n")
+
+
+def test_rereview_m1d_a_brief_of_placeholders_in_the_shape_the_guard_reads_fails(tmp_path):
+    r = brief_run(tmp_path, brief=PLACEHOLDER_BRIEF)
+    assert r.returncode == 1, r.stdout
+    for part in ("Initiative", "Outcomes", "Positioning", "Credibility"):
+        assert part in r.stdout, (part, r.stdout)
+
+
+@pytest.mark.parametrize("claim", [
+    "- The problem has mattered since 2026 (source: docs/limits.md)",
+    "- Step 1: the cost is high (source: docs/limits.md)",
+    "- item 1: the cost is high (source: docs/limits.md)",
+    "- 1. the cost is high (source: docs/limits.md)",
+    "- The report of 2026-10-12 says the cost is high (source: docs/limits.md)",
+    "- Since 2000 the cost rose a lot (source: docs/limits.md)",
+])
+def test_rereview_m2_a_year_or_an_index_is_not_the_number_of_a_claim(tmp_path, claim):
+    r = brief_run(tmp_path, brief=swapped(BRIEF, FIRST_CLAIM, claim))
+    assert r.returncode == 1 and "states no number" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("claim", [
+    "- In 2026 the cost rose 40 % (source: docs/limits.md)",
+    "- 2000 people were treated in the first week (source: docs/limits.md)",
+    "- The peak is R0 2.75 for 100000 people (source: docs/limits.md)",
+])
+def test_rereview_m2_a_real_number_next_to_a_year_still_passes(tmp_path, claim):
+    r = brief_run(tmp_path, brief=swapped(BRIEF, FIRST_CLAIM, claim))
+    assert r.returncode == 0, r.stdout
+
+
+def test_rereview_m2c_proof_points_that_are_indexes_fail(tmp_path):
+    r = brief_run(tmp_path, brief=swapped(BRIEF, "5 cases baked in 0.2 s", "item 1"))
+    assert r.returncode == 1 and "proof point" in r.stdout and "states no number" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("source", [
+    ".", "./", "docs", "https://example.com/made-up", "http://localhost/x", "https://a.example.org/x", "https://shop.test/x",
+    "10.0000/fake", "https://doi.org/10.0000/fake", "10.1234/example",
+])
+def test_rereview_m2ef_a_source_that_is_a_directory_or_a_placeholder_fails(tmp_path, source):
+    r = brief_run(tmp_path, brief=swapped(BRIEF, "(source: https://doi.org/10.1007/BF00178324)", f"(source: {source})"))
+    assert r.returncode == 1 and "cites a source" in r.stdout, r.stdout
+
+
+def test_rereview_m3b_numbered_headings_do_not_hide_a_misplaced_brief(tmp_path):
+    text = sdd_text(brief_after="Resources").replace("## Problem and non-goals", "## 1. Problem and non-goals")
+    tree = sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=text)
+    r = run("check_sdd.py", str(tree))
+    assert r.returncode == 1 and "right after" in r.stdout, r.stdout
+
+
+def test_rereview_xs2_numbered_headings_in_place_pass(tmp_path):
+    text = sdd_text().replace("## Problem and non-goals", "## 1. Problem and non-goals").replace("## Executive brief", "## 2. Executive brief")
+    r = run("check_sdd.py", str(sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=text)))
+    assert r.returncode == 0, r.stdout
+
+
+def test_rereview_m3d_a_tilde_fence_holding_a_backtick_line_hides_the_brief(tmp_path):
+    r = brief_run(tmp_path, brief="~~~\n```\n" + BRIEF + "```\n~~~\n")
+    assert r.returncode == 1, r.stdout
+
+
+def test_rereview_m3e_part_bodies_that_are_only_code_blocks_are_empty(tmp_path):
+    out = []
+    for chunk in re.split(r"(?m)^(?=### )", BRIEF):
+        if chunk.strip():
+            head, _, body = chunk.partition("\n")
+            out.append(f"{head}\n\n```text\n{body.strip()}\n```\n\n")
+    r = brief_run(tmp_path, brief="".join(out))
+    assert r.returncode == 1 and "is empty" in r.stdout, r.stdout
+
+
+def test_rereview_m4c_four_positioning_bullets_with_nothing_in_them_fail(tmp_path):
+    bullets = re.search(r"### Positioning\n\n(.*?)\n\n### Credibility", BRIEF, re.S)[1]
+    r = brief_run(tmp_path, brief=BRIEF.replace(bullets, "\n".join(["- **-**: -"] * 4), 1))
+    assert r.returncode == 1 and "Positioning" in r.stdout, r.stdout
+
+
+def test_rereview_xs1_one_question_three_times_answered_yes_fails(tmp_path):
+    r = brief_run(tmp_path, brief=swapped(BRIEF, Q1_LINES, "- Q: Is it good?\n  A: Yes.\n" * 3))
+    assert r.returncode == 1 and "Credibility" in r.stdout, r.stdout
+
+
+def test_rereview_xs1_three_distinct_questions_with_one_word_answers_fail(tmp_path):
+    three = "- Q: Is it good for us?\n  A: Yes.\n- Q: Is it cheap to run?\n  A: Yes.\n- Q: Is it safe to use?\n  A: Yes.\n"
+    r = brief_run(tmp_path, brief=swapped(BRIEF, Q1_LINES, three))
+    assert r.returncode == 1 and "Credibility" in r.stdout, r.stdout
+
+
+def test_rereview_xs1_the_same_question_in_other_case_counts_once(tmp_path):
+    same = "- Q: Is this a forecast of our region?\n  A: No. It is a teaching model with textbook assumptions and no real data.\n"
+    r = brief_run(tmp_path, brief=swapped(BRIEF, Q1_LINES, same + same.replace("Is this", "IS THIS") + same.replace("region", "region ")))
+    assert r.returncode == 1 and "Credibility" in r.stdout, r.stdout
+
+
+def test_rereview_a_limits_line_of_a_placeholder_fails(tmp_path):
+    bad = BRIEF.replace("Limits: closed, homogeneous, deterministic population; the example carries no real data.", "Limits: TBD")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "Limits" in r.stdout, r.stdout
+
+
+def test_rereview_an_equation_in_a_math_fence_still_fails(tmp_path):
+    r = brief_run(tmp_path, brief=BRIEF.replace("### Outcomes", "```math\nR_0 = b / g\n```\n\n### Outcomes", 1))
+    assert r.returncode == 1 and "equation" in r.stdout, r.stdout
+
+
+def test_rereview_two_executive_brief_sections_fail(tmp_path):
+    text = sdd_text(brief_after="Problem and non-goals").replace("## Research basis", "## Executive brief\n\n" + BRIEF + "\n## Research basis")
+    r = run("check_sdd.py", str(sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=text)))
+    assert r.returncode == 1 and "more than one" in r.stdout, r.stdout
+
+
+def test_rereview_q2_an_assumption_passes_in_the_template_and_fails_in_an_instantiated_product(tmp_path):
+    template = sdd_tree(tmp_path / "template", validation=GOOD_VALIDATION)
+    assert run("check_sdd.py", str(template)).returncode == 0
+    product = sdd_tree(tmp_path / "product", validation=GOOD_VALIDATION)
+    put(product, ".template-version", "CAOS_PRODUCT_TEMPLATE 0.05.000 (tag v0.05.000)\n")
+    r = run("check_sdd.py", str(product))
+    assert r.returncode == 1 and "assumption" in r.stdout and ".template-version" in r.stdout, r.stdout
+    sourced = swapped(BRIEF, ASSUMPTION, ASSUMPTION.split(" (assumption")[0] + " (source: docs/limits.md)")
+    sourced = sourced.replace("(assumption: the lane budget is far above any value measured here)", "(source: docs/limits.md)")
+    put(product, "docs/design/SDD.md", sdd_text(brief=sourced))
+    assert run("check_sdd.py", str(product)).returncode == 0
+
+
+def test_rereview_an_assumption_of_placeholder_words_fails_even_in_the_template(tmp_path):
+    bad = swapped(BRIEF, "(assumption: a round figure chosen only to show the format)", "(assumption: lorem ipsum dolor sit amet)")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "assumption" in r.stdout, r.stdout
+
+
+# ---- a validation gate that skips for lack of a tool counts as not run (Q1), and the adversarial name is a prefix (M9c)
+
+CONDITIONAL = {
+    "an alias of skipif": "import pytest\n\nneeds = pytest.mark.skipif(1 + 1 == 3, reason='needs a tool')\n\n\n@needs\ndef test_adversarial_x():\n    assert True\n",
+    "skipif on the test": "import shutil\nimport pytest\n\n\n@pytest.mark.skipif(shutil.which('node') is None, reason='needs node')\ndef test_adversarial_x():\n    assert True\n",
+    "skipif in a pytestmark": "import pytest\n\npytestmark = pytest.mark.skipif(1 + 1 == 3, reason='r')\n\n\ndef test_adversarial_x():\n    assert True\n",
+    "importorskip of a tool the repository does not pin": "import pytest\n\n\ndef test_adversarial_x():\n    pytest.importorskip('nosuchtool')\n    assert True\n",
+    "module-level importorskip": "import pytest\n\npytest.importorskip('nosuchtool')\n\n\ndef test_adversarial_x():\n    assert True\n",
+    "a skip in the body": "import pytest\n\n\ndef test_adversarial_x():\n    if 1 + 1 == 3:\n        pytest.skip('no tool')\n    assert True\n",
+}
+
+
+@pytest.mark.parametrize("case", sorted(CONDITIONAL))
+def test_rereview_s3d_a_validation_gate_that_skips_for_lack_of_a_tool_fails(tmp_path, case):
+    r = gate_tree(tmp_path, ADV, CONDITIONAL[case], "test_adversarial_x", where="validation")
+    assert r.returncode == 1 and "FX-001" in r.stdout and "skips" in r.stdout, r.stdout
+
+
+def test_rereview_s3d_a_second_gate_that_runs_in_the_same_row_passes(tmp_path):
+    val = GOOD_VALIDATION.replace(f"`{ADV}::test_a` |", f"`tests/adversarial/test_cond.py::test_adversarial_x` and `{ADV}::test_a` |", 1)
+    t = sdd_tree(tmp_path, validation=val, files={"tests/adversarial/test_cond.py": CONDITIONAL["skipif on the test"]})
+    r = run("check_sdd.py", str(t))
+    assert r.returncode == 0, r.stdout
+
+
+def test_rereview_s3d_the_same_conditional_test_as_a_requirement_gate_is_still_a_precondition(tmp_path):
+    r = gate_tree(tmp_path, ADV, CONDITIONAL["skipif on the test"], "test_adversarial_x", where="requirement")
+    assert r.returncode == 0, r.stdout
+
+
+def test_rereview_s3d_an_importorskip_of_a_pinned_package_is_a_precondition_of_the_documented_setup(tmp_path):
+    text = "import pytest\n\npytest.importorskip('pytest')\n\n\ndef test_adversarial_x():\n    assert True\n"
+    val = GOOD_VALIDATION.replace(f"`{ADV}::test_a` |", "`tests/adversarial/test_cond.py::test_adversarial_x` |", 1)
+    t = sdd_tree(tmp_path, validation=val, files={"tests/adversarial/test_cond.py": text, "requirements-dev.txt": "pytest==9.1.1\n"})
+    r = run("check_sdd.py", str(t))
+    assert r.returncode == 0, r.stdout
+
+
+@pytest.mark.parametrize("file,text,name", [
+    ("tests/test_other.py", "def test_adversarialish_x():\n    assert True\n", "test_adversarialish_x"),
+    ("tests/test_other.py", "def test_adversarial():\n    assert True\n", "test_adversarial"),
+    ("frontend/src/other.test.ts", "it('adversarialish works', () => { expect(1).toBe(1) })\n", "adversarialish works"),
+    ("frontend/src/other.test.ts", "it('adversarial works', () => { expect(1).toBe(1) })\n", "adversarial works"),
+])
+def test_rereview_m9c_a_name_that_only_starts_with_the_word_is_not_adversarial(tmp_path, file, text, name):
+    r = gate_tree(tmp_path, file, text, name, where="validation")
+    assert r.returncode == 1 and "not adversarial" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("file,text,name", [
+    ("tests/test_other.py", "def test_adversarial_x():\n    assert True\n", "test_adversarial_x"),
+    ("frontend/src/other.test.ts", "it('adversarial: works', () => { expect(1).toBe(1) })\n", "adversarial: works"),
+])
+def test_rereview_m9c_the_two_forms_of_the_name_pass(tmp_path, file, text, name):
+    r = gate_tree(tmp_path, file, text, name, where="validation")
+    assert r.returncode == 0, r.stdout
+
+
+# ---- check_ci_budget: what YAML reads is what is judged (F-B2, F-B3)
+
+def ci_raw(tmp: Path, steps: str, top: str = "") -> Path:
+    """A workflow whose steps are the given YAML text (a step starts at six spaces)."""
+    (tmp / ".github" / "workflows").mkdir(parents=True)
+    (tmp / "data-pipeline").mkdir()
+    (tmp / ".github" / "workflows" / "ci.yml").write_text(
+        "name: CI\non:\n  push:\n    branches: [main, develop]\nconcurrency:\n  group: g\n" + top
+        + "jobs:\n  checks:\n    runs-on: ubuntu-latest\n    timeout-minutes: 10\n    steps:\n" + steps, encoding="utf-8")
+    return tmp
+
+
+FOLDED_FAIL = {
+    "m10a a plain scalar continued on the next line": "      - name: s\n        run: python -m pytest tests/adversarial\n          tests/\n",
+    "m10b a folded block": "      - name: s\n        run: >\n          python -m pytest tests/adversarial\n          tests/\n",
+    "m10b a folded block with a strip indicator": "      - name: s\n        run: >-\n          python -m pytest tests/adversarial\n          tests/\n",
+    "m10c a literal block indented by nine spaces": "      - name: s\n        run: |\n         pip install pytest==9.1.1\n         python -m pytest -q\n",
+    "m10c a literal block with the whole suite": "      - name: s\n        run: |\n          python -m pytest -q\n",
+    "a step that is a list item with run on the dash line": "      - run: |\n          python -m pytest -q\n",
+    "a double-quoted scalar on two lines": "      - name: s\n        run: \"python -m pytest tests/adversarial\n          tests/\"\n",
+    "a second pytest after a blank line of a block": "      - name: s\n        run: |\n          python -m pytest tests/adversarial -q\n\n          python -m pytest -q\n",
+}
+
+
+@pytest.mark.parametrize("case", sorted(FOLDED_FAIL))
+def test_rereview_m10_a_command_is_read_as_yaml_reads_it(tmp_path, case):
+    r = run("check_ci_budget.py", str(ci_raw(tmp_path, FOLDED_FAIL[case])))
+    assert r.returncode == 1 and "tests run locally" in r.stdout, r.stdout
+
+
+FOLDED_PASS = {
+    "a folded block of exactly the allowance": "      - name: s\n        run: >\n          python -m pytest tests/adversarial -q\n",
+    "a plain scalar continued into exactly the allowance": "      - name: s\n        run: pip install pytest==9.1.1 &&\n          python -m pytest tests/adversarial\n",
+    "a literal block nine spaces deep, install then allowance": "      - name: s\n        run: |\n         pip install pytest==9.1.1\n         python -m pytest tests/adversarial -q\n",
+    "a step after the block is not part of it": "      - name: s\n        run: |\n          python -m pytest tests/adversarial -q\n      - name: t\n        run: echo done\n",
+}
+
+
+@pytest.mark.parametrize("case", sorted(FOLDED_PASS))
+def test_rereview_m10_the_allowance_in_other_yaml_forms_passes(tmp_path, case):
+    r = run("check_ci_budget.py", str(ci_raw(tmp_path, FOLDED_PASS[case])))
+    assert r.returncode == 0 and "ci budget: OK" in r.stdout, r.stdout
+
+
+ALLOWED_RUN = "        run: python -m pytest tests/adversarial\n"
+
+
+@pytest.mark.parametrize("steps,top", [
+    ("      - name: s\n        env:\n          PYTEST_ADDOPTS: \"tests --override-ini=addopts=\"\n" + ALLOWED_RUN, ""),
+    ("      - name: s\n" + ALLOWED_RUN, "env:\n  PYTEST_ADDOPTS: tests\n"),
+    ("      - name: s\n        env:\n          PYTEST_PLUGINS: x\n" + ALLOWED_RUN, ""),
+    ("      - name: s\n        env:\n          PYTEST_CONFIG: x\n" + ALLOWED_RUN, ""),
+    ("      - name: s\n        run: export PYTEST_ADDOPTS=tests && python -m pytest tests/adversarial\n", ""),
+    ("      - name: s\n        run: PYTEST_ADDOPTS=tests python -m pytest tests/adversarial\n", ""),
+    ("      - name: s\n        run: |\n          export PYTEST_ADDOPTS=tests\n          python -m pytest tests/adversarial\n", ""),
+])
+def test_rereview_m10d_a_pytest_environment_variable_widens_the_allowance(tmp_path, steps, top):
+    r = run("check_ci_budget.py", str(ci_raw(tmp_path, steps, top)))
+    assert r.returncode == 1 and "PYTEST_" in r.stdout, r.stdout
+
+
+def test_rereview_m10d_a_comment_that_names_the_variable_is_not_a_setting(tmp_path):
+    r = run("check_ci_budget.py", str(ci_raw(tmp_path, "      # PYTEST_ADDOPTS would widen the suite\n      - name: s\n" + ALLOWED_RUN)))
+    assert r.returncode == 0, r.stdout
 
 
 # ---------------------------------------------------------------- check_tech_matrix
