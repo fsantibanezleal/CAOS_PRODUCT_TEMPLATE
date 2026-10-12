@@ -59,7 +59,7 @@ A short worked example, from this template's own SDD (an SIR epidemic model, a t
   "In the epidemic case (reproduction number 2.75, 100000 people), infections peak at 27345 people on day 24.25 ...
   (source: data/derived/EX02_epidemic/trace.json)". A role, a sector and a number with its source.
 - Outcomes: the capability "Live re-run in the browser", the outcome "A what-if ... is answered while the room waits",
-  the proof point "median 0.02 to 0.08 ms per run against a budget of 1500 ms (source: docs/design/SDD.md)".
+  the proof point "median 0.006 to 0.010 ms per run against a budget of 1500 ms (source: docs/design/measured-resources.md)".
 - Positioning: "**An answer in the meeting**: the what-if does not wait for an analyst, so the decision is made with
   the numbers in the room." The value point and the owner's problem it answers.
 - Credibility: "Q: Is this a forecast for our region?" then "A: No. It is a teaching model ... and no real data".
@@ -126,7 +126,7 @@ least five words, in plain words, so a reader sees it is an assumption.
 
 - **A product tour.** Outcomes lists screens and features ("a dashboard, a map, an export"). Each row is a capability
   tied to what the owner can now do or avoid, with a number.
-- **Value without a number.** "Faster decisions" is the miss; "a what-if in 0.08 ms against a 1500 ms budget" is the hit.
+- **Value without a number.** "Faster decisions" is the miss; "a what-if in 0.01 ms against a 1500 ms budget" is the hit.
 - **A generic owner.** "Organizations that need insight" names nobody. Name the role and the sector, and what that
   person is accountable for.
 - **Positioning that lists the product's strengths.** Each value point answers a problem the owner has; say which.
