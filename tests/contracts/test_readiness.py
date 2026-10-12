@@ -105,7 +105,7 @@ def test_state_available(repo):
     assert entry(doc, "api")["reason"] == fill(template("always, in the static document"))
 
 
-def test_state_partial_manifests(repo):
+def test_adversarial_state_partial_manifests(repo):
     (repo / "data" / "derived" / "manifests" / "EX01_subcritical.json").unlink()
     doc = run(repo)
     e = entry(doc, "case-manifest")
@@ -135,7 +135,7 @@ def test_state_partial_params(repo):
     assert e["missing"] == ["aa_bad", "zz_bad"]
 
 
-def test_state_stale(repo):
+def test_adversarial_state_stale(repo):
     idx = repo / "data" / "derived" / "manifests" / "index.json"
     doc = json.loads(idx.read_text(encoding="utf-8"))
     doc["engine_version"] = OLDER
@@ -160,7 +160,7 @@ def test_first_matching_rule_wins(repo):
     assert entry(out, "case-index")["state"] == "stale"
 
 
-def test_state_provider_through_a_catalog_copy(repo):
+def test_adversarial_state_provider_through_a_catalog_copy(repo):
     cat = repo / "docs" / "contracts" / "catalog.md"
     text = cat.read_text(encoding="utf-8")
     row = next(ln for ln in text.splitlines() if ln.startswith("| case-index |"))
@@ -184,7 +184,7 @@ def test_state_training_without_a_bundle(repo):
     assert e["reason"] == fill(template("is absent or fails its schema"))
 
 
-def test_state_training_with_an_invalid_bundle(repo):
+def test_adversarial_state_training_with_an_invalid_bundle(repo):
     bundle = repo / "models" / "surrogate.json"
     bundle.write_text('{"kind":"linear-lstsq","basis":["1"],"coeffs":[1]}', encoding="utf-8")
     assert entry(run(repo), "surrogate-model")["provenance"] == "baseline"
@@ -216,7 +216,7 @@ def test_table_padding_is_formatting_not_a_status(repo):
     assert entry(run(repo), "case-index")["state"] == "available"
 
 
-def test_check_readiness_reports_an_unknown_status(repo):
+def test_adversarial_check_readiness_reports_an_unknown_status(repo):
     set_status(repo, "case-index", "stub")
     p = _check(repo)
     assert p.returncode == 1, p.stdout + p.stderr
@@ -232,7 +232,7 @@ def bake_with_the_baseline(r: Path) -> None:
     (r / "data" / "derived" / "readiness.json").unlink()
 
 
-def test_a_baseline_bake_stays_baseline_after_a_bundle_appears(repo):
+def test_adversarial_a_baseline_bake_stays_baseline_after_a_bundle_appears(repo):
     assert (repo / "models" / "surrogate.json").is_file()  # a valid released bundle is in place now
     bake_with_the_baseline(repo)
     for m in (repo / "data" / "derived" / "manifests").glob("EX*.json"):
@@ -266,7 +266,7 @@ def test_the_baseline_rule_comes_before_the_marker(repo):
     assert entry(run(repo), "surrogate-model")["provenance"] == "baseline"
 
 
-def test_state_training_with_the_marker(repo):
+def test_adversarial_state_training_with_the_marker(repo):
     (repo / "models" / "training").mkdir()
     (repo / "models" / "training" / "surrogate-model").write_text("started", encoding="utf-8")
     e = entry(run(repo), "surrogate-model")
@@ -274,7 +274,7 @@ def test_state_training_with_the_marker(repo):
     assert e["reason"] == fill(template("the marker file"))
 
 
-def test_state_missing_without_an_index(repo):
+def test_adversarial_state_missing_without_an_index(repo):
     (repo / "data" / "derived" / "manifests" / "index.json").unlink()
     doc = run(repo)
     for row in ("case-index", "case-manifest", "trace"):
@@ -333,13 +333,13 @@ def test_check_readiness_passes_on_the_repository():
     assert "readiness: current" in p.stdout
 
 
-def test_check_readiness_runs_without_numpy():
+def test_adversarial_check_readiness_runs_without_numpy():
     p = _check(no_numpy=True)
     assert p.returncode == 0, p.stdout + p.stderr
     assert "readiness: current" in p.stdout
 
 
-def test_check_readiness_fails_on_a_changed_catalog(tmp_path):
+def test_adversarial_check_readiness_fails_on_a_changed_catalog(tmp_path):
     r = tmp_path / "repo"
     shutil.copytree(ROOT / "data", r / "data")
     shutil.copytree(ROOT / "models", r / "models")

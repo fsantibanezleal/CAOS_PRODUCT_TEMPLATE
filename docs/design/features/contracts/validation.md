@@ -1,0 +1,40 @@
+# Adversarial validation: contracts, providers and declared states (ADR-0080)
+
+For each requirement of [`requirements.md`](requirements.md), the check that tries to break it: what was planted or
+refuted, and the test that plants it. `scripts/check_sdd.py` fails when a requirement has no row here (or two), when a
+check is empty, and when a gate names a test that does not exist. The guards themselves are attacked in
+`tests/adversarial/test_guards_reject_planted_defects.py`.
+
+| requirement | adversarial check | gate |
+|---|---|---|
+| CT-001 | an extra key, a missing key and a boolean in a number slot are planted into each document type: every one is rejected by its schema | `tests/contracts/test_documents.py::test_adversarial_drifted_documents_are_rejected` |
+| CT-002 | a copy of the provider tree with a truncated S series is caught by the cross-field rules the schema cannot state | `tests/contracts/test_documents.py::test_adversarial_cross_field_rules_catch_what_the_schema_cannot` |
+| CT-003 | an extra key, a missing key and a wrong type planted into the index, manifest, trace, readiness, params record and surrogate bundle each fail | `tests/contracts/test_documents.py::test_adversarial_drifted_documents_are_rejected` |
+| CT-004 | each bound of contract 1, one step inside and one step outside, is judged the same by the schema and by the code | `tests/contracts/test_params_record.py::test_adversarial_schema_valid_records_are_accepted` |
+| CT-005 | a property added to the trace schema without regenerating the types makes the build's currency check fail with "not current" (local-only: needs node and `npm ci` in frontend/, which the checks job does not install, and the CI web job runs the same type check in `npm run build`) | `tests/adversarial/test_requirements_refuted.py::test_a_schema_change_without_regenerated_types_fails_the_build_check` |
+| CT-006 | a boolean in a number slot, an extra key and a missing key in a document are each refused by the web's reader, with the key named | `frontend/src/lib/contract.test.ts::adversarial: fails on a drifted document: a boolean is not a number, and extra and missing keys are named` |
+| CT-007 | a 503 or 404 body of the API that is not the declared UnavailableBody or NotFoundBody type is refused by the generated types | `frontend/src/lib/api.contract.test.ts::adversarial: every 503 is UnavailableBody and every 404 is NotFoundBody` |
+| CT-008 | the catalog is edited by one word without recomputing the readiness: the readiness check fails and names the command | `tests/adversarial/test_guards_reject_planted_defects.py::test_readiness_a_catalog_edited_without_recomputing_the_document` |
+| CT-009 | a manifest the index lists is deleted from a copy of the bake: case-manifest becomes partial and lists the path | `tests/contracts/test_readiness.py::test_adversarial_state_partial_manifests` |
+| CT-010 | a bake stamped with an older engine version than VERSION is planted: the state is stale with both versions | `tests/contracts/test_readiness.py::test_adversarial_state_stale` |
+| CT-011 | a copy of the catalog with a row set to active: the state is provider and names the provider | `tests/contracts/test_readiness.py::test_adversarial_state_provider_through_a_catalog_copy` |
+| CT-012 | a bundle that fails its schema is planted as the released one: it does not count, the baseline answers and the state is training with provenance baseline | `tests/contracts/test_readiness.py::test_adversarial_state_training_with_an_invalid_bundle` |
+| CT-013 | the training marker is created while a bundle is released: the state is training with provenance real | `tests/contracts/test_readiness.py::test_adversarial_state_training_with_the_marker` |
+| CT-014 | the index is removed from a copy of the bake: every artifact row says missing | `tests/contracts/test_readiness.py::test_adversarial_state_missing_without_an_index` |
+| CT-015 | the catalog changes by one word in a copy: the readiness check exits 1 naming catalog_sha256 and the command that regenerates it | `tests/contracts/test_readiness.py::test_adversarial_check_readiness_fails_on_a_changed_catalog` |
+| CT-016 | numpy is made unimportable and the readiness check is run: it still passes | `tests/contracts/test_readiness.py::test_adversarial_check_readiness_runs_without_numpy` |
+| CT-017 | the baseline and a trained bundle are held to the same slot assertions: a slot answer that differs in kind between the two fails | `tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained` |
+| CT-018 | the bake is run with no train and no valid bundle: it must train nothing and report the baseline | `tests/contracts/test_surrogate.py::test_adversarial_no_train_without_a_bundle_reports_the_baseline` |
+| CT-019 | a route mounted on the app that the OpenAPI document does not declare, a path removed from a copy of the document, and a path added to it that the app never mounts each make the route comparison fail, naming the route; the unplanted comparison is the control | `tests/contracts/test_api.py::test_adversarial_an_undeclared_route_and_a_missing_route_fail_the_comparison` |
+| CT-020 | the derived documents are removed from the served root: every route answers 503 with state missing and a reason, never an empty body | `tests/contracts/test_api.py::test_adversarial_503_when_documents_are_absent` |
+| CT-021 | traversal paths (dot dots, encoded dot dots, backslashes) and non-artifact paths are requested: every one is 404 and nothing outside the root is served | `tests/contracts/test_api.py::test_adversarial_404_bodies_and_nothing_outside_the_root` |
+| CT-022 | the severity order is checked with the most severe state of mixed rows: the most severe wins in each pair | `frontend/src/readiness/readiness.test.ts::adversarial: order: missing, partial, training, provider, stale, available; the most severe wins` |
+| CT-023 | a readiness document that cannot be read (null) makes the view say readiness unknown, in both languages, instead of breaking | `frontend/src/readiness/readiness.test.ts::adversarial: a null document is readiness unknown, in both languages` |
+| CT-024 | a trace the readiness lists as absent is never fetched and the load rejects naming the path and the reason | `frontend/src/readiness/readiness.test.ts::adversarial: loadCase rejects with ArtifactUnavailable naming the path and the reason, and never fetches the trace` |
+| CT-025 | a row set to active is listed by the skeleton check with exit 2, and the CI step still turns exit 2 into a failure on main | `tests/adversarial/test_guards_reject_planted_defects.py::test_skeleton_a_row_still_served_by_a_provider_is_listed_with_exit_2` |
+| CT-026 | a row whose status the rules do not know ("done") makes the readiness computation fail instead of publishing it as real | `tests/contracts/test_readiness.py::test_adversarial_check_readiness_reports_an_unknown_status` |
+| CT-027 | the readiness, the index and a manifest are requested as artifacts, and the index as a case: each answers 404 with the declared body | `tests/contracts/test_api.py::test_adversarial_only_indexed_documents_are_served` |
+| CT-028 | an unreadable index is planted: the API answers 503 with state missing and a reason, never 500 | `tests/contracts/test_api.py::test_adversarial_an_unreadable_index_is_a_503` |
+| CT-029 | a trace removed from a bake whose readiness does not declare it absent stops the build and the artifact check | `tests/contracts/test_partial_bake.py::test_adversarial_an_undeclared_absent_trace_stops` |
+| CT-030 | a document with a pattern violation planted in a copy of the repository makes the document check fail | `tests/contracts/test_check_documents.py::test_adversarial_a_pattern_violation_fails` |
+| CT-031 | a bundle appears after a bake whose metrics came from the baseline: the readiness still says baseline until the next bake | `tests/contracts/test_readiness.py::test_adversarial_a_baseline_bake_stays_baseline_after_a_bundle_appears` |
