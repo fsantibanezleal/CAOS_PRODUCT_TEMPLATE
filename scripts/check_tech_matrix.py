@@ -2,17 +2,29 @@
 """The technology matrix of the SDD is the pinned dependencies, exactly (ADR-0075, ADR-0080; rule 11 section 12).
 
 The SDD section ``Technology and versions`` holds one table ``| component | package | version | use | alternative
-considered |``. This guard reads every pin of ``requirements-precompute.txt``, ``requirements-dev.txt``,
-``requirements-gpu.txt`` and ``data-pipeline/requirements.txt`` (each file that exists, ``-r`` includes followed) and
-``frontend/package.json`` (dependencies and devDependencies) and fails, naming each one, when
+considered |``. This guard reads every pin of the Python requirements (every ``requirements*.txt`` at the root,
+``data-pipeline/requirements*.txt``, each ``-r`` include followed, and ``[project].dependencies`` of ``pyproject.toml``
+when present) and of ``frontend/package.json`` (``dependencies``, ``devDependencies``, ``optionalDependencies``,
+``peerDependencies`` and ``overrides``) and fails, naming each one, when
 
-- a pinned package is absent from the table, or its version differs;
-- a table row names a package or a version that is not pinned;
-- a requirement is not pinned (a range, a bare name) or a package.json range is not resolved by
-  ``frontend/package-lock.json`` (the lock is the pin of a range: the table then holds the locked version).
+- a pinned package is absent from the table, or its version differs, or a table row names a package or a version that
+  is not pinned;
+- a Python requirement is not an exact pin: ``name==X.Y.Z`` with no wildcard and no second specifier, or a git pin
+  ``name @ git+https://...@ref`` (compared by its ref). A range, a bare name, an editable (``-e``) and a bare URL line
+  are findings;
+- the same package is pinned twice with different versions, in one file or across files (the same pin twice is fine);
+- a ``package.json`` spec is not what ``frontend/package-lock.json`` records: **ranges stay allowed** there (the repository
+  uses them with a lock file), and then the lock is the pin. For each package the spec must equal the lock's root spec
+  (``packages[""]``, which is what ``npm ci`` checks), the locked version (``node_modules/<name>``) must satisfy it, and
+  the SDD table holds the locked version, never the range. An ``overrides`` entry has no root record in the lock, so it
+  must be an exact version.
 
-Pins are compared by normalised name (lower case, ``_`` and ``.`` as ``-``, extras dropped) and version; a git pin
-(``name @ git+https://...@ref``) is compared by its ref. Standard library only (CI installs nothing).
+Python pins stay exact (``==``); only ``package.json`` may carry ranges, and only with a lock that agrees. The range
+check implements npm's comparators (exact, ``^``, ``~``, ``>``, ``>=``, ``<``, ``<=``, ``=``, ``x`` and partial versions,
+hyphen ranges, ``||``) and rejects a spec it cannot read (a tag, a URL, an ``npm:`` alias) rather than assuming it holds.
+
+Pins are compared by normalised name (lower case, ``_`` and ``.`` as ``-``, extras dropped). Standard library only
+(CI installs nothing; ``tomllib`` is in Python 3.11 and later).
 
 Usage: ``python scripts/check_tech_matrix.py [repo_root]``. Exit 0 consistent, 1 on any mismatch.
 """
@@ -25,16 +37,49 @@ from pathlib import Path
 
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 SDD = ROOT / "docs" / "design" / "SDD.md"
-PY_FILES = ("requirements-precompute.txt", "requirements-dev.txt", "requirements-gpu.txt", "data-pipeline/requirements.txt")
 HEAD = ["component", "package", "version", "use", "alternative considered"]
-EXACT = re.compile(r"^\d+(\.\d+){0,2}([-+.][0-9A-Za-z.-]+)?$")
-PIN = re.compile(r"^(?P<name>[A-Za-z0-9][A-Za-z0-9._-]*)(?:\[[^\]]*\])?\s*==\s*(?P<version>[^\s;#]+)")
-GIT = re.compile(r"^(?P<name>[A-Za-z0-9][A-Za-z0-9._-]*)(?:\[[^\]]*\])?\s*@\s*git\+\S+?@(?P<ref>[^\s#;]+)")
-NAME = re.compile(r"^(?P<name>[A-Za-z0-9][A-Za-z0-9._-]*)")
+EXACT = re.compile(r"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$")
+NAME_RE = r"[A-Za-z0-9][A-Za-z0-9._-]*"
+PIN = re.compile(rf"^(?P<name>{NAME_RE})(?:\[[^\]]*\])?\s*==\s*(?P<version>[^\s;#,]+)\s*(?:;[^#]*)?$")
+GIT = re.compile(rf"^(?P<name>{NAME_RE})(?:\[[^\]]*\])?\s*@\s*git\+\S+?@(?P<ref>[^\s#;]+)")
+NAME = re.compile(rf"^(?P<name>{NAME_RE})")
+PY_VERSION = re.compile(r"^[0-9][0-9A-Za-z.+!_-]*$")
+NODE_SECTIONS = ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies")
 
 
 def norm(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name.strip().lower())
+
+
+# ------------------------------------------------------------------ Python
+
+def requirement_line(line: str, rel: str, pins: dict[str, tuple[str, str]], findings: list[str]) -> None:
+    g = GIT.match(line)
+    m = PIN.match(line)
+    n = NAME.match(line)
+    if line.startswith("-"):
+        findings.append(f"{rel}: {line!r} is an editable or an option line that pins nothing (use name==version or a git ref)")
+        return
+    if g:
+        add_pin(pins, norm(g["name"]), g["ref"], rel, findings)
+    elif m and "*" not in m["version"] and PY_VERSION.match(m["version"]):
+        add_pin(pins, norm(m["name"]), m["version"], rel, findings)
+    else:
+        label = n["name"] if n else line
+        findings.append(f"{rel}: {label!r} is unpinned (use name==version with no wildcard, or a git ref): {line!r}")
+
+
+def add_pin(pins: dict[str, tuple[str, str]], name: str, version: str, source: str, findings: list[str]) -> None:
+    old = pins.get(name)
+    if old is not None and old[0] != version:
+        findings.append(f"{name}: pinned as {old[0]} in {old[1]} and as {version} in {source} (one package, one version)")
+        return
+    pins.setdefault(name, (version, source))
+
+
+def python_files() -> list[Path]:
+    found = sorted(ROOT.glob("requirements*.txt")) + sorted((ROOT / "data-pipeline").glob("requirements*.txt"))
+    return [p.resolve() for p in found]
 
 
 def python_pins(findings: list[str]) -> dict[str, tuple[str, str]]:
@@ -54,21 +99,167 @@ def python_pins(findings: list[str]) -> dict[str, tuple[str, str]]:
             if line.startswith(("-r ", "--requirement ")):
                 read((path.parent / line.split(None, 1)[1].strip()).resolve())
                 continue
-            if line.startswith("-"):
-                continue
-            m = PIN.match(line) or None
-            g = GIT.match(line)
-            if m:
-                pins[norm(m["name"])] = (m["version"], rel)
-            elif g:
-                pins[norm(g["name"])] = (g["ref"], rel)
-            else:
-                n = NAME.match(line)
-                findings.append(f"{rel}: {n['name'] if n else line!r} is unpinned (use name==version or a git ref): {line!r}")
+            if line.startswith(("-c ", "--constraint ", "--index-url", "--extra-index-url", "-i ", "--find-links", "-f ",
+                                "--no-binary", "--only-binary", "--prefer-binary", "--pre")):
+                continue  # options that pin nothing and are not an unpinned requirement
+            requirement_line(line, rel, pins, findings)
 
-    for rel in PY_FILES:
-        read((ROOT / rel).resolve())
+    for path in python_files():
+        read(path)
+    pyproject = ROOT / "pyproject.toml"
+    if pyproject.is_file():
+        import tomllib
+        project = tomllib.loads(pyproject.read_text(encoding="utf-8")).get("project", {})
+        for line in project.get("dependencies", []):
+            requirement_line(line.strip(), "pyproject.toml", pins, findings)
     return pins
+
+
+# ------------------------------------------------------------------ npm semver
+
+VERSION = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$")
+PARTIAL = re.compile(r"^v?(\d+|[xX*])(?:\.(\d+|[xX*]))?(?:\.(\d+|[xX*]))?(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$")
+Semver = tuple[int, int, int, tuple]
+
+
+def parse_version(text: str) -> Semver | None:
+    m = VERSION.match(text.strip())
+    if not m:
+        return None
+    pre = tuple((0, int(p)) if p.isdigit() else (1, p) for p in m[4].split(".")) if m[4] else ()
+    return int(m[1]), int(m[2]), int(m[3]), pre
+
+
+def compare(a: Semver, b: Semver) -> int:
+    if a[:3] != b[:3]:
+        return -1 if a[:3] < b[:3] else 1
+    if a[3] == b[3]:
+        return 0
+    if not a[3]:
+        return 1  # a release is above its own prereleases
+    if not b[3]:
+        return -1
+    return -1 if a[3] < b[3] else 1
+
+
+def partial(text: str) -> tuple[int | None, int | None, int | None, tuple] | None:
+    """A (possibly partial) version as (major, minor, patch, prerelease), None for an x or a missing part."""
+    m = PARTIAL.match(text.strip())
+    if not m:
+        return None
+    parts = [None if p is None or p in "xX*" else int(p) for p in m.groups()[:3]]
+    pre = tuple((0, int(p)) if p.isdigit() else (1, p) for p in m[4].split(".")) if m[4] else ()
+    return parts[0], parts[1], parts[2], pre
+
+
+def lower_bound(p: tuple) -> Semver:
+    return p[0] or 0, p[1] or 0, p[2] or 0, p[3]
+
+
+def upper_exclusive(p: tuple) -> Semver | None:
+    """The first version above everything the partial ``p`` stands for (None: no upper bound, a bare ``*``)."""
+    major, minor, patch, _ = p
+    if major is None:
+        return None
+    if minor is None:
+        return major + 1, 0, 0, (( 0, 0),)
+    if patch is None:
+        return major, minor + 1, 0, ((0, 0),)
+    return None
+
+
+def comparators(token: str) -> list[tuple[str, Semver]] | None:
+    """One range token (``^1.2.3``, ``~1.2``, ``>=1``, ``1.x`` ...) as a list of (operator, version) all of which must hold."""
+    m = re.match(r"^(\^|~>?|>=|<=|>|<|=)?\s*(.+)$", token.strip())
+    if not m:
+        return None
+    op, rest = m[1] or "", m[2]
+    p = partial(rest)
+    if p is None:
+        return None
+    low = lower_bound(p)
+    major, minor, patch, _ = p
+    floor = ((0, 0),)  # the smallest prerelease: ``<1.0.0`` must exclude 1.0.0-alpha only through the ``-0`` rule
+    if op in ("", "="):
+        if major is None:
+            return []
+        up = upper_exclusive(p)
+        return [(">=", low)] + ([("<", up)] if up else [("=", low)])
+    if op == "^":
+        if major is None:
+            return []
+        if major > 0 or minor is None:
+            up = (major + 1, 0, 0, floor)
+        elif minor > 0 or patch is None:
+            up = (0, minor + 1, 0, floor)
+        else:
+            up = (0, 0, patch + 1, floor)
+        return [(">=", low), ("<", up)]
+    if op in ("~", "~>"):
+        if major is None:
+            return []
+        up = (major, minor + 1, 0, floor) if minor is not None else (major + 1, 0, 0, floor)
+        return [(">=", low), ("<", up)]
+    if major is None:
+        return [] if op in (">=", "<=") else [("<", (0, 0, 0, ()))]
+    if op == ">":
+        up = upper_exclusive(p)
+        return [(">=", up)] if up else [(">", low)]
+    if op == "<=":
+        up = upper_exclusive(p)
+        return [("<", up)] if up else [("<=", low)]
+    return [(op, low)]
+
+
+def satisfies(version: str, spec: str) -> bool | None:
+    """Whether ``version`` satisfies the npm range ``spec``; None when the spec is not a range this guard can read."""
+    v = parse_version(version)
+    if v is None:
+        return None
+    result = False
+    for alternative in spec.split("||"):
+        text = alternative.strip()
+        hyphen = re.match(r"^(\S+)\s+-\s+(\S+)$", text)
+        if hyphen:
+            lo, hi = partial(hyphen[1]), partial(hyphen[2])
+            if lo is None or hi is None:
+                return None
+            up = upper_exclusive(hi)
+            tokens: list[tuple[str, Semver]] = [(">=", lower_bound(lo)), *([("<", up)] if up else [("<=", lower_bound(hi))])]
+        else:
+            tokens = []
+            for token in re.findall(r"(?:\^|~>?|>=|<=|>|<|=)?\s*[^\s]+", re.sub(r"(\^|~>?|>=|<=|>|<|=)\s+", r"\1", text)):
+                got = comparators(token)
+                if got is None:
+                    return None
+                tokens += got
+            if not text:
+                tokens = []
+        ok = all(_holds(v, op, bound) for op, bound in tokens)
+        if ok and v[3] and not any(b[:3] == v[:3] and b[3] for _, b in tokens):
+            ok = False  # a prerelease satisfies only a comparator that names a prerelease of the same x.y.z
+        result = result or ok
+    return result
+
+
+def _holds(v: Semver, op: str, bound: Semver) -> bool:
+    c = compare(v, bound)
+    return {">=": c >= 0, ">": c > 0, "<=": c <= 0, "<": c < 0, "=": c == 0}[op]
+
+
+# ------------------------------------------------------------------ package.json and its lock
+
+def flatten_overrides(node: dict, parent: str | None = None) -> list[tuple[str, str]]:
+    """The (package, spec) leaves of an ``overrides`` object: keys are ``pkg`` or ``pkg@selector``, ``"."`` stands for the parent."""
+    out: list[tuple[str, str]] = []
+    for key, value in node.items():
+        name = parent if key == "." and parent else re.sub(r"(?<=.)@[^@/]*$", "", key)
+        if isinstance(value, str):
+            if not value.startswith("$"):  # "$name" refers to the spec of a dependency, which is checked as one
+                out.append((name, value))
+        elif isinstance(value, dict):
+            out += flatten_overrides(value, name)
+    return out
 
 
 def node_pins(findings: list[str]) -> dict[str, tuple[str, str]]:
@@ -77,27 +268,48 @@ def node_pins(findings: list[str]) -> dict[str, tuple[str, str]]:
         return {}
     doc = json.loads(pkg.read_text(encoding="utf-8"))
     lock_path = ROOT / "frontend" / "package-lock.json"
-    locked: dict = json.loads(lock_path.read_text(encoding="utf-8")).get("packages", {}) if lock_path.is_file() else {}
+    lock = json.loads(lock_path.read_text(encoding="utf-8")) if lock_path.is_file() else None
+    packages: dict = (lock or {}).get("packages", {})
+    root_spec: dict = packages.get("", {})
     pins: dict[str, tuple[str, str]] = {}
-    for section in ("dependencies", "devDependencies"):
+    here = "frontend/package.json"
+    if lock is None:
+        findings.append(f"{here}: frontend/package-lock.json is missing, so no spec is pinned (run npm install and commit the lock)")
+    for section in NODE_SECTIONS:
         for name, spec in sorted(doc.get(section, {}).items()):
-            if EXACT.match(spec):
-                pins[norm(name)] = (spec, "frontend/package.json")
+            if lock is None:
                 continue
-            resolved = locked.get(f"node_modules/{name}", {}).get("version")
-            if resolved:
-                pins[norm(name)] = (resolved, "frontend/package-lock.json")
+            recorded = root_spec.get(section, {}).get(name)
+            if recorded != spec:
+                findings.append(f"{name} is unpinned ({spec!r} in {here} {section}): frontend/package-lock.json records "
+                                f"{recorded!r} for it at its root, so npm ci and this table disagree")
+                continue
+            locked = packages.get(f"node_modules/{name}", {}).get("version")
+            if not locked:
+                findings.append(f"{name} is unpinned ({spec!r}): frontend/package-lock.json has no node_modules/{name} entry")
+                continue
+            ok = locked == spec if EXACT.match(spec) else satisfies(locked, spec)
+            if ok is None:
+                findings.append(f"{name}: the spec {spec!r} in {here} is not a version range this guard can check")
+            elif not ok:
+                findings.append(f"{name}: the locked version {locked} does not satisfy {spec!r} in {here}")
             else:
-                findings.append(f"frontend/package.json: {name} is unpinned ({spec!r}) and frontend/package-lock.json does not resolve it")
+                add_pin(pins, norm(name), locked, "frontend/package-lock.json", findings)
+    for name, spec in flatten_overrides(doc.get("overrides", {})):
+        if not EXACT.match(spec):
+            findings.append(f"{name}: the override {spec!r} in {here} must be an exact version (the lock has no root record of it)")
+        else:
+            add_pin(pins, norm(name), spec, f"{here} overrides", findings)
     return pins
 
+
+# ------------------------------------------------------------------ the SDD table
 
 def table_versions(findings: list[str]) -> dict[str, str] | None:
     if not SDD.is_file():
         findings.append(f"{SDD.relative_to(ROOT).as_posix()} is missing")
         return None
-    text = SDD.read_text(encoding="utf-8")
-    lines = text.splitlines()
+    lines = SDD.read_text(encoding="utf-8").splitlines()
     start = next((i for i, ln in enumerate(lines) if ln.startswith("## ") and "technology and versions" in ln.lower()), None)
     if start is None:
         findings.append("SDD.md has no section 'Technology and versions'")
@@ -125,7 +337,10 @@ def table_versions(findings: list[str]) -> dict[str, str] | None:
 
 def main() -> int:
     findings: list[str] = []
-    pins = {**python_pins(findings), **node_pins(findings)}
+    py, node = python_pins(findings), node_pins(findings)
+    pins = dict(py)
+    for name, (version, source) in node.items():
+        add_pin(pins, name, version, source, findings)
     table = table_versions(findings)
     if table is not None:
         for name, (version, source) in sorted(pins.items()):
