@@ -123,7 +123,7 @@ for (const [label, root] of Object.entries(roots)) {
 }
 
 describe('CONTRACT 2: the checker', () => {
-  it('fails on a drifted document: a boolean is not a number, and extra and missing keys are named', () => {
+  it('adversarial: fails on a drifted document: a boolean is not a number, and extra and missing keys are named', () => {
     const problems = conform({ peak_I: true, t_peak: 3, extra: 1 }, { object: TRACE_SUMMARY }).join('\n');
     expect(problems).toMatch(/peak_I: expected a finite number/);
     expect(problems).toMatch(/extra: written by the pipeline, not declared/);

@@ -37,12 +37,43 @@ def get_checked(c: TestClient, path: str, template: str, expect: int):
     return body
 
 
-def test_routes_match_the_openapi_document(monkeypatch, tmp_path):
-    app = client(monkeypatch, tmp_path).app
-    # the app's own generated schema lists every route the app serves (included routers are wrapped in fastapi 0.143)
+def route_sets(app, document: dict) -> tuple[set, set]:
+    """(routes the app serves, routes the OpenAPI ``document`` declares), each as (path, METHOD). The app's own generated
+    schema lists every route the app serves (included routers are wrapped in fastapi 0.143); it is cached, so a route
+    mounted after the first call needs the cache dropped."""
+    app.openapi_schema = None
     served = {(p, m.upper()) for p, ops in app.openapi()["paths"].items() for m in ops}
-    declared = {(p, m.upper()) for p, ops in load_json(OPENAPI)["paths"].items() for m in ops}
+    declared = {(p, m.upper()) for p, ops in document["paths"].items() for m in ops}
+    return served, declared
+
+
+def test_routes_match_the_openapi_document(monkeypatch, tmp_path):
+    served, declared = route_sets(client(monkeypatch, tmp_path).app, load_json(OPENAPI))
     assert served == declared
+
+
+def test_adversarial_an_undeclared_route_and_a_missing_route_fail_the_comparison(monkeypatch, tmp_path):
+    document = load_json(OPENAPI)
+    # a route the app serves and the document does not declare
+    app = client(monkeypatch, tmp_path).app
+
+    @app.get("/api/planted")
+    def planted() -> dict:
+        return {}
+
+    served, declared = route_sets(app, document)
+    assert served != declared and served - declared == {("/api/planted", "GET")}, (served - declared, declared - served)
+    # a route the document declares and the app does not serve: a path removed from a copy of the document...
+    app = client(monkeypatch, tmp_path).app
+    path = "/api/cases"
+    assert path in document["paths"], "the plant would remove nothing"
+    shorter = {**document, "paths": {p: ops for p, ops in document["paths"].items() if p != path}}
+    served, declared = route_sets(app, shorter)
+    assert served != declared and {p for p, _ in served - declared} == {path}, (served - declared, declared - served)
+    # ...and a path declared that the app never mounts
+    longer = {**document, "paths": {**document["paths"], "/api/never-mounted": {"get": {}}}}
+    served, declared = route_sets(app, longer)
+    assert declared - served == {("/api/never-mounted", "GET")}, (served - declared, declared - served)
 
 
 def assert_serves_everything(c: TestClient) -> int:
@@ -72,7 +103,7 @@ def test_swap_fixture_tree_and_bake(monkeypatch):
         assert assert_serves_everything(client(monkeypatch, DERIVED_ROOTS[which])) >= 1, which
 
 
-def test_503_when_documents_are_absent(monkeypatch, tmp_path):
+def test_adversarial_503_when_documents_are_absent(monkeypatch, tmp_path):
     c = client(monkeypatch, tmp_path)
     for path, template, reason in (("/api/cases", "/api/cases", UNAVAILABLE_INDEX),
                                    ("/api/cases/EX01_subcritical/manifest", "/api/cases/{case_id}/manifest",
@@ -83,7 +114,7 @@ def test_503_when_documents_are_absent(monkeypatch, tmp_path):
     assert "cases" not in c.get("/api/cases").json()  # never the old empty-index body
 
 
-def test_404_bodies_and_nothing_outside_the_root(monkeypatch):
+def test_adversarial_404_bodies_and_nothing_outside_the_root(monkeypatch):
     c = client(monkeypatch, DERIVED_ROOTS["bake"])
     assert get_checked(c, "/api/cases/NOPE/manifest", "/api/cases/{case_id}/manifest", 404) == {"detail": "unknown case"}
     for bad in ("..%5Cindex", ".hidden", "..", "%2e%2e"):
@@ -105,7 +136,7 @@ def test_get_only(monkeypatch):
         assert getattr(c, method)("/api/cases").status_code == 405, method
 
 
-def test_only_indexed_documents_are_served(monkeypatch):
+def test_adversarial_only_indexed_documents_are_served(monkeypatch):
     """The declared bodies of /api/artifacts are traces and of /api/cases/{id}/manifest manifests: a document that is
     neither (the readiness, the index, a manifest read as an artifact, the index read as a case) is a 404."""
     c = client(monkeypatch, DERIVED_ROOTS["bake"])
@@ -145,7 +176,7 @@ def unreadable(rel: str) -> dict:
                                                       "es": f"El documento {rel} no se puede leer."}}}
 
 
-def test_an_unreadable_index_is_a_503(monkeypatch, tmp_path):
+def test_adversarial_an_unreadable_index_is_a_503(monkeypatch, tmp_path):
     c = client(monkeypatch, corrupt_copy(tmp_path, "manifests/index.json"))
     for path, template in (("/api/cases", "/api/cases"), ("/api/cases/EX01_subcritical/manifest", "/api/cases/{case_id}/manifest"),
                            ("/api/artifacts/EX01_subcritical/trace.json", "/api/cases")):  # see the note below

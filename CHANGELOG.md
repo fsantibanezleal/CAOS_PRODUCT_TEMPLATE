@@ -2,6 +2,10 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.05.000], 2026-10-12
+
+The release notes are assembled from `changes/` by the integrator at the release.
+
 ## [0.04.000], 2026-10-11
 
 The product side of contract-first parallel delivery (ADR-0080, issue #25): every boundary is a catalog row with one

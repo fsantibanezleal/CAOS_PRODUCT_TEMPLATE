@@ -7,7 +7,7 @@ def test_good_rows_accepted():
     assert rep.ok and len(rep.accepted) == 1 and not rep.rejected
 
 
-def test_bad_rows_rejected_not_coerced():
+def test_adversarial_bad_rows_rejected_not_coerced():
     rows = [
         {"case_id": "nan", "beta": "nan", "gamma": "0.2", "N": "1000", "I0": "10"},      # NaN
         {"case_id": "neg", "beta": "-1", "gamma": "0.2", "N": "1000", "I0": "10"},        # out of range
