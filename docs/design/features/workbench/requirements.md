@@ -8,7 +8,7 @@ EARS (Mavin et al., RE'09, doi:10.1109/RE.2009.9). Every requirement names the g
 | EX-002 | THE pipeline SHALL write identical artifacts for the same case and seed. | `tests/test_pipeline_smoke.py::test_case_deterministic_same_seed` |
 | EX-003 | IF a test writes into the committed artifacts, THEN THE test session SHALL fail and name the files. | `tests/conftest.py` |
 | EX-004 | WHEN an ingestion value is missing, non-numeric, NaN or out of range, THE pipeline SHALL reject the record with its reason. | `tests/test_contract.py::test_bad_rows_rejected_not_coerced` |
-| EX-005 | THE web SHALL read exactly the keys the pipeline writes, with their types, in every committed artifact. | `frontend/src/lib/contract.test.ts::CONTRACT 2: the committed artifacts are exactly what the web declares` |
+| EX-005 | THE web SHALL read exactly the keys the pipeline writes, with their types, in every committed artifact. | `frontend/src/lib/contract.test.ts::the index conforms and names a baked default case` (and, per case, `manifest and trace conform`, over the bake and the provider tree) |
 | EX-006 | THE live engine SHALL reproduce every baked trace to the trace rounding. | `frontend/src/engine/sir.parity.test.ts::the live engine reproduces every baked case` |
 | EX-007 | THE live engine SHALL converge to the final size at first order in the step. | `frontend/src/engine/sir.parity.test.ts::the engine converges to the final size at first order` |
 | EX-008 | IF an artifact answers anything but JSON, THEN THE web SHALL raise an error naming the file. | `frontend/src/api/artifacts.test.ts::refuses an HTML answer` |

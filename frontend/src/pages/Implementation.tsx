@@ -1,5 +1,6 @@
 import { DocPage, DocSection } from '@fasl-work/caos-app-shell';
 import { L, P, useT } from '../content/bi';
+import { ReadinessTable } from '../readiness/ReadinessTable';
 
 const THIS_REPO = { en: 'Describes this repository.', es: 'Describe este repositorio.' };
 
@@ -41,6 +42,13 @@ export function Implementation() {
           en="Before a deploy, the gate serves the build as GitHub Pages would and walks every route, tab and case at five screen sizes, in both themes and both languages, and fails on what a reader would meet: an error, a broken link, something that cannot be scrolled to or clicked, a blank or undersized drawing, a view that never settles, a loop at rest, or a control that changes nothing."
           es="Antes de un despliegue, la compuerta sirve la compilación como lo haría GitHub Pages y recorre cada ruta, pestaña y caso en cinco tamaños de pantalla, con ambos temas y ambos idiomas, y falla ante lo que encontraría un lector: un error, un enlace roto, algo a lo que no se puede llegar ni hacer clic, un dibujo en blanco o demasiado pequeño, una vista que nunca se estabiliza, un ciclo en reposo o un control que no cambia nada."
         />
+      </DocSection>
+      <DocSection title={{ en: 'What is real in this build', es: 'Qué es real en esta versión' }} noRefsReason={THIS_REPO}>
+        <P
+          en="Every row of the contract catalog carries a declared state, computed by the pipeline from the catalog and the repository and committed as readiness.json: available, partial (some manifests or artifacts are absent), stale (baked by an earlier version of the engine), provider (served by a provider while the real producer is not built), training (a baseline or a released model answers while a newer one trains) or missing. A view shows the result with a note for the states that still hold one, and an explicit not available yet with the reason for the state that does not, never an empty chart."
+          es="Cada fila del catálogo de contratos lleva un estado declarado, calculado por el pipeline a partir del catálogo y del repositorio y versionado como readiness.json: disponible, parcial (faltan manifiestos o artefactos), desactualizado (generado por una versión anterior del motor), proveedor (lo sirve un proveedor mientras el productor real no está construido), entrenando (responde una línea base o un modelo publicado mientras uno nuevo se entrena) o ausente. Una vista muestra el resultado con una nota para los estados que aún lo permiten, y un aún no disponible explícito con la razón para el estado que no, nunca un gráfico vacío."
+        />
+        <ReadinessTable />
       </DocSection>
       <DocSection title={{ en: 'Versions and deploy', es: 'Versiones y despliegue' }} noRefsReason={THIS_REPO}>
         <P
