@@ -21,6 +21,7 @@ def run(
     run_ms: float,
     flags: list[dict],
     metrics: dict,
+    models: dict[str, str],
     expect: dict,
     derived_dir: str,
     manifests_dir: str,
@@ -31,7 +32,8 @@ def run(
     gate = classify_lane(pure_python=True, wheels={"numpy"}, run_ms=run_ms, trace_bytes=trace_bytes)
     manifest = build_case_manifest(
         case=case, params=params, seed=seed,
-        artifact_rel=artifact_rel, trace_bytes=trace_bytes, gate=gate, flags=flags, metrics=metrics, expect=expect,
+        artifact_rel=artifact_rel, trace_bytes=trace_bytes, gate=gate, flags=flags, metrics=metrics, models=models,
+        expect=expect,
     )
     write_json(Path(manifests_dir) / f"{case.id}.json", manifest)
     return manifest

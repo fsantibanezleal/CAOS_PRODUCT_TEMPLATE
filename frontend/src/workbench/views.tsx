@@ -14,16 +14,45 @@ import {
   type BiText,
 } from '@fasl-work/caos-app-shell';
 import { UPlotChart } from '@fasl-work/caos-app-shell/chart';
-import { useMemo } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { atTimes, finalSize, simulate } from '../engine/sir';
+import type { Text } from '../lib/contract.types';
+import { ReadinessNote } from '../readiness/ReadinessNote';
 import { COVERAGE, type Selection } from './model';
+
+/** The reason the selected case is not available yet, when the readiness document says so; null otherwise. */
+export const UnavailableContext = createContext<Text | null>(null);
 
 function Pending({ label }: { label: BiText }) {
   const lang = useShellLang();
+  const reason = useContext(UnavailableContext);
+  // A case the readiness document lists as absent says so, with the reason: never an empty chart, never a spinner.
+  if (reason) {
+    return (
+      <p className="caos-pending" data-state="unavailable">
+        {reason[lang]}
+      </p>
+    );
+  }
   return (
     <p className="caos-pending" data-state="loading">
       {pick(label, lang)}
     </p>
+  );
+}
+
+/** The rows every view of the workbench consumes. The rail is at its measured height (ADR-0071 rule 6), so the note
+ * sits in the open view: the first group (Dynamics) and the write-up (Context). */
+const CASE_ROWS = ['case-index', 'case-manifest', 'trace'];
+
+/** The readiness note above a filling view: the note takes its own line and the view the height that is left, so a
+ * note never pushes the chart past its card (a note beside a `fill` chart clipped its legend). */
+function NotedFill({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <ReadinessNote ids={CASE_ROWS} />
+      <div style={{ flex: '1 1 0', minHeight: 0, position: 'relative' }}>{children}</div>
+    </div>
   );
 }
 
@@ -46,6 +75,7 @@ export function DynamicsView({ sel }: { sel: Selection | null }) {
       dataKey={stateKey}
       note={{ en: 'Solid: the live run with the rail values. Dashed: the committed replay of the case.', es: 'Continua: la corrida en vivo con los valores del panel. Segmentada: la reproducción comprometida del caso.' }}
     >
+      <NotedFill>
       {series ? (
         <UPlotChart
           height="fill"
@@ -62,6 +92,7 @@ export function DynamicsView({ sel }: { sel: Selection | null }) {
       ) : (
         <Pending label={LOADING} />
       )}
+      </NotedFill>
     </PlotCard>
   );
 }
@@ -188,7 +219,7 @@ function FinalSizeView({ sel }: { sel: Selection | null }) {
             ? { en: 'Immunisation changes the initial susceptible share; the relation below is for a fully susceptible population.', es: 'La inmunización cambia la fracción susceptible inicial; la relación de abajo es para una población totalmente susceptible.' }
             : curve.gap <= 0.02
               ? { en: `The run ends within ${formatNumber(curve.gap * 100, 'en', { decimals: 1 })} points of the final size.`, es: `La corrida termina a ${formatNumber(curve.gap * 100, 'es', { decimals: 1 })} puntos del tamaño final.` }
-              : { en: `The run is ${formatNumber(curve.gap * 100, 'en', { decimals: 1 })} points from the final size: the ${days}-day horizon ends before the epidemic does, or R0 is near 1.`, es: `La corrida está a ${formatNumber(curve.gap * 100, 'es', { decimals: 1 })} puntos del tamaño final: el horizonte de ${days} días termina antes que la epidemia, o R0 está cerca de 1.` }
+              : { en: `The run is ${formatNumber(curve.gap * 100, 'en', { decimals: 1 })} points from the final size: the ${days}-day horizon ends first, or R0 is near 1.`, es: `La corrida está a ${formatNumber(curve.gap * 100, 'es', { decimals: 1 })} puntos del tamaño final: el horizonte de ${days} días termina antes, o R0 está cerca de 1.` }
         }
       />
       <PlotCard fill title={{ en: 'Share ever infected against R0', es: 'Fracción alguna vez contagiada contra R0' }} lane="live" provenance="synthetic" dataKey={stateKey}>
@@ -250,6 +281,7 @@ export function ContextView({ sel }: { sel: Selection | null }) {
   const t = (en: string, es: string) => (lang === 'es' ? es : en);
   return (
     <>
+      <ReadinessNote ids={CASE_ROWS} />
       <h2>{m.title[lang]}</h2>
       <p>
         {t('Category', 'Categoría')}: {m.category[lang]}. {t('What a reader should see', 'Lo que el lector debería ver')}: {m.expected_band[lang]}
