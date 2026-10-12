@@ -41,6 +41,12 @@ jobs:
         run: python scripts/check_sdd.py
       - name: One deploy place
         run: python scripts/check_deploy_place.py
+      - name: The SDD technology table is the pinned dependencies (spec area)
+        run: python scripts/check_tech_matrix.py
+      - name: Contract versions follow their schemas, each with its History entry (spec area)
+        run: python scripts/check_contract_versions.py
+      - name: Every guard rejects a planted defect (spec area, seconds, standard library and pytest only)
+        run: pip install pytest==9.1.1 && python -m pytest tests/adversarial -q
       - name: The contract catalog, every row complete and every path it names present (ADR-0080)
         run: python scripts/check_contracts.py docs/contracts/catalog.md --repo-root .
       - name: The readiness document is current with the catalog and the bake (ADR-0080)
