@@ -48,7 +48,7 @@ def test_a_copy_is_valid(copy):
     assert p.returncode == 0, p.stdout + p.stderr
 
 
-def test_a_pattern_violation_fails(copy):
+def test_adversarial_a_pattern_violation_fails(copy):
     # artifact.path must not contain ".." (the schema's pattern)
     edit(copy / "data" / "derived" / "manifests" / "EX01_subcritical.json",
          lambda m: m["artifact"].update(path="EX01_subcritical/../trace.json"))

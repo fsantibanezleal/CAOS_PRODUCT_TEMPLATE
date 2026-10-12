@@ -19,7 +19,7 @@ describe('api: the generated response bodies are the document types', () => {
     expectTypeOf<Json<Responses<'/api/readiness'>, 200>>().toEqualTypeOf<Readiness>();
     expectTypeOf<Body<Get<'/api/cases'>, 200>>().toEqualTypeOf<CaseIndex>();
   });
-  it('every 503 is UnavailableBody and every 404 is NotFoundBody', () => {
+  it('adversarial: every 503 is UnavailableBody and every 404 is NotFoundBody', () => {
     type R503 = { content: { 'application/json': UnavailableBody } };
     type R404 = { content: { 'application/json': NotFoundBody } };
     expectTypeOf<Responses<'/api/cases'>[503 & keyof Responses<'/api/cases'>]>().toMatchTypeOf<R503>();

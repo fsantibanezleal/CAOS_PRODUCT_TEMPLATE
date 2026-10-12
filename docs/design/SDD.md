@@ -21,6 +21,82 @@ Non-goals, each something a reader could reasonably assume:
 - A learned model of record. The surrogate exists to show where a trained model sits in the pipeline and how its
   held-out error is reported.
 
+## Executive brief
+
+The problem in its real context, written before any development and in business language (no equation), as
+[`docs/guides/06_executive-brief.md`](../guides/06_executive-brief.md) describes and `scripts/check_sdd.py` checks.
+The example is a teaching model, so the owner below is the one the model would serve if it were real; every number
+is read from a committed artifact or from the cited work, or is labelled an assumption in plain words. A product
+replaces every assumption with a sourced number from its research dossiers before its first release.
+
+### Initiative
+
+The owner is the head of the epidemiology unit of a regional health authority (public health). The initiative: decide,
+week by week during a rising outbreak, whether to act and how hard, with a way to see the whole course before the
+meeting and to try a what-if while the room waits. The reason to act on it now is timing, in two directions:
+
+- In the epidemic case (reproduction number 2.75, 100000 people), infections peak at 27345 people on day 24.25, so a response decided after about 3 weeks acts on a peak that has already passed (source: data/derived/EX02_epidemic/trace.json; data/derived/manifests/EX02_epidemic.json)
+- In the fast-burn case (reproduction number 6) the peak comes on day 9.25, so the window to decide is under 2 weeks (source: data/derived/EX03_fast_burn/trace.json; data/derived/manifests/EX03_fast_burn.json)
+- At a reproduction number of 2.75, immunity in 63.6 % of the population (the herd threshold, computed as 1 - 1/2.75 from the relation of the cited work) is enough to prevent an outbreak, so a response sized well above that is a cost with no added protection (source: https://doi.org/10.1007/BF00178324)
+- A closure held one week longer than needed costs 100000 people one week of normal activity (assumption: the example population is 100000 and a closure is taken to stop all normal activity, for illustration only)
+
+### Outcomes
+
+The vision: the unit's planner sees the course of an outbreak, not only today's count, and tests a decision in the
+meeting where it is made, with every curve labelled by what it is and what it is not.
+
+| capability | business outcome | proof point |
+|---|---|---|
+| Replay of a baked case | The planner sees the full course of an outbreak before the meeting, with no analyst run in between | 5 cases baked in 0.1 s and stored in 35 KB (source: docs/design/measured-resources.md) |
+| Live re-run in the browser | A what-if on the reproduction number or on immunisation is answered while the room waits | median 0.006 to 0.010 ms per run against a budget of 1500 ms (source: docs/design/measured-resources.md; data/derived/manifests/EX02_epidemic.json) |
+| Held-out check of the fast approximation | The director knows how far a fast approximation can be trusted | peak-fraction error of 0.00732 (root mean square) on 20 held-out runs (source: data/derived/manifests/EX02_epidemic.json) |
+| A static site with no server | Nothing to procure, host or secure before the unit can use it | 1.9 MB deploy payload (source: docs/design/measured-resources.md) |
+
+### Positioning
+
+- **The course, not the count**: the owner decides on timing, and only the whole curve shows when the peak has passed.
+- **An answer in the meeting**: the what-if does not wait for an analyst, so the decision is made with the numbers in the room.
+- **Limits on every curve**: the owner is accountable for what is said in public, so each result states what is exact and what is illustrative.
+- **Nothing to procure**: the owner has no budget line for a platform, and a static site needs none.
+
+### Credibility
+
+- Q: Is this a forecast for our region?
+  A: No. It is a teaching model with textbook assumptions (closed, homogeneous, deterministic) and no real data; the pages state it and the limit is the first thing to remove before real use.
+- Q: How do we know the numbers are right?
+  A: The live engine reproduces every baked trace to 0.005 people, and the final size matches the closed relation of the cited work; the tests that check both are listed in the requirements.
+- Q: What does it cost to run?
+  A: One workstation for the bake (0.1 s, 33 MB of memory) and a static site for the readers; the measured resources are in the Resources section and in `docs/design/measured-resources.md`.
+- Q: Who stands behind a number that is wrong?
+  A: The example carries no operational claim; a real product names its owner, its data steward and its review before any number is used in a decision.
+
+Limits: the model is closed, homogeneous and deterministic, the population and the closure cost are illustrative, and the example has never been run against an outbreak or reviewed by an epidemiologist.
+
+## Research basis
+
+Done before the plan, and kept here so a reader can re-check it (ADR-0075; rule 11 section 12). The example is a
+placeholder model, so the research is short; a product's is the persisted dossier summarised claim by claim, each
+with its source. The list shows what was decided and from what; every DOI below was resolved against the Crossref
+record on 2026-10-11 (HTTP 200 each).
+
+| decision | what the research found | source |
+|---|---|---|
+| The model is the closed SIR system, dS/dt = -beta S I / N, dI/dt = beta S I / N - gamma I, dR/dt = gamma I | The threshold and the whole course follow from R0 = beta / gamma | Kermack and McKendrick 1927, https://doi.org/10.1098/rspa.1927.0118 |
+| The model family and its textbook assumptions (closed, homogeneous, deterministic) | The survey states the assumptions the non-goals list | Hethcote 2000, https://doi.org/10.1137/S0036144500371907 |
+| R0 as the threshold, and the herd threshold 1 - 1/R0 | The definition of the basic reproduction ratio and its computation | Diekmann, Heesterbeek and Metz 1990, https://doi.org/10.1007/BF00178324 |
+| The same threshold for compartmental models | R0 < 1 is the stability condition of the disease-free state | van den Driessche and Watmough 2002, https://doi.org/10.1016/S0025-5564(02)00108-6 |
+| The final-size relation z = 1 - exp(-R0 z) is the oracle independent of the time course | A closed derivation of the final size | Miller 2012, https://doi.org/10.1007/s11538-012-9749-6 |
+| Forward Euler at a quarter-day step, converging at first order | The scheme's global error is first order in the step | Hairer, Norsett and Wanner 1993, https://doi.org/10.1007/978-3-540-78862-1 |
+| Requirements are written in EARS form, each with its gate | The five EARS patterns used in the requirements files | Mavin et al. 2009, https://doi.org/10.1109/RE.2009.9 |
+
+Choices with no source because the example does not need one: the surrogate's four-term basis (a placeholder that
+shows where a trained model sits) and the 1500 ms run budget (the template's lane gate, measured in the Lanes
+section below).
+
+UNVERIFIED: what each work says beyond its title, scope and DOI record (kept in `frontend/src/content/citations.ts`):
+the page text of the works was not re-read for this release, only their Crossref records, so the "what the research
+found" cells restate the reason the example cites each work, not a quotation.
+
 ## Sizing and contracts
 
 The design rests on two artifacts of contract-first parallel delivery (ADR-0080): the sizing, kept with the
@@ -49,6 +125,58 @@ the sizing's parallel units, built at once against the fixed rows.
 - The dormant API (api, `docs/contracts/api.openapi.json`): GET only; 503 with the declared state when a document
   is absent.
 
+## Technology and versions
+
+Every pinned dependency of `requirements-precompute.txt` (through `data-pipeline/requirements.txt`),
+`requirements-dev.txt` and `frontend/package.json`, with the version actually installed; `scripts/check_tech_matrix.py`
+fails when a pin and this table disagree. A package.json range is recorded at the version `frontend/package-lock.json`
+resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer) and Node 22 (CI).
+
+| component | package | version | use | alternative considered |
+|---|---|---|---|---|
+| engine | numpy | 2.4.6 | the SIR engine and the surrogate's least squares (numpy only, so the template installs with no native build) | scipy.integrate, rejected: a second heavy dependency for a one-line integrator |
+| tests | pytest | 9.1.1 | the pipeline, contract, guard and adversarial tests | unittest, rejected: no parametrisation or fixtures |
+| lint | ruff | 0.15.18 | lint of data-pipeline, tests, scripts and app | flake8 plus isort, rejected: two tools for one |
+| contracts | jsonschema | 4.26.0 | validates every document against its schema file | fastjsonschema, rejected: no support for the draft the schemas declare |
+| contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
+| API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
+| API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
+| shell | @fasl-work/caos-app-shell | 0.10.0 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| web | react | 19.3.0 | the UI | none: the shell requires it |
+| web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
+| web | react-router | 8.4.0 | the routes | none: the shell requires it |
+| web | zustand | 5.0.15 | the workbench selection store | redux, rejected: one store of a few keys |
+| web | katex | 0.16.47 | typeset equations on the pages | MathJax, rejected: heavier and slower to render |
+| web | lucide-react | 1.52.0 | icons | the shell's own set where it has one |
+| web | uplot | 1.6.32 | the interactive curves (`UPlotChart`) | a static SVG, rejected: no hover or zoom |
+| build | vite | 8.3.2 | bundler and dev server | webpack, rejected: slower and needs more configuration |
+| build | @vitejs/plugin-react | 6.1.1 | the React transform for vite | none |
+| build | typescript | 5.9.3 | type check of the web and the generated contract types | none |
+| build | openapi-typescript | 7.13.0 | generates `contract.gen.ts` from the OpenAPI document | hand-written types, rejected: they drift (the build checks them) |
+| build | @types/node | 24.19.1 | types of the build scripts | none |
+| build | @types/react | 19.3.0 | types of React | none |
+| build | @types/react-dom | 19.3.0 | types of React DOM | none |
+| tests | vitest | 5.0.3 | the web unit tests | jest, rejected: needs a transform for the vite config |
+| gate | playwright | 1.63.0 | the measured UI gate (`npm run gate`), local only | cypress, rejected: heavier install |
+
+## Resources
+
+What each stage needs on the development workstation (Windows 11, 2026-10-11; peak is the largest working set of the
+stage's processes, polled every 20 ms; the commands and outputs of the bake, the live engine and the site are in
+[`measured-resources.md`](measured-resources.md)). No stage uses a GPU or a
+network after the install. Bounds are stated where a figure depends on the product: a product measures its own and
+replaces this table.
+
+| stage | memory | disk | time | where it runs |
+|---|---|---|---|---|
+| bake (`data-pipeline/run.py`, five cases, the released surrogate) | 33 MB peak | 35 KB of artifacts in `data/derived/` (35,145 bytes) | 0.1 s | workstation, never CI |
+| training (the surrogate, folded into a bake with no released bundle, five cases) | 33 MB peak | 1 KB (`models/surrogate.json`) | 0.3 s | workstation, never CI |
+| tests (pytest, the whole suite, 599 tests of which 3 skip without node: 117 s in one run on 2026-10-12, behind the workstation's shared heavy-job lock) | 107 MB peak per process, 3.1 GB summed over the 253 processes the first suite started (not re-measured for the larger suite) | temporary copies of the few files each guard reads, under a MB each | 117 s | workstation (the plants alone, `tests/adversarial`, also run in CI; the first CI time is recorded in the release notes) |
+| install (`npm ci`) | 240 MB peak | 181 MB in `node_modules` | 123 s with a cold cache | workstation and CI web job |
+| build (`npm run build`) | 340 MB peak | 1.9 MB in `frontend/dist` (1,917,973 bytes; 2.2 MB allocated on disk) | 5 s | workstation and CI web job |
+| web unit tests (`npm test`, 55 tests) | 110 MB peak | none | 1 s | workstation and CI web job |
+| deploy payload (GitHub Pages) | none | 1.9 MB uploaded | one Pages deploy, under 2 min | CI after main |
+
 ## Lanes
 
 - Offline: `data-pipeline/run.py` bakes every case (about a millisecond each) and checks it against its expected
@@ -58,7 +186,8 @@ the sizing's parallel units, built at once against the fixed rows.
 - Live: `frontend/src/engine/sir.ts`, a step-for-step port of the Python engine. The basis for putting it in the
   browser is measured, not assumed: the lane gate (`data-pipeline/pipeline/core/gate.py`) gives each case a run
   budget of 1500 ms and a trace budget of 256 KiB, and the Benchmark page measures the live engine against that
-  budget in the reader's browser (a median of 0.02 to 0.08 ms per case under Node 24 on the development workstation, 2026-10-04).
+  budget in the reader's browser (a median of 0.006 to 0.010 ms per case under Node 24 on the development workstation, 2026-10-12,
+  [`measured-resources.md`](measured-resources.md)).
 
 ## Method ladder
 
@@ -88,8 +217,8 @@ None of these is a model judging a model.
 ## Deploy driver
 
 GitHub Pages: a static site with every artifact committed, no secret and no server. The measurement behind it is
-the lane gate above (every case is live-eligible) and the site size (1.8 MB of assets, most of it KaTeX
-fonts, and 34 KB of artifacts, measured on the 2026-10-04 build). The target is written in `deploy/TARGET` and checked by `scripts/check_deploy_place.py`.
+the lane gate above (every case is live-eligible) and the site size (1.88 MB of site files, most of it KaTeX
+fonts, and 35 KB of artifacts, 1.9 MB in all, measured on the 2026-10-12 build, [`measured-resources.md`](measured-resources.md)). The target is written in `deploy/TARGET` and checked by `scripts/check_deploy_place.py`.
 
 ## Risks and kill criteria
 
