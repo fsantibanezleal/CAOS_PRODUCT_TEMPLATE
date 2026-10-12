@@ -28,19 +28,58 @@ RESOURCES = ("| stage | memory | disk | time | where it runs |\n|---|---|---|---
              "| build | 400 MB | 2 MB | 8 s | workstation |\n| deploy payload | 0 | 2 MB | 5 s | CI |\n")
 
 
-def sdd_text(research: str = RESEARCH, resources: str = RESOURCES, skip: str = "") -> str:
+BRIEF = """### Initiative
+
+A regional health authority's epidemiology unit owns the question of when to act on a rising outbreak.
+
+- A response that starts after day 24 comes after the peak of 27345 infected people (source: https://doi.org/10.1007/BF00178324)
+- The cost of one avoidable closure week is 2 million USD (assumption: a round figure chosen only to show the format)
+
+### Outcomes
+
+| capability | business outcome | proof point |
+|---|---|---|
+| replay of a baked case | the planner sees the whole course before a meeting | 5 cases baked in 0.2 s (source: https://example.org/bake) |
+| live re-run | a what-if answered while the room waits | 0.08 ms per run (assumption: the lane budget is far above any value measured here) |
+| a labelled limit | no one mistakes the example for a forecast | 1 of 1 pages states it (source: docs/limits.md) |
+
+### Positioning
+
+- **Faster**: the planner waits no more than one meeting for the course of an outbreak.
+- **Cheaper**: one workstation runs every case, so no cluster is bought.
+- **Clearer**: each curve is labelled with its limits so a director can repeat it.
+- **Checked**: every number traces to a committed artifact, so an auditor can re-run it.
+
+### Credibility
+
+- Q: Is this a forecast of our region?
+  A: No. It is a teaching model with textbook assumptions and no real data; the limit is stated on every page.
+- Q: How do we know the numbers are right?
+  A: Each is read from a committed artifact and the live engine matches the baked one to 0.005 people.
+- Q: What does it cost to run?
+  A: One workstation and 0.2 s per bake; the measured resources are in the design document.
+
+Limits: closed, homogeneous, deterministic population; the example carries no real data.
+"""
+
+
+def sdd_text(research: str = RESEARCH, resources: str = RESOURCES, skip: str = "", brief: str | None = BRIEF,
+             brief_after: str = "Problem and non-goals") -> str:
     out = ["# SDD\n"]
     for name in SECTIONS:
         if name == skip:
             continue
         body = {"Research basis": research, "Resources": resources}.get(name, "text\n")
         out.append(f"## {name}\n\n{body}\n")
+        if name == brief_after and brief is not None:
+            out.append(f"## Executive brief\n\n{brief}\n")
     return "\n".join(out)
 
 
 def sdd_tree(tmp: Path, *, validation: str | None, sdd: str | None = None) -> Path:
     (tmp / "docs" / "design" / "features" / "f").mkdir(parents=True)
     (tmp / "tests").mkdir()
+    (tmp / "docs" / "limits.md").write_text("limits\n", encoding="utf-8")
     (tmp / "tests" / "test_x.py").write_text("def test_a():\n    pass\n\ndef test_b():\n    pass\n", encoding="utf-8")
     (tmp / "docs" / "design" / "SDD.md").write_text(sdd if sdd is not None else sdd_text(), encoding="utf-8")
     (tmp / "docs" / "design" / "features" / "f" / "requirements.md").write_text(
@@ -144,6 +183,178 @@ def test_sdd_superseded_and_planned_features_need_no_validation(tmp_path):
     assert run("check_sdd.py", str(t)).returncode == 0
     req.write_text(req.read_text(encoding="utf-8").replace("Status: superseded", "Status: planned"), encoding="utf-8")
     assert run("check_sdd.py", str(t)).returncode == 0
+
+
+# ---------------------------------------------------------------- check_sdd: the executive brief
+
+GUIDE = "docs/guides/06_executive-brief.md"
+
+
+def brief_run(tmp_path, brief: str | None = BRIEF, **kw):
+    return run("check_sdd.py", str(sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=sdd_text(brief=brief, **kw))))
+
+
+def test_brief_a_complete_brief_passes(tmp_path):
+    r = brief_run(tmp_path)
+    assert r.returncode == 0, r.stdout
+
+
+def test_brief_missing_section_fails_and_points_at_the_guide(tmp_path):
+    r = brief_run(tmp_path, brief=None)
+    assert r.returncode == 1 and "Executive brief" in r.stdout and GUIDE in r.stdout
+
+
+def test_brief_at_the_end_of_the_sdd_fails(tmp_path):
+    r = brief_run(tmp_path, brief_after="ADR fit")
+    assert r.returncode == 1 and "right after" in r.stdout and "Problem and non-goals" in r.stdout
+
+
+def test_brief_after_another_section_fails(tmp_path):
+    r = brief_run(tmp_path, brief_after="Research basis")
+    assert r.returncode == 1 and "right after" in r.stdout
+
+
+def test_brief_four_empty_headings_fail(tmp_path):
+    empty = "### Initiative\n\n### Outcomes\n\n### Positioning\n\n### Credibility\n"
+    r = brief_run(tmp_path, brief=empty)
+    assert r.returncode == 1
+    for name in ("Initiative", "Outcomes", "Positioning", "Credibility"):
+        assert f"{name} is empty" in r.stdout
+
+
+def test_brief_a_missing_subsection_is_named(tmp_path):
+    r = brief_run(tmp_path, brief=BRIEF.replace("### Positioning", "### Value"))
+    assert r.returncode == 1 and "'Positioning'" in r.stdout
+
+
+def test_brief_subsections_out_of_order_fail(tmp_path):
+    swapped = BRIEF.replace("### Initiative", "### @@").replace("### Outcomes", "### Initiative").replace("### @@", "### Outcomes")
+    r = brief_run(tmp_path, brief=swapped)
+    assert r.returncode == 1 and "order" in r.stdout
+
+
+def test_brief_a_heading_inside_a_code_fence_does_not_count(tmp_path):
+    fenced = BRIEF.replace("### Credibility", "```\n### Credibility\n```")
+    r = brief_run(tmp_path, brief=fenced)
+    assert r.returncode == 1 and "'Credibility'" in r.stdout
+
+
+def test_brief_crlf_and_trailing_spaces_in_headings_pass(tmp_path):
+    text = sdd_text(brief=BRIEF.replace("### Initiative", "### Initiative   ")).replace("## Executive brief", "## Executive brief  ")
+    tree = sdd_tree(tmp_path, validation=GOOD_VALIDATION)
+    (tree / "docs/design/SDD.md").write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
+    r = run("check_sdd.py", str(tree))
+    assert r.returncode == 0, r.stdout
+
+
+def test_brief_initiative_without_a_quantified_statement_fails(tmp_path):
+    bad = BRIEF.replace("after day 24 comes after the peak of 27345 infected people", "comes after the peak of many infected people")
+    bad = bad.replace("2 million USD", "a significant amount")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "Initiative" in r.stdout and "quantified" in r.stdout
+
+
+def test_brief_many_and_significant_and_several_are_not_numbers(tmp_path):
+    for word in ("many", "significant", "several"):
+        bad = BRIEF.replace("after day 24 comes after the peak of 27345 infected people", f"comes after the peak of {word} infected people")
+        bad = bad.replace("2 million USD", f"{word} dollars")
+        r = brief_run(tmp_path / word, brief=bad)
+        assert r.returncode == 1 and "quantified" in r.stdout, word
+
+
+def test_brief_a_source_path_not_in_the_repository_fails(tmp_path):
+    ghost = BRIEF.replace("https://doi.org/10.1007/BF00178324", "docs/nowhere.md")
+    r = brief_run(tmp_path, brief=ghost)
+    assert r.returncode == 1 and "docs/nowhere.md" in r.stdout
+
+
+def test_brief_a_source_path_in_the_repository_passes(tmp_path):
+    ok = BRIEF.replace("https://doi.org/10.1007/BF00178324", "`docs/limits.md`")
+    r = brief_run(tmp_path, brief=ok)
+    assert r.returncode == 0, r.stdout
+
+
+def test_brief_a_source_path_outside_the_repository_fails(tmp_path):
+    out = BRIEF.replace("https://doi.org/10.1007/BF00178324", "../outside.md")
+    (tmp_path / "outside.md").write_text("x\n", encoding="utf-8")
+    r = brief_run(tmp_path / "repo", brief=out)
+    assert r.returncode == 1 and "outside.md" in r.stdout
+
+
+def test_brief_a_doi_source_passes(tmp_path):
+    r = brief_run(tmp_path, brief=BRIEF.replace("https://doi.org/10.1007/BF00178324", "10.1007/BF00178324"))
+    assert r.returncode == 0, r.stdout
+
+
+def test_brief_an_assumption_needs_a_reason_of_five_words(tmp_path):
+    short = BRIEF.replace("a round figure chosen only to show the format", "a round figure")
+    r = brief_run(tmp_path, brief=short)
+    assert r.returncode == 1 and "assumption" in r.stdout and "five words" in r.stdout
+
+
+def test_brief_outcomes_with_two_rows_fail(tmp_path):
+    two = "\n".join(ln for ln in BRIEF.splitlines() if "a labelled limit" not in ln) + "\n"
+    r = brief_run(tmp_path, brief=two)
+    assert r.returncode == 1 and "Outcomes" in r.stdout and "at least 3" in r.stdout
+
+
+def test_brief_outcomes_proof_point_without_a_number_fails(tmp_path):
+    bad = BRIEF.replace("5 cases baked in 0.2 s", "cases baked quickly")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "proof point" in r.stdout and "replay of a baked case" in r.stdout
+
+
+def test_brief_outcomes_proof_point_without_a_source_fails(tmp_path):
+    bad = BRIEF.replace(" (source: https://example.org/bake)", "")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "proof point" in r.stdout
+
+
+def test_brief_outcomes_without_the_table_fails(tmp_path):
+    bad = BRIEF.replace("| capability | business outcome | proof point |", "| a | b | c |")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "capability | business outcome | proof point" in r.stdout
+
+
+def test_brief_positioning_with_three_or_five_bullets_fails(tmp_path):
+    three = "\n".join(ln for ln in BRIEF.splitlines() if "**Checked**" not in ln) + "\n"
+    r = brief_run(tmp_path, brief=three)
+    assert r.returncode == 1 and "exactly 4" in r.stdout
+    five = BRIEF.replace("### Credibility", "- **Fifth**: another problem it answers.\n\n### Credibility")
+    r = brief_run(tmp_path / "b", brief=five)
+    assert r.returncode == 1 and "exactly 4" in r.stdout
+
+
+def test_brief_positioning_bullet_without_the_value_point_form_fails(tmp_path):
+    bad = BRIEF.replace("- **Faster**: the planner", "- Faster, the planner")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "Positioning" in r.stdout and "value point" in r.stdout
+
+
+def test_brief_credibility_with_two_questions_fails(tmp_path):
+    cut = [ln for ln in BRIEF.splitlines() if "What does it cost to run" not in ln and "One workstation and 0.2 s per bake" not in ln]
+    r = brief_run(tmp_path, brief="\n".join(cut) + "\n")
+    assert r.returncode == 1 and "Credibility" in r.stdout and "at least 3" in r.stdout
+
+
+def test_brief_a_question_without_an_answer_does_not_count(tmp_path):
+    bad = BRIEF.replace("  A: One workstation and 0.2 s per bake; the measured resources are in the design document.", "")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "at least 3" in r.stdout
+
+
+def test_brief_credibility_without_a_limits_line_fails(tmp_path):
+    bad = BRIEF.replace("Limits:", "Caveat:")
+    r = brief_run(tmp_path, brief=bad)
+    assert r.returncode == 1 and "Limits:" in r.stdout
+
+
+def test_brief_an_equation_in_the_brief_fails(tmp_path):
+    plants = ("The rate is $R_0 = b / g$ here.", "The rate is \\(R_0\\) here.", "```math\nR_0 = b / g\n```")
+    for n, plant in enumerate(plants):
+        bad = BRIEF.replace("### Outcomes", plant + "\n\n### Outcomes", 1)
+        r = brief_run(tmp_path / str(n), brief=bad)
+        assert r.returncode == 1 and "equation" in r.stdout, plant
 
 
 # ---------------------------------------------------------------- check_tech_matrix

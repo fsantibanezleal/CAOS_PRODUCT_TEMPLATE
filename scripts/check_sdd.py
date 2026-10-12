@@ -7,6 +7,11 @@ the way pytest cases are.
 
 Checks, in increasing strength:
 
+0. **The executive brief** (CAOS_MANAGE ``conventions/problem-context-first.md``): a ``## Executive brief`` section right
+   after ``Problem and non-goals`` with the parts Initiative, Outcomes, Positioning and Credibility in order, none
+   empty; Initiative with a quantified statement and its source or assumption; Outcomes a three-row table whose proof
+   points each hold a number and a source; Positioning exactly four bullets; Credibility three questions with
+   answers and a ``Limits:`` line; no equation anywhere in it. Guide: ``docs/guides/06_executive-brief.md``.
 1. The repository has ``docs/design/SDD.md`` with the twelve sections the convention requires, a research basis
    with at least three sources and an UNVERIFIED list, and a resources table with no empty cell and no TBD.
 2. Every requirement of a live feature (a row ``| ID | statement | gate |`` of
@@ -40,6 +45,19 @@ SECTIONS = (
     "Problem and non-goals", "Research basis", "Sizing and contracts", "Technology and versions", "Resources", "Lanes",
     "Method ladder", "Cases", "Oracles", "Deploy driver", "Risks and kill criteria", "ADR fit",
 )
+BRIEF = "Executive brief"
+BRIEF_PARTS = ("Initiative", "Outcomes", "Positioning", "Credibility")
+GUIDE = "see docs/guides/06_executive-brief.md"
+OUTCOMES_HEAD = ["capability", "business outcome", "proof point"]
+FENCE = re.compile(r"^\s*(```|~~~)")
+HEADING = re.compile(r"^(?P<hashes>#{2,3}) (?P<title>.+?)\s*$")
+NUMBER = re.compile(r"(?<![A-Za-z\d-])\d")
+CITED = re.compile(r"^(?P<claim>.+?)\s*\((?P<kind>source|assumption):\s*(?P<value>.+)\)\s*[.]?\s*$")
+BULLET = re.compile(r"^\s*[-*+] ")
+VALUE_POINT = re.compile(r"^[-*+] \*\*[^*]+\*\*: \S.*$")
+QUESTION = re.compile(r"^\s*- Q: \S")
+ANSWER = re.compile(r"^\s+A: \S")
+LIMITS = re.compile(r"^\s*Limits: \S")
 MIN_SOURCES = 3
 SOURCE = re.compile(r"\b10\.\d{4,9}/[^\s)>\]]+|https?://[^\s)>\]]+")
 RESOURCE_HEAD = ["stage", "memory", "disk", "time", "where it runs"]
@@ -103,11 +121,149 @@ def resources_findings(body: str) -> list[str]:
     return out
 
 
+def outline(text: str) -> list[tuple[int, str, int]]:
+    """Level-2 and level-3 headings outside code fences, as (level, title, line index)."""
+    out: list[tuple[int, str, int]] = []
+    fenced = False
+    for i, line in enumerate(text.splitlines()):
+        if FENCE.match(line):
+            fenced = not fenced
+        elif not fenced:
+            m = HEADING.match(line)
+            if m:
+                out.append((len(m["hashes"]), m["title"].strip(), i))
+    return out
+
+
+def is_number(text: str) -> bool:
+    """Digits standing alone (a unit may follow); the 0 of R0 or the 19 of COVID-19 is part of a name, not a number."""
+    return NUMBER.search(text) is not None
+
+
+def cited_findings(text: str, where: str) -> list[str]:
+    """A quantified statement ``<claim with a number> (source: ...)`` or ``(assumption: <reason>)``: what is wrong."""
+    m = CITED.search(text.strip().lstrip("-* ").strip())
+    if m is None:
+        return [f"{where} has no '(source: ...)' or '(assumption: ...)' after the claim"]
+    out: list[str] = []
+    if not is_number(m["claim"]):
+        out.append(f"{where} states no number in its claim (many, significant and several are not numbers)")
+    value = m["value"].strip()
+    if m["kind"] == "assumption":
+        if len(value.split()) < 5:
+            out.append(f"{where} gives an assumption with fewer than five words of reason ({value!r})")
+        return out
+    for part in (p.strip().strip("`").strip() for p in value.split(";")):
+        if re.match(r"10\.\d{4,9}/\S+$", part) or re.match(r"https?://\S+$", part):
+            continue
+        target = (ROOT / part.split("#")[0]).resolve()
+        inside = target == ROOT or ROOT in target.parents
+        if not part or not inside or not target.exists():
+            out.append(f"{where} cites a source that is not a DOI, an http URL or a path in the repository ({part!r})")
+    return out
+
+
+def brief_findings(text: str) -> list[str]:
+    """The executive brief (problem-context-first): its place, four parts in order, each with its own content."""
+    lines = text.splitlines()
+    heads = outline(text)
+    twos = [(t, i) for lv, t, i in heads if lv == 2]
+    names = [t.lower() for t, _ in twos]
+    if BRIEF.lower() not in names:
+        return [f"SDD.md has no section {BRIEF!r} (four parts, before any development): {GUIDE}"]
+    pos = names.index(BRIEF.lower())
+    out: list[str] = []
+    if "problem and non-goals" in names and pos != names.index("problem and non-goals") + 1:
+        out.append(f"SDD.md section {BRIEF!r} must come right after 'Problem and non-goals': {GUIDE}")
+    start = twos[pos][1]
+    end = twos[pos + 1][1] if pos + 1 < len(twos) else len(lines)
+    body = lines[start + 1:end]
+    parts = [(t, i) for lv, t, i in heads if lv == 3 and start < i < end]
+    found = [t for t, _ in parts]
+    missing = [p for p in BRIEF_PARTS if p not in found]
+    out += [f"SDD.md {BRIEF!r} has no part {p!r}: {GUIDE}" for p in missing]
+    if not missing and found != list(BRIEF_PARTS):
+        out.append(f"SDD.md {BRIEF!r} parts must be in this order: {', '.join(BRIEF_PARTS)}: {GUIDE}")
+    joined = "\n".join(body)
+    if "$" in joined or "\\(" in joined or re.search(r"^\s*(```|~~~)\s*math\b", joined, re.M | re.I):
+        out.append(f"SDD.md {BRIEF!r} holds an equation ($, \\( or a math block); the brief is business language: {GUIDE}")
+    for n, (title, i) in enumerate(parts):
+        if title not in BRIEF_PARTS:
+            continue
+        stop = parts[n + 1][1] if n + 1 < len(parts) else end
+        part = lines[i + 1:stop]
+        if not "".join(part).strip():
+            out.append(f"SDD.md {BRIEF!r}: {title} is empty: {GUIDE}")
+            continue
+        out += PART_CHECKS[title](part)
+    return out
+
+
+def initiative_findings(part: list[str]) -> list[str]:
+    out: list[str] = []
+    good = 0
+    for line in part:
+        if not (line.lstrip().startswith("- ") and CITED.search(line)):
+            continue
+        problems = cited_findings(line, f"Initiative statement {line.strip()[2:60]!r}")
+        out += problems
+        good += not problems
+    if good == 0:
+        out.append(f"SDD.md Initiative has no quantified statement: a line '- <claim with a number> (source: <DOI, URL or path>)' or '(assumption: <reason>)': {GUIDE}")
+    return out
+
+
+def outcomes_findings(part: list[str]) -> list[str]:
+    rows = table_rows("\n".join(part), OUTCOMES_HEAD)
+    if rows is None:
+        return [f"SDD.md Outcomes has no table with the columns {' | '.join(OUTCOMES_HEAD)}: {GUIDE}"]
+    out: list[str] = []
+    if len(rows) < 3:
+        out.append(f"SDD.md Outcomes has {len(rows)} rows; at least 3 are required (capability, business outcome, proof point): {GUIDE}")
+    for cells in rows:
+        label = cells[0] if cells and cells[0] else "(unnamed)"
+        if len(cells) != 3 or not all(cells):
+            out.append(f"SDD.md Outcomes row {label!r} has an empty cell")
+            continue
+        out += cited_findings(cells[2], f"SDD.md Outcomes proof point of {label!r}")
+    return out
+
+
+def positioning_findings(part: list[str]) -> list[str]:
+    bullets = [ln.strip() for ln in part if BULLET.match(ln)]
+    out: list[str] = []
+    if len(bullets) != 4:
+        out.append(f"SDD.md Positioning has {len(bullets)} bullets; exactly 4 are required: {GUIDE}")
+    for b in bullets:
+        if not VALUE_POINT.match(b):
+            out.append(f"SDD.md Positioning bullet {b[:50]!r} is not '- **<value point>**: <the problem of that owner it answers>'")
+    return out
+
+
+def credibility_findings(part: list[str]) -> list[str]:
+    pairs = 0
+    for n, line in enumerate(part):
+        if not QUESTION.match(line):
+            continue
+        nxt = next((ln for ln in part[n + 1:] if ln.strip()), "")
+        pairs += bool(ANSWER.match(nxt))
+    out: list[str] = []
+    if pairs < 3:
+        out.append(f"SDD.md Credibility has {pairs} questions with answers; at least 3 are required ('- Q: ...' then '  A: ...'): {GUIDE}")
+    if not any(LIMITS.match(ln) for ln in part):
+        out.append(f"SDD.md Credibility has no 'Limits:' line: {GUIDE}")
+    return out
+
+
+PART_CHECKS = {"Initiative": initiative_findings, "Outcomes": outcomes_findings,
+               "Positioning": positioning_findings, "Credibility": credibility_findings}
+
+
 def sdd_findings() -> list[str]:
     if not SDD.is_file():
         return [f"{SDD.relative_to(ROOT).as_posix()} is missing"]
     text = SDD.read_text(encoding="utf-8")
-    out: list[str] = []
+    out: list[str] = brief_findings(text)
     for name in SECTIONS:
         body = section_text(text, name)
         if body is None:
