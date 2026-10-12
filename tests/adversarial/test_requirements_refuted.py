@@ -55,7 +55,7 @@ def test_a_version_stated_twice_and_disagreeing_fails_the_coherence_guard(repo: 
     ok = guard(repo, "check_version_coherence.py")
     assert ok.returncode in (0, 1), ok.stdout  # the copy has no git history: the tag comparison may complain, nothing else
     before = ok.stdout
-    edit(repo, "frontend/package.json", '"version": "0.4.0"', '"version": "9.9.9"')
+    edit(repo, "frontend/package.json", '"version": "0.5.0"', '"version": "9.9.9"')
     r = guard(repo, "check_version_coherence.py")
     assert r.returncode == 1 and "9.9.9" in r.stdout and r.stdout != before, r.stdout
 
