@@ -75,7 +75,7 @@ def test_sdd_a_research_basis_with_two_sources(repo: Path) -> None:
 
 
 def test_sdd_a_resources_table_with_tbd(repo: Path) -> None:
-    edit(repo, "docs/design/SDD.md", "| 0.2 s |", "| TBD |")
+    edit(repo, "docs/design/SDD.md", "| 0.1 s |", "| TBD |")
     r = guard(repo, "check_sdd.py")
     assert r.returncode == 1 and "TBD" in r.stdout and "Resources" in r.stdout, r.stdout
 
