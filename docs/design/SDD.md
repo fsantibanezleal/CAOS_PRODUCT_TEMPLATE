@@ -171,7 +171,7 @@ replaces this table.
 |---|---|---|---|---|
 | bake (`data-pipeline/run.py`, five cases, the released surrogate) | 33 MB peak | 35 KB of artifacts in `data/derived/` (35,145 bytes) | 0.1 s | workstation, never CI |
 | training (the surrogate, folded into a bake with no released bundle, five cases) | 33 MB peak | 1 KB (`models/surrogate.json`) | 0.3 s | workstation, never CI |
-| tests (pytest, the whole suite, 490 tests: 79 s without the adversarial plants, 70 s for the plants, 144 s in one run, 2026-10-12) | 107 MB peak per process, 3.1 GB summed over the 253 processes the first suite started (not re-measured for the larger one) | temporary copies of the few files each guard reads, under a MB each | 144 s | workstation (the plants alone, 70 s here, also run in CI; the first CI time is recorded in the release notes) |
+| tests (pytest, the whole suite, 599 tests of which 3 skip without node: 117 s in one run on 2026-10-12, behind the workstation's shared heavy-job lock) | 107 MB peak per process, 3.1 GB summed over the 253 processes the first suite started (not re-measured for the larger suite) | temporary copies of the few files each guard reads, under a MB each | 117 s | workstation (the plants alone, `tests/adversarial`, also run in CI; the first CI time is recorded in the release notes) |
 | install (`npm ci`) | 240 MB peak | 181 MB in `node_modules` | 123 s with a cold cache | workstation and CI web job |
 | build (`npm run build`) | 340 MB peak | 1.9 MB in `frontend/dist` (1,917,973 bytes; 2.2 MB allocated on disk) | 5 s | workstation and CI web job |
 | web unit tests (`npm test`, 55 tests) | 110 MB peak | none | 1 s | workstation and CI web job |

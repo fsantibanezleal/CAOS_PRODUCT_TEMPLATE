@@ -572,8 +572,8 @@ def test_sdd_rereview_the_initiative_claims_that_are_not_quantified_or_not_sourc
 
 def test_sdd_rereview_m2c_proof_points_that_are_indexes(sdd_repo: Path) -> None:
     text = _sdd_text(sdd_repo)
-    for n, claim in enumerate(("5 cases baked in 0.2 s", "median 0.02 to 0.08 ms per run against a budget of 1500 ms",
-                               "peak-fraction error of 0.00732 (root mean square) on 20 held-out runs", "2.2 MB deploy payload"), 1):
+    for n, claim in enumerate(("5 cases baked in 0.1 s", "median 0.006 to 0.010 ms per run against a budget of 1500 ms",
+                               "peak-fraction error of 0.00732 (root mean square) on 20 held-out runs", "1.9 MB deploy payload"), 1):
         assert claim in text, claim
         text = text.replace(claim, f"item {n}", 1)
     (sdd_repo / SDD).write_bytes(text.encode("utf-8"))
