@@ -65,7 +65,7 @@ describe('the committed documents', () => {
 });
 
 describe('the six states', () => {
-  it('order: missing, partial, training, provider, stale, available; the most severe wins', () => {
+  it('adversarial: order: missing, partial, training, provider, stale, available; the most severe wins', () => {
     expect(SEVERITY).toEqual(['missing', 'partial', 'training', 'provider', 'stale', 'available']);
     const d = doc(entry('a', 'stale'), entry('b', 'partial'), entry('c', 'available'));
     expect(viewState(d, ['a', 'b', 'c']).state).toBe('partial');
@@ -96,7 +96,7 @@ describe('the six states', () => {
 });
 
 describe('a missing readiness document', () => {
-  it('a null document is readiness unknown, in both languages', () => {
+  it('adversarial: a null document is readiness unknown, in both languages', () => {
     const view = viewState(null, VIEWS.workbench);
     expect(view.state).toBe('unknown');
     expect(renderToStaticMarkup(createElement(NoteLine, { view, lang: 'en' }))).toMatch(/data-readiness="unknown".*Readiness unknown/);
@@ -143,7 +143,7 @@ describe('a case the document lists as absent', () => {
     expect(isUnavailable(doc(entry('case-index', 'missing')), 'anything.json')).toBe(true);
     expect(isUnavailable(null, 'C1/trace.json')).toBe(false);
   });
-  it('loadCase rejects with ArtifactUnavailable naming the path and the reason, and never fetches the trace', async () => {
+  it('adversarial: loadCase rejects with ArtifactUnavailable naming the path and the reason, and never fetches the trace', async () => {
     const fetch = serve(doc(entry('trace', 'partial', { missing: ['C1/trace.json'] })));
     vi.stubGlobal('__APP_VERSION__', 'test-version');
     const e = await loadCase('C1').catch((x: unknown) => x);
