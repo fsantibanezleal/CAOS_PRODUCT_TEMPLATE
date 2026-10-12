@@ -864,7 +864,7 @@ def test_rereview_s3d_a_second_gate_that_runs_in_the_same_row_passes(tmp_path):
 
 
 def test_rereview_s3d_the_same_conditional_test_as_a_requirement_gate_is_still_a_precondition(tmp_path):
-    r = gate_tree(tmp_path, ADV, CONDITIONAL["skipif on the test"], "test_adversarial_x", where="requirement")
+    r = gate_tree(tmp_path, "tests/test_cond.py", CONDITIONAL["skipif on the test"], "test_adversarial_x", where="requirement")
     assert r.returncode == 0, r.stdout
 
 
@@ -894,6 +894,25 @@ def test_rereview_m9c_a_name_that_only_starts_with_the_word_is_not_adversarial(t
 def test_rereview_m9c_the_two_forms_of_the_name_pass(tmp_path, file, text, name):
     r = gate_tree(tmp_path, file, text, name, where="validation")
     assert r.returncode == 0, r.stdout
+
+
+def local_only_tree(tmp: Path, note: str) -> Path:
+    val = GOOD_VALIDATION.replace(f"| a NaN parameter is rejected | `{ADV}::test_a` |",
+                                  f"| a NaN parameter is rejected {note} | `tests/adversarial/test_cond.py::test_adversarial_x` |", 1)
+    assert val != GOOD_VALIDATION
+    return sdd_tree(tmp, validation=val, files={"tests/adversarial/test_cond.py": CONDITIONAL["skipif on the test"]})
+
+
+def test_rereview_s3d_a_local_only_row_with_a_reason_is_a_reviewed_exception(tmp_path):
+    t = local_only_tree(tmp_path, "(local-only: needs node and the installed frontend, which the checks job lacks)")
+    r = run("check_sdd.py", str(t))
+    assert r.returncode == 0, r.stdout
+
+
+@pytest.mark.parametrize("note", ["", "(local-only: needs node)", "(local-only: TBD TBD TBD TBD TBD)", "(locally only needs node and the frontend)"])
+def test_rereview_s3d_a_local_only_marker_without_a_reason_is_no_exception(tmp_path, note):
+    r = run("check_sdd.py", str(local_only_tree(tmp_path, note)))
+    assert r.returncode == 1 and "skips when a tool is missing" in r.stdout, r.stdout
 
 
 # ---- check_ci_budget: what YAML reads is what is judged (F-B2, F-B3)

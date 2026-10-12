@@ -14,7 +14,8 @@ from pathlib import Path
 import pytest
 from planting import drop_row, edit, git_commit, guard, make_tree, set_cell
 
-SDD_INPUTS = ("scripts/*.py", "docs/design", "tests", "data", "frontend/src/**/*.test.ts", "frontend/scripts")
+SDD_INPUTS = ("scripts/*.py", "docs/design", "tests", "data", "frontend/src/**/*.test.ts", "frontend/scripts", "requirements*.txt",
+              "data-pipeline/requirements.txt")
 TECH_INPUTS = ("scripts/check_tech_matrix.py", "docs/design/SDD.md", "requirements*.txt", "data-pipeline/requirements.txt",
                "pyproject.toml", "frontend/package.json", "frontend/package-lock.json")
 VERSIONS_INPUTS = ("scripts/*.py", "docs/contracts")
