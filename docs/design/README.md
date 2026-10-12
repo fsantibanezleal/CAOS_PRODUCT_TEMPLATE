@@ -7,26 +7,33 @@ The area is `docs/design/` (the design), `docs/contracts/` (the contracts as cod
 
 ## The order
 
+Research, then the executive brief, then sizing, contracts and the units.
+
 1. **Research basis.** What was researched before the plan and what it decided: each claim with a source (a DOI or a
    URL), at least three sources, and the list of what stayed UNVERIFIED (it may say none). Section `Research basis`
    of [`SDD.md`](SDD.md). Checked by `scripts/check_sdd.py`.
-2. **Sizing, summarised.** The product dimensioned before it is built: its components, its boundaries, the
+2. **Executive brief.** The problem in its real context, in business language, before any development: the
+   Initiative (the owner, the initiative, the quantified reason to act now), the Outcomes, the Positioning and the
+   Credibility, every number with its source or labelled an assumption. Section `Executive brief` of
+   [`SDD.md`](SDD.md), right after `Problem and non-goals`. Checked by `scripts/check_sdd.py`. How to write it:
+   [`../guides/06_executive-brief.md`](../guides/06_executive-brief.md).
+3. **Sizing, summarised.** The product dimensioned before it is built: its components, its boundaries, the
    technology and version matrix and the resources of each stage. The sizing's coordination records (the parallel
    units, who owns them) live with the product's coordination, not here; this repository holds the product's own
    design facts. Sections `Sizing and contracts`, `Technology and versions` and `Resources` of [`SDD.md`](SDD.md).
    Checked by `scripts/check_sdd.py` (the resources table has no empty cell and no TBD) and
    `scripts/check_tech_matrix.py` (the technology table is the pinned dependencies, version for version).
-3. **Contracts.** One row per boundary and per model slot in [`../contracts/catalog.md`](../contracts/catalog.md), one
+4. **Contracts.** One row per boundary and per model slot in [`../contracts/catalog.md`](../contracts/catalog.md), one
    schema file each, an example, a test on each side, the missing-data behavior and a provider. A contract is mutable
    and versioned: its version follows its schema by semver, its history is a row per version, and
    [`../contracts/versions.lock.json`](../contracts/versions.lock.json) holds the digest of each schema. Checked by
    `scripts/check_contracts.py`, `scripts/check_skeleton.py`, `scripts/check_readiness.py` and
    `scripts/check_contract_versions.py`.
-4. **Requirements.** Per feature, `features/<feature>/requirements.md`: `| ID | statement | gate |`, every statement
+5. **Requirements.** Per feature, `features/<feature>/requirements.md`: `| ID | statement | gate |`, every statement
    with SHALL, every gate a test or guard that exists. Checked by `scripts/check_sdd.py`.
-5. **Tests, red first.** Each requirement and edge case becomes a test that fails for the right reason before the
+6. **Tests, red first.** Each requirement and edge case becomes a test that fails for the right reason before the
    code exists (`tests/`, `frontend/src/**/*.test.ts`); the code that follows is the minimum that turns them green.
-6. **Adversarial validation.** Per feature, `features/<feature>/validation.md`: `| requirement | adversarial check |
+7. **Adversarial validation.** Per feature, `features/<feature>/validation.md`: `| requirement | adversarial check |
    gate |`, one row per requirement, the check stated as what was planted or refuted ("a NaN parameter is rejected")
    and the gate the test that plants it. The guards are attacked too: `tests/adversarial/` copies the repository,
    plants one defect, runs the guard and asserts the exit code and the message. Checked by `scripts/check_sdd.py`
@@ -37,6 +44,7 @@ The area is `docs/design/` (the design), `docs/contracts/` (the contracts as cod
 | part | file | guard |
 |---|---|---|
 | research basis | `docs/design/SDD.md`, `Research basis` | `scripts/check_sdd.py` |
+| executive brief | `docs/design/SDD.md`, `Executive brief` | `scripts/check_sdd.py` |
 | sizing summary, technology, resources | `docs/design/SDD.md`, `Sizing and contracts`, `Technology and versions`, `Resources` | `scripts/check_sdd.py`, `scripts/check_tech_matrix.py` |
 | contracts, providers, states | `docs/contracts/catalog.md`, `docs/contracts/schemas/` | `scripts/check_contracts.py`, `scripts/check_skeleton.py`, `scripts/check_readiness.py` |
 | contract versions and history | `docs/contracts/catalog.md` (`History`), `docs/contracts/versions.lock.json` | `scripts/check_contract_versions.py` |
