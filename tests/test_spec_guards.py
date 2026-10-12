@@ -823,7 +823,7 @@ def test_rereview_q2_an_assumption_passes_in_the_template_and_fails_in_an_instan
     template = sdd_tree(tmp_path / "template", validation=GOOD_VALIDATION)
     assert run("check_sdd.py", str(template)).returncode == 0
     product = sdd_tree(tmp_path / "product", validation=GOOD_VALIDATION)
-    put(product, ".template-version", "CAOS_PRODUCT_TEMPLATE 0.05.000 (tag v0.05.000)\n")
+    put(product, ".template-version", "CAOS_PRODUCT_TEMPLATE (the version it started from)\n")
     r = run("check_sdd.py", str(product))
     assert r.returncode == 1 and "assumption" in r.stdout and ".template-version" in r.stdout, r.stdout
     sourced = swapped(BRIEF, ASSUMPTION, ASSUMPTION.split(" (assumption")[0] + " (source: docs/limits.md)")

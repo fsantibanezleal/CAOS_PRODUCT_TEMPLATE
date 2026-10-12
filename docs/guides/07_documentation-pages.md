@@ -6,19 +6,19 @@ Benchmark. This guide says what each must contain. It is transcribed from ADR-00
 text; if the two differ, the ADR wins and this guide is wrong.
 
 Status: the checks below run in the shell's gate (`caos-shell-gate`, check `ADR-0017.2`) from shell 0.11.0, which ships
-the page components. This template's own pages adopt them in the release that pins that shell; until then the
-template's pages are not measured against these areas, and a product written now is written to them so it needs no
-rework. The design-document side already applies: the executive brief is checked by `scripts/check_sdd.py` today.
+the page components. The template's example carries all of these areas, as ADR-0017 section 2.1 states; the pages
+that carry them land in the release that pins that shell, and the gate measures them from then. A product written now
+is written to them so it needs no rework. The design-document side already applies: the executive brief is checked by `scripts/check_sdd.py` today.
 
 ## 1. How a section declares its area
 
 A section declares the area it covers: `<DocSection area="...">`, rendered as `data-area`. The vocabulary is fixed per
 page (the tables below); an unknown area fails. The gate fails a built page that lacks a required area, or whose
-area lacks the content the area requires, in either language (EN and ES). The shell ships the helpers the areas use:
-`Stat` (a quantified statement: a value, its unit, its source; rendered as `data-stat`), `Question` (a business
-question with its answer; `data-qa`) and `Glossary` (the symbol glossary; `data-glossary`), with `Equation`, figures
-and callouts. Read the shell's own documentation for their props once 0.11.0 is published; do not hand-roll
-substitutes.
+area lacks the content the area requires, in either language (EN and ES). The gate reads
+these attributes: `data-stat` (a quantified statement: a value, its unit, its source), `data-qa` (a business question
+with its answer) and `data-glossary` (the symbol glossary). The shell renders them from 0.11.0, with equations,
+figures and callouts; the component names and props are in the shell's own documentation, which this guide does not
+repeat. Do not hand-roll substitutes.
 
 Terms the gate counts:
 
@@ -33,17 +33,17 @@ Terms the gate counts:
 The page opens for a decision maker and then serves the engineer. Its two top-level topics are `executive` (the
 default, first) and `technical`. The executive view answers one question, the golden rule: would the person who owns
 this problem give it thirty more minutes, or delegate it down? It is written in business language, vision first, with
-no equation, and every claim of value carries a number with its unit and its source. It cannot be waived.
+no equation, and every claim of value carries a number with its unit and its source. The executive view and its four areas cannot be waived.
 
 The four areas of the executive view are the four parts of the SDD's executive brief ([guide 06](06_executive-brief.md)),
 transcribed to the page: write the brief first, then copy it, in both languages.
 
-| Area (executive view) | What it is (the hit) | SDD part | What the gate requires in it |
-|---|---|---|---|
-| `initiative` | industry and executive tailoring: the initiative an executive owns, named by role and industry, and the quantified reason to act now | Initiative | at least 1 dense paragraph and at least 1 quantified statement (`data-stat`: a value, its unit, its source) |
-| `outcomes` | the transformation story: the vision first, then each capability tied to a non-technical business outcome with a quantified proof point | Outcomes | a lead paragraph, then a table or list of at least 3 rows (capability, business outcome, proof point), each proof point a `data-stat` |
-| `positioning` | the value story: each value point tied back to that executive's problem (four named value points until the four C's are defined) | Positioning | exactly 4 items, each with at least 1 sentence that names the problem it answers |
-| `credibility` | delivery and credibility: the business questions that executive would ask, each answered plainly, with the evidence and the honest limits | Credibility | at least 3 question and answer pairs (`data-qa`) and exactly 1 honest callout (the `Limits:` line of the brief) |
+| Area (executive view) | What it is (the hit) | The miss | SDD part | What the gate requires in it |
+|---|---|---|---|---|
+| `initiative` | industry and executive tailoring: the initiative an executive owns, named by role and industry, and the quantified reason to act now | generic, no executive story or data | Initiative | at least 1 dense paragraph and at least 1 quantified statement (`data-stat`: a value, its unit, its source) |
+| `outcomes` | the transformation story: the vision first, then each capability tied to a non-technical business outcome with a quantified proof point | a product tour, no vision or outcomes | Outcomes | a lead paragraph, then a table or list of at least 3 rows (capability, business outcome, proof point), each proof point a `data-stat` |
+| `positioning` | the value story: each value point tied back to that executive's problem (four named value points until the four C's are defined) | lists value points without tying them to the executive | Positioning | exactly 4 items, each with a sentence of at least 6 words that names the problem it answers |
+| `credibility` | delivery and credibility: the business questions that executive would ask, each answered plainly, with the evidence and the honest limits | a monologue; few questions | Credibility | at least 3 question and answer pairs (`data-qa`) and exactly 1 honest callout (the `Limits:` line of the brief) |
 
 The executive view holds no `Equation` and no symbol glossary (an equation there fails). The technical view holds the
 five areas below, with at least 1 overview figure and 3 captioned equations.
@@ -104,8 +104,9 @@ reviewer reads these against the rubric before a release is called ready.
 
 A page that cannot carry an area for a stated reason declares it on the page: `floorWaivers` on `DocPage`, rendered as
 `data-floor-waiver="<area or floor>: <reason>"`. Legitimate: a product with no learned method (Methodology's
-`learned` topics), no live lane (`live`) or no governing equation (`math`). Not legitimate: the executive view, which
-cannot be waived, or an area skipped for lack of time. The gate lists every waiver in its report, fails a waiver
+`learned` topics), no live lane (`live`) or no governing equation (`math`). Not legitimate: the executive view or any of its four areas
+(`initiative`, `outcomes`, `positioning`, `credibility`), which cannot be waived (ADR-0017 section 2.1), or an area skipped
+for lack of time. The gate lists every waiver in its report, fails a waiver
 without a reason or naming an unknown area, and the waiver is reviewed with the pull request that adds it.
 
 ## 9. The order to build a page in
