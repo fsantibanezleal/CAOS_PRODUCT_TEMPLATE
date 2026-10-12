@@ -15,7 +15,10 @@ Research, then the executive brief, then sizing, contracts and the units.
    `Research basis` of [`SDD.md`](SDD.md). Checked by `scripts/check_sdd.py`.
 2. **Executive brief.** The problem in its real context, in business language, before any development: the
    Initiative (the owner, the initiative, the quantified reason to act now), the Outcomes, the Positioning and the
-   Credibility, every number with its source or labelled an assumption. Section `Executive brief` of
+   Credibility, every number with its source. A labelled assumption is accepted only in this template (the repository
+   without a `.template-version` file); in a product made from it, an assumption is a finding. The guard reads the brief
+   as a reader sees it (no fenced block, no comment), refuses a year or an index as the number of a claim, a source that
+   is a directory or a placeholder (example, localhost, a made-up DOI), and any placeholder or stub text. Section `Executive brief` of
    [`SDD.md`](SDD.md), right after `Problem and non-goals`. Checked by `scripts/check_sdd.py`. How to write it:
    [`../guides/06_executive-brief.md`](../guides/06_executive-brief.md).
 3. **Sizing, summarised.** The product dimensioned before it is built: its components, its boundaries, the
@@ -45,7 +48,12 @@ Research, then the executive brief, then sizing, contracts and the units.
 7. **Adversarial validation.** Per feature, `features/<feature>/validation.md`: `| requirement | adversarial check |
    gate |`, one row per requirement, the check stated as what was planted or refuted ("a NaN parameter is rejected")
    and the gate the test that plants it: a test under `tests/adversarial/`, or one named `test_adversarial_...` (Python) or
-   `it('adversarial: ...')` (TypeScript). An ordinary test proves the requirement passes, not that it can fail. The
+   `it('adversarial: ...')` (TypeScript). An ordinary test proves the requirement passes, not that it can fail. The adversarial name is a claim that a reviewer
+   verifies against the planted defect, not proof: the guard checks the form (`test_adversarial_` and `adversarial: `
+   with their separator), never what the test plants. A gate that skips for lack of a tool (a `skipif` mark, a
+   `pytest.skip`, an `importorskip` of a package no requirements file pins) counts as not run: the row names a second
+   gate that runs without the tool, or says `local-only: <why>` (five words or more) in its check cell, a reviewed
+   exception for what needs node, a browser or the installed frontend. The
    guards are attacked too: `tests/adversarial/` copies the files a guard reads, plants one defect, runs the guard and
    asserts the exit code and the message. Checked by `scripts/check_sdd.py` and `python -m pytest tests/adversarial -q`.
 
@@ -75,3 +83,20 @@ breaks it cannot see.
 CI runs the checks above in the `checks` job (ADR-0074: cheap checks, no new job); the product's own tests and the bake run
 locally. The one pytest command CI may run is exactly `[pip install pytest==X.Y.Z && ]python -m pytest tests/adversarial[ -q]`;
 `scripts/check_ci_budget.py` fails on anything broader.
+
+## Known limits of the guards
+
+Listed so nobody takes a pass for more than it is; none is fixed in 0.05.000 (found by the re-review of 2026-10-12).
+
+- `check_contract_versions.py`: the mechanical floor does not see `contains`, `dependentRequired`, `propertyNames`,
+  `if`/`then` or `unevaluatedProperties` added as new constraints. `--base ''` (an empty ref) is read as no base
+  (CI cannot pass one: it falls back to `origin/develop`). In a product inside a subdirectory of a repository,
+  `git show REF:docs/contracts/catalog.md` is relative to the repository top, so the base catalog is not found and the
+  check reads it as a first release.
+- `check_tech_matrix.py`: it has no `--base`; in `frontend/package-lock.json` it does not check that `resolved` names
+  the locked version, and a git pin on a branch name passes as a pin (a SHA or a tag is better).
+- `check_sdd.py`, the brief: an equation written with Unicode or in a code span (`R0 = b/g`) is not caught, a currency
+  amount with a dollar sign is read as an equation (write USD), and a source that is an existing but unrelated file
+  passes: only a reviewer judges relevance. A validation gate may be an adversarial test of another requirement.
+- `check_ci_budget.py`: a regular-expression detector cannot see every way to start pytest (for example
+  `python -c "import pytest; pytest.main(...)"`).
