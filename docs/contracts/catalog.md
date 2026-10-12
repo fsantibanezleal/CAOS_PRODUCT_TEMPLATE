@@ -12,6 +12,15 @@ allowed while a product is being built, never at a release). The readiness docum
 (`data/derived/readiness.json`) is computed from this file; editing the catalog makes it stale until
 `python data-pipeline/run.py readiness` runs again (`scripts/check_readiness.py` fails meanwhile).
 
+Versions and history: a contract's version moves with its schema, by semver (a removed or renamed field, a narrowed
+type or a new required field is major; a new optional field is minor; a description or example change is patch), and
+every version has a row in the History section below. `docs/contracts/versions.lock.json` holds each schema's
+version and digest (line endings normalised to LF); `python scripts/check_contract_versions.py` fails when a schema
+changed under the same version, when a version went down, when the lock is not current with the catalog, or when a
+row has no History entry for its current version. After a deliberate bump and its History row, run
+`python scripts/check_contract_versions.py --update` and commit the lock with the schema and both sides in one pull
+request.
+
 A product instantiated from the template replaces these rows with its own, keeps the columns, the states and the
 checks.
 
@@ -83,3 +92,19 @@ dormant and so `missing`). The
 
 A provider is scaffolding: labelled on every surface by the readiness document, never counted as done for the unit
 that owes the real producer.
+
+## History
+
+One row per version of every contract, newest last within a contract. `kind` is initial, major, minor or patch, per
+the rules above. The rows of 0.04.000 record the versions that release shipped; an earlier shape of a contract is
+not reconstructed.
+
+| contract | version | date | change | kind |
+|---|---|---|---|---|
+| params-record | 1.0.0 | 2026-10-11 | the ingestion record: case id, SIR parameters with the bounds of contract 1 | initial |
+| case-index | 2.0.0 | 2026-10-11 | the index of cases with bilingual titles, categories and the default case (`example.index/v2`) | initial |
+| case-manifest | 4.0.0 | 2026-10-11 | the per-case manifest with lane verdict, metrics and the model behind them (`example.manifest/v4`) | initial |
+| trace | 1.0.0 | 2026-10-11 | the per-case trace, at most 200 points, with a summary (`example.trace/v1`) | initial |
+| surrogate-model | 1.0.0 | 2026-10-11 | the slot r0 to peak infected fraction, with the analytic baseline behind it | initial |
+| readiness | 1.0.0 | 2026-10-11 | what is real in a build, row by row, in one of six declared states | initial |
+| api | 1.0.0 | 2026-10-11 | the dormant read-only API, GET only, 503 with the declared state when a document is absent | initial |
