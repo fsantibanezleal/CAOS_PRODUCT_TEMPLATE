@@ -1,0 +1,120 @@
+# Guide: the five documentation pages
+
+Every product carries five documentation pages: Introduction, Methodology, Implementation, Experiments and
+Benchmark. This guide says what each must contain. It is transcribed from ADR-0017 section 2.1 of CAOS_MANAGE
+(`conventions/architecture/1-frontend/ADR-0017-rotorvitals-frontend-bar.md`, amended 2026-10-12), which is the binding
+text; if the two differ, the ADR wins and this guide is wrong.
+
+Status: the checks below run in the shell's gate (`caos-shell-gate`, check `ADR-0017.2`) from shell 0.11.0, which ships
+the page components. This template's own pages adopt them in the release that pins that shell; until then the
+template's pages are not measured against these areas, and a product written now is written to them so it needs no
+rework. The design-document side already applies: the executive brief is checked by `scripts/check_sdd.py` today.
+
+## 1. How a section declares its area
+
+A section declares the area it covers: `<DocSection area="...">`, rendered as `data-area`. The vocabulary is fixed per
+page (the tables below); an unknown area fails. The gate fails a built page that lacks a required area, or whose
+area lacks the content the area requires, in either language (EN and ES). The shell ships the helpers the areas use:
+`Stat` (a quantified statement: a value, its unit, its source; rendered as `data-stat`), `Question` (a business
+question with its answer; `data-qa`) and `Glossary` (the symbol glossary; `data-glossary`), with `Equation`, figures
+and callouts. Read the shell's own documentation for their props once 0.11.0 is published; do not hand-roll
+substitutes.
+
+Terms the gate counts:
+
+- A **topic** is a leaf panel of the page: a tab of `Tabs`, a sub-tab of `SubTabs`, or an item of `TabGroups` (at most
+  six top-level groups; topics are counted across the groups).
+- A **dense paragraph** is a `<p>` of at least 40 words in the displayed language.
+- Every documentation page: a lede of at least 35 words; every equation captioned; references in one block at the end
+  of the page or the open topic.
+
+## 2. Introduction: two views, the executive one first
+
+The page opens for a decision maker and then serves the engineer. Its two top-level topics are `executive` (the
+default, first) and `technical`. The executive view answers one question, the golden rule: would the person who owns
+this problem give it thirty more minutes, or delegate it down? It is written in business language, vision first, with
+no equation, and every claim of value carries a number with its unit and its source. It cannot be waived.
+
+The four areas of the executive view are the four parts of the SDD's executive brief ([guide 06](06_executive-brief.md)),
+transcribed to the page: write the brief first, then copy it, in both languages.
+
+| Area (executive view) | What it is (the hit) | SDD part | What the gate requires in it |
+|---|---|---|---|
+| `initiative` | industry and executive tailoring: the initiative an executive owns, named by role and industry, and the quantified reason to act now | Initiative | at least 1 dense paragraph and at least 1 quantified statement (`data-stat`: a value, its unit, its source) |
+| `outcomes` | the transformation story: the vision first, then each capability tied to a non-technical business outcome with a quantified proof point | Outcomes | a lead paragraph, then a table or list of at least 3 rows (capability, business outcome, proof point), each proof point a `data-stat` |
+| `positioning` | the value story: each value point tied back to that executive's problem (four named value points until the four C's are defined) | Positioning | exactly 4 items, each with at least 1 sentence that names the problem it answers |
+| `credibility` | delivery and credibility: the business questions that executive would ask, each answered plainly, with the evidence and the honest limits | Credibility | at least 3 question and answer pairs (`data-qa`) and exactly 1 honest callout (the `Limits:` line of the brief) |
+
+The executive view holds no `Equation` and no symbol glossary (an equation there fails). The technical view holds the
+five areas below, with at least 1 overview figure and 3 captioned equations.
+
+| Area (technical view) | What it is | What the gate requires in it |
+|---|---|---|
+| `problem` | the industrial or scientific problem, with the concrete equipment, setting and who it serves | at least 2 dense paragraphs |
+| `principles` | the physics or the domain principles the product rests on | at least 2 dense paragraphs |
+| `math` | the governing mathematics | at least 1 captioned equation and a symbol glossary (`data-glossary`) of at least 10 items |
+| `pipeline` | the end-to-end pipeline, from the data to the screen | an ordered list of at least 4 steps, and the overview figure here or elsewhere in the view |
+| `honesty` | what is exact and what is illustrative; what the product is not | exactly 1 honest callout and at least 1 dense paragraph |
+
+## 3. Methodology (at least 6 topics, one per method family)
+
+| Area | What it is | What the gate requires in it |
+|---|---|---|
+| `method` (one per topic, with `kind="classical"` or `kind="learned"`) | one method family, as the build runs it: its exact behaviour and constants | at least 4 dense paragraphs, at least 2 captioned equations, at least 1 figure, exactly 1 honest callout (scope, exact versus illustrative), references |
+| page level | the ladder from baseline to the state of the art of the domain | at least 2 topics of kind `learned` (the learned methods that are the state of the art for the domain, each beside its classical baseline) |
+
+## 4. Implementation (at least 8 topics)
+
+| Area | What it is | What the gate requires in it |
+|---|---|---|
+| `architecture` | offline pipeline, compact artifacts, the thin live lane, the browser | 1 figure (the architecture diagram) |
+| `reproducibility` | determinism, seeds, versions, how a result is reproduced | at least 1 callout and 1 dense paragraph |
+| `engine` (one per engine topic) | the exact algorithm steps, constants, windows and scaling | at least 2 dense paragraphs, at least 1 captioned equation, a where-it-works and where-it-fails callout |
+| `lanes` | the live and precompute boundary, and what admits a feature to the live lane | at least 2 dense paragraphs |
+| `contract` | the artifact and data contracts | at least 1 table or code block and 1 dense paragraph |
+| `deployment` | where and how it is deployed | at least 1 dense paragraph |
+
+## 5. Experiments (at least 6 topics, prose and tabs, never info-box cards)
+
+| Area | What it is | What the gate requires in it |
+|---|---|---|
+| `question` (one per experimental question) | a distinct experimental question and its answer | at least 2 dense paragraphs |
+| `metrics` | the exact metric equations with their real constants | at least 2 captioned equations |
+| `protocol` | the leakage-safe, held-out protocol, with the forbidden anti-pattern shown | 1 figure |
+| `datasets` | the datasets, their redistribution class and their live or roadmap status | 1 table |
+
+## 6. Benchmark
+
+| Area | What it is | What the gate requires in it |
+|---|---|---|
+| `results` | held-out numbers read from committed artifacts | 1 table or chart |
+| `comparison` | a learned model and a classical baseline on the same real data | 1 table or chart |
+| `robustness` | an honest robustness or degradation curve | 1 chart |
+| `live` | a live in-browser inference panel on real held-out data | at least 1 control |
+| `provenance` | per row: dataset, difficulty source, redistribution | 1 table |
+| `caveat` | the honest limits of the comparison | exactly 1 honest or strong callout |
+
+## 7. What the gate cannot measure (a review duty)
+
+That the paragraphs are rigorous and name the build's real constants, that the equations' symbols are defined, that
+no visible string holds an internal reference, and that the Benchmark numbers come from committed artifacts. A
+reviewer reads these against the rubric before a release is called ready.
+
+## 8. The waiver, and when it is legitimate
+
+A page that cannot carry an area for a stated reason declares it on the page: `floorWaivers` on `DocPage`, rendered as
+`data-floor-waiver="<area or floor>: <reason>"`. Legitimate: a product with no learned method (Methodology's
+`learned` topics), no live lane (`live`) or no governing equation (`math`). Not legitimate: the executive view, which
+cannot be waived, or an area skipped for lack of time. The gate lists every waiver in its report, fails a waiver
+without a reason or naming an unknown area, and the waiver is reviewed with the pull request that adds it.
+
+## 9. The order to build a page in
+
+1. Write the executive brief in the SDD ([guide 06](06_executive-brief.md)) and have it reviewed with the plan.
+2. Build the Introduction from it: the executive view first (transcribe the four parts, both languages), then the
+   technical view from the research dossiers.
+3. For each other page, take its area table above as the outline: one `DocSection area="..."` per row, content
+   transcribed from the dossiers, the code and its tests, never from memory.
+4. Build vertically: finish a topic completely (text, equations with captions, figures, references) before the next.
+5. Run the shell's gate (`npm run gate`, from shell 0.11.0), fix what it names, and declare a waiver only for a reason
+   the table above allows.

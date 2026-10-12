@@ -21,6 +21,57 @@ Non-goals, each something a reader could reasonably assume:
 - A learned model of record. The surrogate exists to show where a trained model sits in the pipeline and how its
   held-out error is reported.
 
+## Executive brief
+
+The problem in its real context, written before any development and in business language (no equation), as
+[`docs/guides/06_executive-brief.md`](../guides/06_executive-brief.md) describes and `scripts/check_sdd.py` checks.
+The example is a teaching model, so the owner below is the one the model would serve if it were real; every number
+is read from a committed artifact or from the cited work, or is labelled an assumption in plain words. A product
+replaces every assumption with a sourced number from its research dossiers before its first release.
+
+### Initiative
+
+The owner is the head of the epidemiology unit of a regional health authority (public health). The initiative: decide,
+week by week during a rising outbreak, whether to act and how hard, with a way to see the whole course before the
+meeting and to try a what-if while the room waits. The reason to act on it now is timing, in two directions:
+
+- In the epidemic case (reproduction number 2.75, 100000 people), infections peak at 27345 people on day 24.25, so a response decided after about 3 weeks acts on a peak that has already passed (source: data/derived/EX02_epidemic/trace.json)
+- In the fast-burn case (reproduction number 6) the peak comes on day 9.25, so the window to decide is under 2 weeks (source: data/derived/EX03_fast_burn/trace.json)
+- At a reproduction number of 2.75, immunity in 63.6 % of the population (the herd threshold) is enough to prevent an outbreak, so a response sized well above that is a cost with no added protection (source: https://doi.org/10.1007/BF00178324)
+- A closure held one week longer than needed costs 100000 people one week of normal activity (assumption: the example population is 100000 and a closure is taken to stop all normal activity, for illustration only)
+
+### Outcomes
+
+The vision: the unit's planner sees the course of an outbreak, not only today's count, and tests a decision in the
+meeting where it is made, with every curve labelled by what it is and what it is not.
+
+| capability | business outcome | proof point |
+|---|---|---|
+| Replay of a baked case | The planner sees the full course of an outbreak before the meeting, with no analyst run in between | 5 cases baked in 0.2 s and stored in 112 KB (source: docs/design/SDD.md) |
+| Live re-run in the browser | A what-if on the reproduction number or on immunisation is answered while the room waits | median 0.02 to 0.08 ms per run against a budget of 1500 ms (source: docs/design/SDD.md) |
+| Held-out check of the fast approximation | The director knows how far a fast approximation can be trusted | peak-fraction error of 0.00732 (root mean square) on 20 held-out runs (source: data/derived/manifests/EX02_epidemic.json) |
+| A static site with no server | Nothing to procure, host or secure before the unit can use it | 2.2 MB deploy payload (source: docs/design/SDD.md) |
+
+### Positioning
+
+- **The course, not the count**: the owner decides on timing, and only the whole curve shows when the peak has passed.
+- **An answer in the meeting**: the what-if does not wait for an analyst, so the decision is made with the numbers in the room.
+- **Limits on every curve**: the owner is accountable for what is said in public, so each result states what is exact and what is illustrative.
+- **Nothing to procure**: the owner has no budget line for a platform, and a static site needs none.
+
+### Credibility
+
+- Q: Is this a forecast for our region?
+  A: No. It is a teaching model with textbook assumptions (closed, homogeneous, deterministic) and no real data; the pages state it and the limit is the first thing to remove before real use.
+- Q: How do we know the numbers are right?
+  A: The live engine reproduces every baked trace to 0.005 people, and the final size matches the closed relation of the cited work; the tests that check both are listed in the requirements.
+- Q: What does it cost to run?
+  A: One workstation for the bake (0.2 s, 33 MB of memory) and a static site for the readers; the measured resources are in the Resources section.
+- Q: Who stands behind a number that is wrong?
+  A: The example carries no operational claim; a real product names its owner, its data steward and its review before any number is used in a decision.
+
+Limits: the model is closed, homogeneous and deterministic, the population and the closure cost are illustrative, and the example has never been run against an outbreak or reviewed by an epidemiologist.
+
 ## Research basis
 
 Done before the plan, and kept here so a reader can re-check it (ADR-0075; rule 11 section 12). The example is a

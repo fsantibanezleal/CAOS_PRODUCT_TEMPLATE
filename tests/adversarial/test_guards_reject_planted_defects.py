@@ -80,6 +80,88 @@ def test_sdd_a_resources_table_with_tbd(repo: Path) -> None:
     assert r.returncode == 1 and "TBD" in r.stdout and "Resources" in r.stdout, r.stdout
 
 
+def _brief_part(text: str, name: str) -> tuple[int, int]:
+    """Start and end offsets of the body of a level-3 part of the executive brief."""
+    start = text.index(f"### {name}\n") + len(f"### {name}\n")
+    nxt = [text.find(h, start) for h in ("\n### ", "\n## ")]
+    return start, min(i for i in nxt if i != -1)
+
+
+def _plant_brief(repo: Path, part: str, new_body: str) -> None:
+    sdd = repo / "docs/design/SDD.md"
+    text = sdd.read_text(encoding="utf-8")
+    a, b = _brief_part(text, part)
+    sdd.write_text(text[:a] + new_body + text[b:], encoding="utf-8")
+
+
+def test_sdd_the_executive_brief_removed(repo: Path) -> None:
+    sdd = repo / "docs/design/SDD.md"
+    text = sdd.read_text(encoding="utf-8")
+    sdd.write_text(text[:text.index("## Executive brief")] + text[text.index("## Research basis"):], encoding="utf-8")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "Executive brief" in r.stdout and "06_executive-brief.md" in r.stdout, r.stdout
+
+
+def test_sdd_the_executive_brief_moved_to_the_end(repo: Path) -> None:
+    sdd = repo / "docs/design/SDD.md"
+    text = sdd.read_text(encoding="utf-8")
+    a, b = text.index("## Executive brief"), text.index("## Research basis")
+    sdd.write_text(text[:a] + text[b:] + "\n" + text[a:b], encoding="utf-8")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "right after" in r.stdout, r.stdout
+
+
+def test_sdd_an_emptied_subsection_of_the_brief(repo: Path) -> None:
+    _plant_brief(repo, "Positioning", "\n")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "Positioning is empty" in r.stdout, r.stdout
+
+
+def test_sdd_the_initiative_stripped_of_its_numbers(repo: Path) -> None:
+    _plant_brief(repo, "Initiative", "\nA unit owns a problem that is costing a significant amount, for many people.\n\n"
+                 "- The delay is significant (source: https://doi.org/10.1007/BF00178324)\n\n")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "Initiative" in r.stdout and "quantified" in r.stdout, r.stdout
+
+
+def test_sdd_the_outcomes_cut_to_two_rows(repo: Path) -> None:
+    sdd = repo / "docs/design/SDD.md"
+    lines = sdd.read_text(encoding="utf-8").splitlines(keepends=True)
+    start = next(i for i, ln in enumerate(lines) if ln.startswith("| capability | business outcome | proof point |"))
+    kept = lines[:start + 4] + lines[start + 6:]  # header, separator, two rows; the last two rows dropped
+    sdd.write_text("".join(kept), encoding="utf-8")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "Outcomes" in r.stdout and "at least 3" in r.stdout, r.stdout
+
+
+def test_sdd_a_proof_point_that_cites_a_file_that_is_not_there(repo: Path) -> None:
+    edit(repo, "docs/design/SDD.md", "(source: data/derived/manifests/EX02_epidemic.json)", "(source: data/derived/manifests/ghost.json)")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "ghost.json" in r.stdout, r.stdout
+
+
+def test_sdd_the_positioning_with_three_bullets(repo: Path) -> None:
+    edit(repo, "docs/design/SDD.md", "- **Nothing to procure**: the owner has no budget line for a platform, and a static site needs none.\n", "")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "Positioning" in r.stdout and "exactly 4" in r.stdout, r.stdout
+
+
+def test_sdd_the_credibility_with_two_questions(repo: Path) -> None:
+    sdd = repo / "docs/design/SDD.md"
+    text = sdd.read_text(encoding="utf-8")
+    a = text.index("- Q: What does it cost to run?")
+    b = text.index("Limits: the model")
+    sdd.write_text(text[:a] + text[b:], encoding="utf-8")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "Credibility" in r.stdout and "at least 3" in r.stdout, r.stdout
+
+
+def test_sdd_an_equation_planted_in_the_brief(repo: Path) -> None:
+    edit(repo, "docs/design/SDD.md", "### Outcomes\n", "### Outcomes\n\nThe threshold is $1 - 1/R_0$.\n")
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "equation" in r.stdout, r.stdout
+
+
 # ---------------------------------------------------------------- check_contract_versions
 
 def test_versions_a_schema_edited_without_a_version_bump(repo: Path) -> None:
