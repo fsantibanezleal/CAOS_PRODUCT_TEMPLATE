@@ -37,12 +37,43 @@ def get_checked(c: TestClient, path: str, template: str, expect: int):
     return body
 
 
-def test_adversarial_routes_match_the_openapi_document(monkeypatch, tmp_path):
-    app = client(monkeypatch, tmp_path).app
-    # the app's own generated schema lists every route the app serves (included routers are wrapped in fastapi 0.143)
+def route_sets(app, document: dict) -> tuple[set, set]:
+    """(routes the app serves, routes the OpenAPI ``document`` declares), each as (path, METHOD). The app's own generated
+    schema lists every route the app serves (included routers are wrapped in fastapi 0.143); it is cached, so a route
+    mounted after the first call needs the cache dropped."""
+    app.openapi_schema = None
     served = {(p, m.upper()) for p, ops in app.openapi()["paths"].items() for m in ops}
-    declared = {(p, m.upper()) for p, ops in load_json(OPENAPI)["paths"].items() for m in ops}
+    declared = {(p, m.upper()) for p, ops in document["paths"].items() for m in ops}
+    return served, declared
+
+
+def test_routes_match_the_openapi_document(monkeypatch, tmp_path):
+    served, declared = route_sets(client(monkeypatch, tmp_path).app, load_json(OPENAPI))
     assert served == declared
+
+
+def test_adversarial_an_undeclared_route_and_a_missing_route_fail_the_comparison(monkeypatch, tmp_path):
+    document = load_json(OPENAPI)
+    # a route the app serves and the document does not declare
+    app = client(monkeypatch, tmp_path).app
+
+    @app.get("/api/planted")
+    def planted() -> dict:
+        return {}
+
+    served, declared = route_sets(app, document)
+    assert served != declared and served - declared == {("/api/planted", "GET")}, (served - declared, declared - served)
+    # a route the document declares and the app does not serve: a path removed from a copy of the document...
+    app = client(monkeypatch, tmp_path).app
+    path = "/api/cases"
+    assert path in document["paths"], "the plant would remove nothing"
+    shorter = {**document, "paths": {p: ops for p, ops in document["paths"].items() if p != path}}
+    served, declared = route_sets(app, shorter)
+    assert served != declared and {p for p, _ in served - declared} == {path}, (served - declared, declared - served)
+    # ...and a path declared that the app never mounts
+    longer = {**document, "paths": {**document["paths"], "/api/never-mounted": {"get": {}}}}
+    served, declared = route_sets(app, longer)
+    assert declared - served == {("/api/never-mounted", "GET")}, (served - declared, declared - served)
 
 
 def assert_serves_everything(c: TestClient) -> int:
