@@ -41,6 +41,8 @@ MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
     # the example's constant, never a hyphenated id that contains the word (CAOS_Contraste's finding F-SCALED-COVERAGE)
     ("the example immunisation variants", re.compile(r"(?<![\w-])COVERAGE(?![\w-])|herd threshold")),
     ("prose about the example engine", re.compile(r"\bEXAMPLE engine\b|\bteaching engine\b")),
+    # the example's executive view (content/executive.json): a product writes its own, never keeps the example's
+    ("the example executive view", re.compile(r"regional public hospital network in England|nhs-activity-tracker-january-2026")),
 )
 FORBIDDEN_FILES = ("STRUCTURE.md", ".vscode/")
 # the helper scripts too: precompute.sh and precompute.ps1 named an example case and were never scanned

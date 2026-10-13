@@ -25,6 +25,8 @@ needs_web = pytest.mark.skipif(NODE is None or not (NODE_MODULES / "@fasl-work")
 def link_node_modules(frontend: Path) -> None:
     """Make the copy's frontend/node_modules the real one (a junction on Windows, a symlink elsewhere)."""
     target = frontend / "node_modules"
+    if target.is_dir() and not target.is_symlink():
+        shutil.rmtree(target)  # the copy holds only the executive schema the SDD guard reads (conftest add_schema)
     if os.name == "nt":
         subprocess.run(["cmd", "/c", "mklink", "/J", str(target), str(NODE_MODULES)], check=True, capture_output=True)
     else:
@@ -33,8 +35,10 @@ def link_node_modules(frontend: Path) -> None:
 
 def unlink_node_modules(frontend: Path) -> None:
     target = frontend / "node_modules"
-    if target.is_symlink() or os.name == "nt":
-        os.rmdir(target)  # removes the link, never the real tree
+    if os.name == "nt":
+        os.rmdir(target)  # a junction: removes the link, never the real tree
+    elif target.is_symlink():
+        target.unlink()  # a symlink: os.rmdir raises NotADirectoryError on it (Linux CI)
 
 
 # ------------------------------------------------------------------ EX-003, EX-012, EX-013
@@ -55,7 +59,8 @@ def test_a_version_stated_twice_and_disagreeing_fails_the_coherence_guard(repo: 
     ok = guard(repo, "check_version_coherence.py")
     assert ok.returncode in (0, 1), ok.stdout  # the copy has no git history: the tag comparison may complain, nothing else
     before = ok.stdout
-    edit(repo, "frontend/package.json", '"version": "0.5.0"', '"version": "9.9.9"')
+    current = json.loads((repo / "frontend" / "package.json").read_text(encoding="utf-8"))["version"]  # the version of the release under test
+    edit(repo, "frontend/package.json", f'"version": "{current}"', '"version": "9.9.9"')
     r = guard(repo, "check_version_coherence.py")
     assert r.returncode == 1 and "9.9.9" in r.stdout and r.stdout != before, r.stdout
 
