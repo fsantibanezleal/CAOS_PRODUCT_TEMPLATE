@@ -23,54 +23,15 @@ Non-goals, each something a reader could reasonably assume:
 
 ## Executive brief
 
-The problem in its real context, written before any development and in business language (no equation), as
-[`docs/guides/06_executive-brief.md`](../guides/06_executive-brief.md) describes and `scripts/check_sdd.py` checks.
-The example is a teaching model, so the owner below is the one the model would serve if it were real; every number
-is read from a committed artifact or from the cited work, or is labelled an assumption in plain words. A product
-replaces every assumption with a sourced number from its research dossiers before its first release.
+The executive view of the Introduction is data, kept apart from this document: one file holds the executive, the
+organisation, the initiative, the figure that says why now, the vision, the outcomes with their proof, the dialogue,
+the three illustrations and the source of every figure, in English and Spanish. It is written from the research
+before any development, is valid against the shell's `executive.schema.json`, and is rendered by the shell's
+`ExecutiveView` as the first view of the Introduction. The standard is
+[`docs/guides/06_executive-brief.md`](../guides/06_executive-brief.md); `scripts/check_sdd.py` fails a product whose file
+is missing or invalid. The example's file is tailored to the example's own context and is replaced by every product.
 
-### Initiative
-
-The owner is the head of the epidemiology unit of a regional health authority (public health). The initiative: decide,
-week by week during a rising outbreak, whether to act and how hard, with a way to see the whole course before the
-meeting and to try a what-if while the room waits. The reason to act on it now is timing, in two directions:
-
-- In the epidemic case (reproduction number 2.75, 100000 people), infections peak at 27345 people on day 24.25, so a response decided after about 3 weeks acts on a peak that has already passed (source: data/derived/EX02_epidemic/trace.json; data/derived/manifests/EX02_epidemic.json)
-- In the fast-burn case (reproduction number 6) the peak comes on day 9.25, so the window to decide is under 2 weeks (source: data/derived/EX03_fast_burn/trace.json; data/derived/manifests/EX03_fast_burn.json)
-- At a reproduction number of 2.75, immunity in 63.6 % of the population (the herd threshold, computed as 1 - 1/2.75 from the relation of the cited work) is enough to prevent an outbreak, so a response sized well above that is a cost with no added protection (source: https://doi.org/10.1007/BF00178324)
-- A closure held one week longer than needed costs 100000 people one week of normal activity (assumption: the example population is 100000 and a closure is taken to stop all normal activity, for illustration only)
-
-### Outcomes
-
-The vision: the unit's planner sees the course of an outbreak, not only today's count, and tests a decision in the
-meeting where it is made, with every curve labelled by what it is and what it is not.
-
-| capability | business outcome | proof point |
-|---|---|---|
-| Replay of a baked case | The planner sees the full course of an outbreak before the meeting, with no analyst run in between | 5 cases baked in 0.1 s and stored in 35 KB (source: docs/design/measured-resources.md) |
-| Live re-run in the browser | A what-if on the reproduction number or on immunisation is answered while the room waits | median 0.006 to 0.010 ms per run against a budget of 1500 ms (source: docs/design/measured-resources.md; data/derived/manifests/EX02_epidemic.json) |
-| Held-out check of the fast approximation | The director knows how far a fast approximation can be trusted | peak-fraction error of 0.00732 (root mean square) on 20 held-out runs (source: data/derived/manifests/EX02_epidemic.json) |
-| A static site with no server | Nothing to procure, host or secure before the unit can use it | 1.9 MB deploy payload (source: docs/design/measured-resources.md) |
-
-### Positioning
-
-- **The course, not the count**: the owner decides on timing, and only the whole curve shows when the peak has passed.
-- **An answer in the meeting**: the what-if does not wait for an analyst, so the decision is made with the numbers in the room.
-- **Limits on every curve**: the owner is accountable for what is said in public, so each result states what is exact and what is illustrative.
-- **Nothing to procure**: the owner has no budget line for a platform, and a static site needs none.
-
-### Credibility
-
-- Q: Is this a forecast for our region?
-  A: No. It is a teaching model with textbook assumptions (closed, homogeneous, deterministic) and no real data; the pages state it and the limit is the first thing to remove before real use.
-- Q: How do we know the numbers are right?
-  A: The live engine reproduces every baked trace to 0.005 people, and the final size matches the closed relation of the cited work; the tests that check both are listed in the requirements.
-- Q: What does it cost to run?
-  A: One workstation for the bake (0.1 s, 33 MB of memory) and a static site for the readers; the measured resources are in the Resources section and in `docs/design/measured-resources.md`.
-- Q: Who stands behind a number that is wrong?
-  A: The example carries no operational claim; a real product names its owner, its data steward and its review before any number is used in a decision.
-
-Limits: the model is closed, homogeneous and deterministic, the population and the closure cost are illustrative, and the example has never been run against an outbreak or reviewed by an epidemiologist.
+Data file: content/executive.json
 
 ## Research basis
 
@@ -141,7 +102,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
 | API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
 | API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
-| shell | @fasl-work/caos-app-shell | 0.10.0 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| shell | @fasl-work/caos-app-shell | 0.12.0 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
 | web | react | 19.3.0 | the UI | none: the shell requires it |
 | web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
 | web | react-router | 8.4.0 | the routes | none: the shell requires it |
@@ -244,5 +205,5 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0071 | the page is the viewport; one tab row; drawing at least half the viewport | the shell's `CaseWorkbench`; the gate (G5, G6) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
-| ADR-0078 | rules live in the base | shell 0.10.0 (pinned exactly) and this template; no product re-implements them |
+| ADR-0078 | rules live in the base | shell 0.12.0 (pinned exactly) and this template; no product re-implements them |
 | ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |

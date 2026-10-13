@@ -8,7 +8,7 @@ text; if the two differ, the ADR wins and this guide is wrong.
 Status: the checks below run in the shell's gate (`caos-shell-gate`, check `ADR-0017.2`) from shell 0.11.0, which ships
 the page components. The template's example carries all of these areas, as ADR-0017 section 2.1 states; the pages
 that carry them land in the release that pins that shell, and the gate measures them from then. A product written now
-is written to them so it needs no rework. The design-document side already applies: the executive brief is checked by `scripts/check_sdd.py` today.
+is written to them so it needs no rework. The executive view of the Introduction is already the shell's standard (shell 0.12.0, [guide 06](06_executive-brief.md)): `content/executive.json`, checked by `scripts/check_sdd.py` and by the gate.
 
 ## 1. How a section declares its area
 
@@ -31,19 +31,10 @@ Terms the gate counts:
 ## 2. Introduction: two views, the executive one first
 
 The page opens for a decision maker and then serves the engineer. Its two top-level topics are `executive` (the
-default, first) and `technical`. The executive view answers one question, the golden rule: would the person who owns
-this problem give it thirty more minutes, or delegate it down? It is written in business language, vision first, with
-no equation, and every claim of value carries a number with its unit and its source. The executive view and its four areas cannot be waived.
-
-The four areas of the executive view are the four parts of the SDD's executive brief ([guide 06](06_executive-brief.md)),
-transcribed to the page: write the brief first, then copy it, in both languages.
-
-| Area (executive view) | What it is (the hit) | The miss | SDD part | What the gate requires in it |
-|---|---|---|---|---|
-| `initiative` | industry and executive tailoring: the initiative an executive owns, named by role and industry, and the quantified reason to act now | generic, no executive story or data | Initiative | at least 1 dense paragraph and at least 1 quantified statement (`data-stat`: a value, its unit, its source) |
-| `outcomes` | the transformation story: the vision first, then each capability tied to a non-technical business outcome with a quantified proof point | a product tour, no vision or outcomes | Outcomes | a lead paragraph, then a table or list of at least 3 rows (capability, business outcome, proof point), each proof point a `data-stat` |
-| `positioning` | the value story: each value point tied back to that executive's problem (four named value points until the four C's are defined) | lists value points without tying them to the executive | Positioning | exactly 4 items, each with a sentence of at least 6 words that names the problem it answers |
-| `credibility` | delivery and credibility: the business questions that executive would ask, each answered plainly, with the evidence and the honest limits | a monologue; few questions | Credibility | at least 3 question and answer pairs (`data-qa`) and exactly 1 honest callout (the `Limits:` line of the brief) |
+default, first) and `technical`. The executive view is the shell's `ExecutiveView`, fed by `content/executive.json`: the
+four sections of Felipe's executive-pitch rubric with their fixed titles, three illustrations, numbered source notes. It
+has no areas to declare and nothing is placed beside it; the product fills the data file and never designs the view
+([guide 06](06_executive-brief.md)). It cannot be waived.
 
 The executive view holds no `Equation` and no symbol glossary (an equation there fails). The technical view holds the
 five areas below, with at least 1 overview figure and 3 captioned equations.

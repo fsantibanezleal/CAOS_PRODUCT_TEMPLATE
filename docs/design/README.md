@@ -13,13 +13,12 @@ Research, then the executive brief, then sizing, contracts and the units.
    URL), at least three distinct sources (one work cited as a DOI and as its URL counts once; example and localhost
    hosts count for none), and a line starting `UNVERIFIED:` for what stayed unverified (it may say none). Section
    `Research basis` of [`SDD.md`](SDD.md). Checked by `scripts/check_sdd.py`.
-2. **Executive brief.** The problem in its real context, in business language, before any development: the
-   Initiative (the owner, the initiative, the quantified reason to act now), the Outcomes, the Positioning and the
-   Credibility, every number with its source. A labelled assumption is accepted only in this template (the repository
-   without a `.template-version` file); in a product made from it, an assumption is a finding. The guard reads the brief
-   as a reader sees it (no fenced block, no comment), refuses a year or an index as the number of a claim, a source that
-   is a directory or a placeholder (example, localhost, a made-up DOI), and any placeholder or stub text. Section `Executive brief` of
-   [`SDD.md`](SDD.md), right after `Problem and non-goals`. Checked by `scripts/check_sdd.py`. How to write it:
+2. **Executive view.** The problem in its real context, in business language, before any development: one data file,
+   `content/executive.json`, valid against the shell's `executive.schema.json` (the executive, the organisation, the
+   initiative, the why-now figure, the vision, the outcomes with their proof, the dialogue, three illustrations, a source
+   for every figure). Section `Executive brief` of [`SDD.md`](SDD.md), right after `Problem and non-goals`, names the file
+   in a `Data file: content/executive.json` line and restates nothing. Checked by `scripts/check_sdd.py` (the file, its
+   schema, its sources, its illustrations, the section). How to write it:
    [`../guides/06_executive-brief.md`](../guides/06_executive-brief.md).
 3. **Sizing, summarised.** The product dimensioned before it is built: its components, its boundaries, the
    technology and version matrix and the resources of each stage. The sizing's coordination records (the parallel
@@ -62,7 +61,7 @@ Research, then the executive brief, then sizing, contracts and the units.
 | part | file | guard |
 |---|---|---|
 | research basis | `docs/design/SDD.md`, `Research basis` | `scripts/check_sdd.py` |
-| executive brief | `docs/design/SDD.md`, `Executive brief` | `scripts/check_sdd.py` |
+| executive view | `content/executive.json`, `docs/design/SDD.md`, `Executive brief` | `scripts/check_sdd.py`, the shell's gate |
 | sizing summary, technology, resources | `docs/design/SDD.md`, `Sizing and contracts`, `Technology and versions`, `Resources` | `scripts/check_sdd.py`, `scripts/check_tech_matrix.py` |
 | contracts, providers, states | `docs/contracts/catalog.md`, `docs/contracts/schemas/` | `scripts/check_contracts.py`, `scripts/check_skeleton.py`, `scripts/check_readiness.py` |
 | contract versions and history | `docs/contracts/catalog.md` (`History`), `docs/contracts/versions.lock.json` | `scripts/check_contract_versions.py` |
@@ -95,8 +94,9 @@ Listed so nobody takes a pass for more than it is; none is fixed in 0.05.000 (fo
   check reads it as a first release.
 - `check_tech_matrix.py`: it has no `--base`; in `frontend/package-lock.json` it does not check that `resolved` names
   the locked version, and a git pin on a branch name passes as a pin (a SHA or a tag is better).
-- `check_sdd.py`, the brief: an equation written with Unicode or in a code span (`R0 = b/g`) is not caught, a currency
-  amount with a dollar sign is read as an equation (write USD), and a source that is an existing but unrelated file
-  passes: only a reviewer judges relevance. A validation gate may be an adversarial test of another requirement.
+- `check_sdd.py`, the executive view: the shell's schema is read from `frontend/node_modules`, so the check needs
+  `npm ci` first (it fails, and says so, without it) and the `jsonschema` package; the writing limits (30 words, one
+  sentence) and the 4 C's rule live in the shell's `validateExecutive`, run by `frontend/src/content/executive.test.ts`,
+  and what an illustration draws is the shell's gate and a reviewer's judgement.
 - `check_ci_budget.py`: a regular-expression detector cannot see every way to start pytest (for example
   `python -c "import pytest; pytest.main(...)"`).
