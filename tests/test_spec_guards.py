@@ -31,39 +31,13 @@ RESOURCES = ("| stage | memory | disk | time | where it runs |\n|---|---|---|---
              "| build | 400 MB | 2 MB | 8 s | workstation |\n| deploy payload | 0 | 2 MB | 5 s | CI |\n")
 
 
-BRIEF = """### Initiative
+BRIEF = """The executive view of the Introduction is data, kept apart from this document: one file holds the executive, the initiative,
+the figure that says why now, the vision, the outcomes with their proof, the dialogue, the three illustrations and the
+source of every figure, in English and Spanish. It is valid against the shell's schema and rendered by the shell.
 
-A regional health authority's epidemiology unit owns the question of when to act on a rising outbreak.
-
-- A response that starts after day 24 comes after the peak of 27345 infected people (source: https://doi.org/10.1007/BF00178324)
-- The cost of one avoidable closure week is 2 million USD (assumption: a round figure chosen only to show the format)
-
-### Outcomes
-
-| capability | business outcome | proof point |
-|---|---|---|
-| replay of a baked case | the planner sees the whole course before a meeting | 5 cases baked in 0.2 s (source: https://doi.org/10.1098/rspa.1927.0118) |
-| live re-run | a what-if answered while the room waits | 0.08 ms per run (assumption: the lane budget is far above any value measured here) |
-| a labelled limit | no one mistakes the example for a forecast | 1 of 1 pages states it (source: docs/limits.md) |
-
-### Positioning
-
-- **Faster**: the planner waits no more than one meeting for the course of an outbreak.
-- **Cheaper**: one workstation runs every case, so no cluster is bought.
-- **Clearer**: each curve is labelled with its limits so a director can repeat it.
-- **Checked**: every number traces to a committed artifact, so an auditor can re-run it.
-
-### Credibility
-
-- Q: Is this a forecast of our region?
-  A: No. It is a teaching model with textbook assumptions and no real data; the limit is stated on every page.
-- Q: How do we know the numbers are right?
-  A: Each is read from a committed artifact and the live engine matches the baked one to 0.005 people.
-- Q: What does it cost to run?
-  A: One workstation and 0.2 s per bake; the measured resources are in the design document.
-
-Limits: closed, homogeneous, deterministic population; the example carries no real data.
+Data file: content/executive.json
 """
+SCHEMA_REL = "frontend/node_modules/@fasl-work/caos-app-shell/src/content/executive.schema.json"
 
 
 def sdd_text(research: str = RESEARCH, resources: str = RESOURCES, skip: str = "", brief: str | None = BRIEF,
@@ -92,7 +66,7 @@ def put(tmp: Path, rel: str, text: str) -> Path:
 
 
 def sdd_tree(tmp: Path, *, validation: str | None, sdd: str | None = None, requirements: str = REQUIREMENTS,
-             files: dict[str, str] | None = None) -> Path:
+             files: dict[str, str] | None = None, executive: bool = True) -> Path:
     (tmp / "docs" / "design" / "features" / "f").mkdir(parents=True)
     put(tmp, "docs/limits.md", "limits\n")
     put(tmp, "tests/test_x.py", "def test_a():\n    pass\n\ndef test_b():\n    pass\n")
@@ -103,6 +77,8 @@ def sdd_tree(tmp: Path, *, validation: str | None, sdd: str | None = None, requi
         put(tmp, "docs/design/features/f/validation.md", validation)
     for rel, text in (files or {}).items():
         put(tmp, rel, text)
+    if executive:
+        executive_tree(tmp)
     return tmp
 
 
@@ -513,329 +489,243 @@ def test_sdd_crlf_in_every_file_still_passes(tmp_path):
     assert r.returncode == 0, r.stdout
 
 
-# ---------------------------------------------------------------- check_sdd: the executive brief
+# ---------------------------------------------------------------- check_sdd: the executive view (problem-context-first, 0.06.000)
 
 GUIDE = "docs/guides/06_executive-brief.md"
+EXEC = "content/executive.json"
+DELETE = object()
 
 
-def brief_run(tmp_path, brief: str | None = BRIEF, **kw):
-    return run("check_sdd.py", str(sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=sdd_text(brief=brief, **kw))))
+def example_data() -> dict:
+    return json.loads((ROOT / EXEC).read_text(encoding="utf-8"))
 
 
-def test_brief_a_complete_brief_passes(tmp_path):
-    r = brief_run(tmp_path)
+def executive_tree(tmp: Path, data: dict | None = None, *, schema: bool = True, svgs: bool = True) -> Path:
+    """The executive view of a throwaway tree: the example's file (or ``data``), its three SVG files under
+    frontend/public/ and the shell's schema as npm ci installs it."""
+    data = example_data() if data is None else data
+    put(tmp, EXEC, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+    if svgs:
+        for ill in example_data()["illustrations"].values():
+            target = tmp / "frontend" / "public" / ill["file"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / "frontend" / "public" / ill["file"]).read_bytes())
+    if schema:
+        src = ROOT / SCHEMA_REL
+        assert src.is_file(), f"{SCHEMA_REL} is absent: run npm ci in frontend/ (the shell's schema is the contract under test)"
+        (tmp / SCHEMA_REL).parent.mkdir(parents=True, exist_ok=True)
+        (tmp / SCHEMA_REL).write_bytes(src.read_bytes())
+    return tmp
+
+
+def view_tree(tmp_path, data: dict | None = None, brief: str | None = BRIEF, *, sdd: str | None = None, **kw) -> Path:
+    tree = sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=sdd if sdd is not None else sdd_text(brief=brief), executive=False)
+    return executive_tree(tree, data, **kw)
+
+
+def view_run(tmp_path, data: dict | None = None, brief: str | None = BRIEF, **kw):
+    return run("check_sdd.py", str(view_tree(tmp_path, data, brief, **kw)))
+
+
+def changed(path: list, value) -> dict:
+    """The example's data with one field replaced (DELETE removes it)."""
+    data = example_data()
+    node = data
+    for key in path[:-1]:
+        node = node[key]
+    if value is DELETE:
+        del node[path[-1]]
+    else:
+        node[path[-1]] = value
+    return data
+
+
+def test_view_the_example_passes(tmp_path):
+    r = view_run(tmp_path)
     assert r.returncode == 0, r.stdout
 
 
+def test_view_the_real_repository_passes():
+    r = run("check_sdd.py", str(ROOT))
+    assert r.returncode == 0 and "check_sdd: OK" in r.stdout, r.stdout
+
+
+def test_view_missing_file_fails_naming_it_and_the_guide(tmp_path):
+    tree = sdd_tree(tmp_path, validation=GOOD_VALIDATION, executive=False)
+    r = run("check_sdd.py", str(tree))
+    assert r.returncode == 1 and EXEC in r.stdout and "missing" in r.stdout and GUIDE in r.stdout, r.stdout
+
+
+def test_view_a_file_that_is_not_json_fails(tmp_path):
+    tree = view_tree(tmp_path)
+    put(tree, EXEC, "{ not json")
+    r = run("check_sdd.py", str(tree))
+    assert r.returncode == 1 and EXEC in r.stdout and "not valid JSON" in r.stdout, r.stdout
+
+
+def test_view_without_the_shell_schema_fails_instead_of_passing(tmp_path):
+    r = view_run(tmp_path, schema=False)
+    assert r.returncode == 1 and "executive.schema.json" in r.stdout and "npm ci" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("path,value,expected", [
+    (["outcomes", 1, "proof", "unit"], DELETE, "outcomes[1].proof.unit"),
+    (["outcomes", 0, "proof", "value", "es"], DELETE, "outcomes[0].proof.value.es"),
+    (["executive"], ["Chief Risk Officer", "Chief Executive Officer"], "executive"),
+    (["why_now", "deadline"], DELETE, "why_now.deadline"),
+    (["why_now", "figure"], DELETE, "why_now.figure"),
+    (["initiative"], {"en": "", "es": "x"}, "initiative.en"),
+    (["dialogue"], [], "dialogue"),
+    (["illustrations", "problem"], DELETE, "illustrations.problem"),
+    (["invented_field"], "x", "invented_field"),
+])
+def test_view_a_file_that_breaks_the_schema_names_the_field_path(tmp_path, path, value, expected):
+    r = view_run(tmp_path, changed(path, value))
+    assert r.returncode == 1 and EXEC in r.stdout and expected in r.stdout, r.stdout
+
+
+def test_view_more_than_five_outcomes_fail(tmp_path):
+    data = example_data()
+    data["outcomes"] = data["outcomes"] + [data["outcomes"][0]] * 2
+    r = view_run(tmp_path, data)
+    assert r.returncode == 1 and "outcomes" in r.stdout, r.stdout
+
+
+def test_view_two_outcomes_fail(tmp_path):
+    data = example_data()
+    data["outcomes"] = data["outcomes"][:2]
+    r = view_run(tmp_path, data)
+    assert r.returncode == 1 and "outcomes" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("name", ["initiative", "problem", "solution"])
+def test_view_a_missing_illustration_file_is_named(tmp_path, name):
+    tree = view_tree(tmp_path)
+    (tree / "frontend" / "public" / example_data()["illustrations"][name]["file"]).unlink()
+    r = run("check_sdd.py", str(tree))
+    assert r.returncode == 1 and f"illustrations.{name}.file" in r.stdout and "does not exist" in r.stdout, r.stdout
+
+
+def test_view_an_illustration_per_language_is_checked_for_each_language(tmp_path):
+    data = changed(["illustrations", "problem", "file"], {"en": "executive/problem.svg", "es": "executive/problem-es.svg"})
+    r = view_run(tmp_path, data)
+    assert r.returncode == 1 and "illustrations.problem.file.es" in r.stdout, r.stdout
+
+
+def test_view_an_illustration_that_is_not_an_svg_with_a_viewbox_fails(tmp_path):
+    tree = view_tree(tmp_path)
+    (tree / "frontend" / "public" / "executive" / "solution.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    r = run("check_sdd.py", str(tree))
+    assert r.returncode == 1 and "illustrations.solution.file" in r.stdout and "viewBox" in r.stdout, r.stdout
+
+
+def test_view_an_illustration_path_that_leaves_the_site_fails(tmp_path):
+    r = view_run(tmp_path, changed(["illustrations", "initiative", "file"], "../../outside.svg"))
+    assert r.returncode == 1 and "illustrations.initiative.file" in r.stdout, r.stdout
+
+
+def test_view_a_figure_without_a_source_fails(tmp_path):
+    data = example_data()
+    data["sources"] = [s for s in data["sources"] if s["field"] != "outcomes[2].proof"]
+    r = view_run(tmp_path, data)
+    assert r.returncode == 1 and "outcomes[2].proof" in r.stdout and "no source" in r.stdout, r.stdout
+
+
+def test_view_a_source_for_a_field_that_is_not_a_figure_fails(tmp_path):
+    data = example_data()
+    data["sources"].append({"field": "vision", "source": {"en": "x", "es": "x"}})
+    r = view_run(tmp_path, data)
+    assert r.returncode == 1 and "sources[5].field" in r.stdout and "vision" in r.stdout, r.stdout
+
+
+def test_view_the_four_cs_are_absent_in_the_example(tmp_path):
+    assert "four_cs" not in example_data()
+    assert view_run(tmp_path).returncode == 0
+
+
+# ---- the SDD section names the file and restates nothing
+
 def test_brief_missing_section_fails_and_points_at_the_guide(tmp_path):
-    r = brief_run(tmp_path, brief=None)
+    r = view_run(tmp_path, brief=None)
     assert r.returncode == 1 and "Executive brief" in r.stdout and GUIDE in r.stdout
 
 
 def test_brief_at_the_end_of_the_sdd_fails(tmp_path):
-    r = brief_run(tmp_path, brief_after="ADR fit")
-    assert r.returncode == 1 and "right after" in r.stdout and "Problem and non-goals" in r.stdout
-
-
-def test_brief_after_another_section_fails(tmp_path):
-    r = brief_run(tmp_path, brief_after="Research basis")
+    r = view_run(tmp_path, sdd=sdd_text(brief=BRIEF, brief_after="ADR fit"))
     assert r.returncode == 1 and "right after" in r.stdout
 
 
-def test_brief_four_empty_headings_fail(tmp_path):
-    empty = "### Initiative\n\n### Outcomes\n\n### Positioning\n\n### Credibility\n"
-    r = brief_run(tmp_path, brief=empty)
-    assert r.returncode == 1
-    for name in ("Initiative", "Outcomes", "Positioning", "Credibility"):
-        assert f"{name} is empty" in r.stdout
+def test_brief_after_another_section_fails(tmp_path):
+    r = view_run(tmp_path, sdd=sdd_text(brief=BRIEF, brief_after="Research basis"))
+    assert r.returncode == 1 and "right after" in r.stdout
 
 
-def test_brief_a_missing_subsection_is_named(tmp_path):
-    r = brief_run(tmp_path, brief=BRIEF.replace("### Positioning", "### Value"))
-    assert r.returncode == 1 and "'Positioning'" in r.stdout
+def test_brief_without_the_data_file_line_fails(tmp_path):
+    r = view_run(tmp_path, brief=BRIEF.replace("Data file: content/executive.json", "The data is somewhere."))
+    assert r.returncode == 1 and "Data file: content/executive.json" in r.stdout, r.stdout
 
 
-def test_brief_subsections_out_of_order_fail(tmp_path):
-    swapped = BRIEF.replace("### Initiative", "### @@").replace("### Outcomes", "### Initiative").replace("### @@", "### Outcomes")
-    r = brief_run(tmp_path, brief=swapped)
-    assert r.returncode == 1 and "order" in r.stdout
+def test_brief_naming_another_file_fails(tmp_path):
+    r = view_run(tmp_path, brief=BRIEF.replace("content/executive.json", "docs/executive.json"))
+    assert r.returncode == 1 and "Data file: content/executive.json" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("plant", [
+    "\n### Initiative\n\nA unit owns a problem.\n",
+    "\n- one bullet that lists a part of the view\n",
+    "\n| capability | outcome |\n|---|---|\n| a | b |\n",
+    "\n1. a numbered list of outcomes\n",
+])
+def test_brief_that_restates_the_view_in_structure_fails(tmp_path, plant):
+    r = view_run(tmp_path, brief=BRIEF + plant)
+    assert r.returncode == 1 and "restates" in r.stdout and GUIDE in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("lang", ["en", "es"])
+def test_brief_that_copies_a_sentence_of_the_file_fails(tmp_path, lang):
+    r = view_run(tmp_path, brief=BRIEF + "\n" + example_data()["vision"][lang] + "\n")
+    assert r.returncode == 1 and "restates" in r.stdout, r.stdout
+
+
+def test_brief_that_is_long_prose_fails(tmp_path):
+    r = view_run(tmp_path, brief=BRIEF + "\n" + "A word that says nothing new about the file. " * 30 + "\n")
+    assert r.returncode == 1 and "restates" in r.stdout and "words" in r.stdout, r.stdout
 
 
 def test_brief_a_heading_inside_a_code_fence_does_not_count(tmp_path):
-    fenced = BRIEF.replace("### Credibility", "```\n### Credibility\n```")
-    r = brief_run(tmp_path, brief=fenced)
-    assert r.returncode == 1 and "'Credibility'" in r.stdout
+    r = view_run(tmp_path, brief=BRIEF + "\n```\n### Initiative\n```\n")
+    assert r.returncode == 0, r.stdout
 
 
-def test_brief_crlf_and_trailing_spaces_in_headings_pass(tmp_path):
-    text = sdd_text(brief=BRIEF.replace("### Initiative", "### Initiative   ")).replace("## Executive brief", "## Executive brief  ")
-    tree = sdd_tree(tmp_path, validation=GOOD_VALIDATION)
-    (tree / "docs/design/SDD.md").write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
+def test_brief_the_data_line_inside_a_code_fence_does_not_count(tmp_path):
+    r = view_run(tmp_path, brief=BRIEF.replace("Data file: content/executive.json", "```\nData file: content/executive.json\n```"))
+    assert r.returncode == 1 and "Data file: content/executive.json" in r.stdout, r.stdout
+
+
+def test_brief_crlf_and_trailing_spaces_pass(tmp_path):
+    tree = view_tree(tmp_path, sdd=sdd_text().replace("## Executive brief", "## Executive brief  "))
+    sdd = tree / "docs" / "design" / "SDD.md"
+    sdd.write_bytes(sdd.read_bytes().replace(b"\n", b"\r\n"))
     r = run("check_sdd.py", str(tree))
     assert r.returncode == 0, r.stdout
 
 
-def test_brief_initiative_without_a_quantified_statement_fails(tmp_path):
-    bad = BRIEF.replace("after day 24 comes after the peak of 27345 infected people", "comes after the peak of many infected people")
-    bad = bad.replace("2 million USD", "a significant amount")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "Initiative" in r.stdout and "quantified" in r.stdout
-
-
-def test_brief_many_and_significant_and_several_are_not_numbers(tmp_path):
-    for word in ("many", "significant", "several"):
-        bad = BRIEF.replace("after day 24 comes after the peak of 27345 infected people", f"comes after the peak of {word} infected people")
-        bad = bad.replace("2 million USD", f"{word} dollars")
-        r = brief_run(tmp_path / word, brief=bad)
-        assert r.returncode == 1 and "quantified" in r.stdout, word
-
-
-def test_brief_a_source_path_not_in_the_repository_fails(tmp_path):
-    ghost = BRIEF.replace("https://doi.org/10.1007/BF00178324", "docs/nowhere.md")
-    r = brief_run(tmp_path, brief=ghost)
-    assert r.returncode == 1 and "docs/nowhere.md" in r.stdout
-
-
-def test_brief_a_source_path_in_the_repository_passes(tmp_path):
-    ok = BRIEF.replace("https://doi.org/10.1007/BF00178324", "`docs/limits.md`")
-    r = brief_run(tmp_path, brief=ok)
-    assert r.returncode == 0, r.stdout
-
-
-def test_brief_a_source_path_outside_the_repository_fails(tmp_path):
-    out = BRIEF.replace("https://doi.org/10.1007/BF00178324", "../outside.md")
-    (tmp_path / "outside.md").write_text("x\n", encoding="utf-8")
-    r = brief_run(tmp_path / "repo", brief=out)
-    assert r.returncode == 1 and "outside.md" in r.stdout
-
-
-def test_brief_a_doi_source_passes(tmp_path):
-    r = brief_run(tmp_path, brief=BRIEF.replace("https://doi.org/10.1007/BF00178324", "10.1007/BF00178324"))
-    assert r.returncode == 0, r.stdout
-
-
-def test_brief_an_assumption_needs_a_reason_of_five_words(tmp_path):
-    short = BRIEF.replace("a round figure chosen only to show the format", "a round figure")
-    r = brief_run(tmp_path, brief=short)
-    assert r.returncode == 1 and "assumption" in r.stdout and "five words" in r.stdout
-
-
-def test_brief_outcomes_with_two_rows_fail(tmp_path):
-    two = "\n".join(ln for ln in BRIEF.splitlines() if "a labelled limit" not in ln) + "\n"
-    r = brief_run(tmp_path, brief=two)
-    assert r.returncode == 1 and "Outcomes" in r.stdout and "at least 3" in r.stdout
-
-
-def test_brief_outcomes_proof_point_without_a_number_fails(tmp_path):
-    bad = BRIEF.replace("5 cases baked in 0.2 s", "cases baked quickly")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "proof point" in r.stdout and "replay of a baked case" in r.stdout
-
-
-def test_brief_outcomes_proof_point_without_a_source_fails(tmp_path):
-    bad = BRIEF.replace(" (source: https://doi.org/10.1098/rspa.1927.0118)", "")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "proof point" in r.stdout
-
-
-def test_brief_outcomes_without_the_table_fails(tmp_path):
-    bad = BRIEF.replace("| capability | business outcome | proof point |", "| a | b | c |")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "capability | business outcome | proof point" in r.stdout
-
-
-def test_brief_positioning_with_three_or_five_bullets_fails(tmp_path):
-    three = "\n".join(ln for ln in BRIEF.splitlines() if "**Checked**" not in ln) + "\n"
-    r = brief_run(tmp_path, brief=three)
-    assert r.returncode == 1 and "exactly 4" in r.stdout
-    five = BRIEF.replace("### Credibility", "- **Fifth**: another problem it answers.\n\n### Credibility")
-    r = brief_run(tmp_path / "b", brief=five)
-    assert r.returncode == 1 and "exactly 4" in r.stdout
-
-
-def test_brief_positioning_bullet_without_the_value_point_form_fails(tmp_path):
-    bad = BRIEF.replace("- **Faster**: the planner", "- Faster, the planner")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "Positioning" in r.stdout and "value point" in r.stdout
-
-
-def test_brief_credibility_with_two_questions_fails(tmp_path):
-    cut = [ln for ln in BRIEF.splitlines() if "What does it cost to run" not in ln and "One workstation and 0.2 s per bake" not in ln]
-    r = brief_run(tmp_path, brief="\n".join(cut) + "\n")
-    assert r.returncode == 1 and "Credibility" in r.stdout and "at least 3" in r.stdout
-
-
-def test_brief_a_question_without_an_answer_does_not_count(tmp_path):
-    bad = BRIEF.replace("  A: One workstation and 0.2 s per bake; the measured resources are in the design document.", "")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "at least 3" in r.stdout
-
-
-def test_brief_credibility_without_a_limits_line_fails(tmp_path):
-    bad = BRIEF.replace("Limits:", "Caveat:")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "Limits:" in r.stdout
-
-
-def test_brief_an_equation_in_the_brief_fails(tmp_path):
-    plants = ("The rate is $R_0 = b / g$ here.", "The rate is \\(R_0\\) here.", "```math\nR_0 = b / g\n```")
-    for n, plant in enumerate(plants):
-        bad = BRIEF.replace("### Outcomes", plant + "\n\n### Outcomes", 1)
-        r = brief_run(tmp_path / str(n), brief=bad)
-        assert r.returncode == 1 and "equation" in r.stdout, plant
-
-
-# ---- the re-review of 0.05.000 (CAOS_MANAGE wip/product-template/rereview-0-05-000-2026-10-12.md, D3): one test per false pass
-
-FIRST_CLAIM = "- A response that starts after day 24 comes after the peak of 27345 infected people (source: https://doi.org/10.1007/BF00178324)"
-ASSUMPTION = "- The cost of one avoidable closure week is 2 million USD (assumption: a round figure chosen only to show the format)"
-Q1_LINES = ("- Q: Is this a forecast of our region?\n  A: No. It is a teaching model with textbook assumptions and no real data; the limit is stated on every page.\n"
-            "- Q: How do we know the numbers are right?\n  A: Each is read from a committed artifact and the live engine matches the baked one to 0.005 people.\n"
-            "- Q: What does it cost to run?\n  A: One workstation and 0.2 s per bake; the measured resources are in the design document.\n")
-
-
-def swapped(brief: str, old: str, new: str) -> str:
-    assert old in brief, old
-    return brief.replace(old, new, 1)
-
-
-PLACEHOLDER_BRIEF = (
-    "### Initiative\n\nTBD\n\n- TBD 1 (assumption: lorem ipsum dolor sit amet)\n\n"
-    "### Outcomes\n\nTBD\n\n| capability | business outcome | proof point |\n|---|---|---|\n"
-    + "| TBD | TBD | 1 (source: docs/limits.md) |\n" * 3
-    + "\n### Positioning\n\n" + "- **TBD**: TBD\n" * 4
-    + "\n### Credibility\n\n" + "- Q: TBD\n  A: TBD\n" * 3 + "\nLimits: TBD\n")
-
-
-def test_rereview_m1d_a_brief_of_placeholders_in_the_shape_the_guard_reads_fails(tmp_path):
-    r = brief_run(tmp_path, brief=PLACEHOLDER_BRIEF)
-    assert r.returncode == 1, r.stdout
-    for part in ("Initiative", "Outcomes", "Positioning", "Credibility"):
-        assert part in r.stdout, (part, r.stdout)
-
-
-@pytest.mark.parametrize("claim", [
-    "- The problem has mattered since 2026 (source: docs/limits.md)",
-    "- Step 1: the cost is high (source: docs/limits.md)",
-    "- item 1: the cost is high (source: docs/limits.md)",
-    "- 1. the cost is high (source: docs/limits.md)",
-    "- The report of 2026-10-12 says the cost is high (source: docs/limits.md)",
-    "- Since 2000 the cost rose a lot (source: docs/limits.md)",
-])
-def test_rereview_m2_a_year_or_an_index_is_not_the_number_of_a_claim(tmp_path, claim):
-    r = brief_run(tmp_path, brief=swapped(BRIEF, FIRST_CLAIM, claim))
-    assert r.returncode == 1 and "states no number" in r.stdout, r.stdout
-
-
-@pytest.mark.parametrize("claim", [
-    "- In 2026 the cost rose 40 % (source: docs/limits.md)",
-    "- 2000 people were treated in the first week (source: docs/limits.md)",
-    "- The peak is R0 2.75 for 100000 people (source: docs/limits.md)",
-])
-def test_rereview_m2_a_real_number_next_to_a_year_still_passes(tmp_path, claim):
-    r = brief_run(tmp_path, brief=swapped(BRIEF, FIRST_CLAIM, claim))
-    assert r.returncode == 0, r.stdout
-
-
-def test_rereview_m2c_proof_points_that_are_indexes_fail(tmp_path):
-    r = brief_run(tmp_path, brief=swapped(BRIEF, "5 cases baked in 0.2 s", "item 1"))
-    assert r.returncode == 1 and "proof point" in r.stdout and "states no number" in r.stdout, r.stdout
-
-
-@pytest.mark.parametrize("source", [
-    ".", "./", "docs", "https://example.com/made-up", "http://localhost/x", "https://a.example.org/x", "https://shop.test/x",
-    "10.0000/fake", "https://doi.org/10.0000/fake", "10.1234/example",
-])
-def test_rereview_m2ef_a_source_that_is_a_directory_or_a_placeholder_fails(tmp_path, source):
-    r = brief_run(tmp_path, brief=swapped(BRIEF, "(source: https://doi.org/10.1007/BF00178324)", f"(source: {source})"))
-    assert r.returncode == 1 and "cites a source" in r.stdout, r.stdout
-
-
-def test_rereview_m3b_numbered_headings_do_not_hide_a_misplaced_brief(tmp_path):
-    text = sdd_text(brief_after="Resources").replace("## Problem and non-goals", "## 1. Problem and non-goals")
-    tree = sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=text)
-    r = run("check_sdd.py", str(tree))
-    assert r.returncode == 1 and "right after" in r.stdout, r.stdout
-
-
-def test_rereview_xs2_numbered_headings_in_place_pass(tmp_path):
+def test_brief_numbered_headings_in_place_pass(tmp_path):
     text = sdd_text().replace("## Problem and non-goals", "## 1. Problem and non-goals").replace("## Executive brief", "## 2. Executive brief")
-    r = run("check_sdd.py", str(sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=text)))
-    assert r.returncode == 0, r.stdout
+    assert view_run(tmp_path, sdd=text).returncode == 0
 
 
-def test_rereview_m3d_a_tilde_fence_holding_a_backtick_line_hides_the_brief(tmp_path):
-    r = brief_run(tmp_path, brief="~~~\n```\n" + BRIEF + "```\n~~~\n")
-    assert r.returncode == 1, r.stdout
-
-
-def test_rereview_m3e_part_bodies_that_are_only_code_blocks_are_empty(tmp_path):
-    out = []
-    for chunk in re.split(r"(?m)^(?=### )", BRIEF):
-        if chunk.strip():
-            head, _, body = chunk.partition("\n")
-            out.append(f"{head}\n\n```text\n{body.strip()}\n```\n\n")
-    r = brief_run(tmp_path, brief="".join(out))
-    assert r.returncode == 1 and "is empty" in r.stdout, r.stdout
-
-
-def test_rereview_m4c_four_positioning_bullets_with_nothing_in_them_fail(tmp_path):
-    bullets = re.search(r"### Positioning\n\n(.*?)\n\n### Credibility", BRIEF, re.S)[1]
-    r = brief_run(tmp_path, brief=BRIEF.replace(bullets, "\n".join(["- **-**: -"] * 4), 1))
-    assert r.returncode == 1 and "Positioning" in r.stdout, r.stdout
-
-
-def test_rereview_xs1_one_question_three_times_answered_yes_fails(tmp_path):
-    r = brief_run(tmp_path, brief=swapped(BRIEF, Q1_LINES, "- Q: Is it good?\n  A: Yes.\n" * 3))
-    assert r.returncode == 1 and "Credibility" in r.stdout, r.stdout
-
-
-def test_rereview_xs1_three_distinct_questions_with_one_word_answers_fail(tmp_path):
-    three = "- Q: Is it good for us?\n  A: Yes.\n- Q: Is it cheap to run?\n  A: Yes.\n- Q: Is it safe to use?\n  A: Yes.\n"
-    r = brief_run(tmp_path, brief=swapped(BRIEF, Q1_LINES, three))
-    assert r.returncode == 1 and "Credibility" in r.stdout, r.stdout
-
-
-def test_rereview_xs1_the_same_question_in_other_case_counts_once(tmp_path):
-    same = "- Q: Is this a forecast of our region?\n  A: No. It is a teaching model with textbook assumptions and no real data.\n"
-    r = brief_run(tmp_path, brief=swapped(BRIEF, Q1_LINES, same + same.replace("Is this", "IS THIS") + same.replace("region", "region ")))
-    assert r.returncode == 1 and "Credibility" in r.stdout, r.stdout
-
-
-def test_rereview_a_limits_line_of_a_placeholder_fails(tmp_path):
-    bad = BRIEF.replace("Limits: closed, homogeneous, deterministic population; the example carries no real data.", "Limits: TBD")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "Limits" in r.stdout, r.stdout
-
-
-def test_rereview_an_equation_in_a_math_fence_still_fails(tmp_path):
-    r = brief_run(tmp_path, brief=BRIEF.replace("### Outcomes", "```math\nR_0 = b / g\n```\n\n### Outcomes", 1))
-    assert r.returncode == 1 and "equation" in r.stdout, r.stdout
-
-
-def test_rereview_two_executive_brief_sections_fail(tmp_path):
-    text = sdd_text(brief_after="Problem and non-goals").replace("## Research basis", "## Executive brief\n\n" + BRIEF + "\n## Research basis")
-    r = run("check_sdd.py", str(sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=text)))
+def test_brief_two_executive_brief_sections_fail(tmp_path):
+    text = sdd_text().replace("## Research basis", "## Executive brief\n\n" + BRIEF + "\n## Research basis")
+    r = view_run(tmp_path, sdd=text)
     assert r.returncode == 1 and "more than one" in r.stdout, r.stdout
 
 
-def test_rereview_q2_an_assumption_passes_in_the_template_and_fails_in_an_instantiated_product(tmp_path):
-    template = sdd_tree(tmp_path / "template", validation=GOOD_VALIDATION)
-    assert run("check_sdd.py", str(template)).returncode == 0
-    product = sdd_tree(tmp_path / "product", validation=GOOD_VALIDATION)
-    put(product, ".template-version", "CAOS_PRODUCT_TEMPLATE (the version it started from)\n")
-    r = run("check_sdd.py", str(product))
-    assert r.returncode == 1 and "assumption" in r.stdout and ".template-version" in r.stdout, r.stdout
-    sourced = swapped(BRIEF, ASSUMPTION, ASSUMPTION.split(" (assumption")[0] + " (source: docs/limits.md)")
-    sourced = sourced.replace("(assumption: the lane budget is far above any value measured here)", "(source: docs/limits.md)")
-    put(product, "docs/design/SDD.md", sdd_text(brief=sourced))
-    assert run("check_sdd.py", str(product)).returncode == 0
-
-
-def test_rereview_an_assumption_of_placeholder_words_fails_even_in_the_template(tmp_path):
-    bad = swapped(BRIEF, "(assumption: a round figure chosen only to show the format)", "(assumption: lorem ipsum dolor sit amet)")
-    r = brief_run(tmp_path, brief=bad)
-    assert r.returncode == 1 and "assumption" in r.stdout, r.stdout
+def test_brief_the_four_old_parts_are_not_a_valid_brief(tmp_path):
+    old = ("### Initiative\n\nSome owner and initiative.\n\n### Outcomes\n\nSome outcomes.\n\n### Positioning\n\nSome value.\n\n"
+           "### Credibility\n\nSome questions.\n\nData file: content/executive.json\n")
+    r = view_run(tmp_path, brief=old)
+    assert r.returncode == 1 and "restates" in r.stdout, r.stdout
 
 
 # ---- a validation gate that skips for lack of a tool counts as not run (Q1), and the adversarial name is a prefix (M9c)

@@ -1,0 +1,150 @@
+{
+  "executive": { "en": "Chief Operating Officer", "es": "Director de Operaciones" },
+  "organisation": { "en": "a regional public hospital network in England", "es": "una red regional de hospitales públicos en Inglaterra" },
+  "initiative": {
+    "en": "Own the bed and staffing plan for the winter respiratory season, and keep planned surgery running through the peak.",
+    "es": "Ser responsable del plan de camas y personal para la temporada respiratoria de invierno, y mantener la cirugía programada durante el pico."
+  },
+  "why_now": {
+    "figure": {
+      "value": { "en": "95.7", "es": "95,7" },
+      "unit": {
+        "en": "percent of adult general and acute beds occupied in the first week of January 2026, against a planning target of 92 percent",
+        "es": "por ciento de las camas de adultos de agudos y generales ocupadas en la primera semana de enero de 2026, frente a una meta de planificación de 92 por ciento"
+      }
+    },
+    "deadline": { "en": "before the winter of 2026 to 2027 begins", "es": "antes de que comience el invierno de 2026 a 2027" }
+  },
+  "vision": {
+    "en": "The operations team sees the whole course of an outbreak before the peak and settles the bed plan in the meeting where it is decided.",
+    "es": "El equipo de operaciones ve el curso completo de un brote antes del pico y cierra el plan de camas en la misma reunión donde se decide."
+  },
+  "outcomes": [
+    {
+      "capability": { "en": "Shows the whole course of an outbreak before the meeting", "es": "Muestra el curso completo de un brote antes de la reunión" },
+      "outcome": { "en": "The bed plan is set before the peak, not after it", "es": "El plan de camas se fija antes del pico, no después" },
+      "proof": {
+        "value": { "en": "24", "es": "24" },
+        "unit": { "en": "days from the first cases to the peak, in the example's epidemic case", "es": "días desde los primeros casos hasta el pico, en el caso de epidemia del ejemplo" },
+        "statement": { "en": "A response decided after three weeks acts on a peak that has already passed.", "es": "Una respuesta decidida tras tres semanas actúa sobre un pico que ya pasó." }
+      }
+    },
+    {
+      "capability": { "en": "Re-runs a faster outbreak while the room waits", "es": "Vuelve a correr un brote más rápido mientras la sala espera" },
+      "outcome": { "en": "The team sees how little time a fast outbreak leaves", "es": "El equipo ve cuán poco tiempo deja un brote rápido" },
+      "proof": {
+        "value": { "en": "9.25", "es": "9,25" },
+        "unit": { "en": "days from the first cases to the peak, in the example's fast-burn case", "es": "días desde los primeros casos hasta el pico, en el caso de combustión rápida del ejemplo" },
+        "statement": { "en": "The window to decide is under two weeks.", "es": "La ventana para decidir es de menos de dos semanas." }
+      }
+    },
+    {
+      "capability": { "en": "Compares how much immunity stops an outbreak", "es": "Compara cuánta inmunidad detiene un brote" },
+      "outcome": { "en": "Vaccination effort is sized to the threat and not above it", "es": "El esfuerzo de vacunación se dimensiona a la amenaza y no más allá" },
+      "proof": {
+        "value": { "en": "63.6", "es": "63,6" },
+        "unit": { "en": "percent immune is enough to prevent the example's epidemic", "es": "por ciento de inmunes basta para evitar la epidemia del ejemplo" },
+        "statement": { "en": "A response sized well above that threshold adds cost and no protection.", "es": "Una respuesta muy por encima de ese umbral suma costo y ninguna protección." }
+      }
+    },
+    {
+      "capability": { "en": "States how far its fast estimate can be trusted", "es": "Indica hasta dónde se puede confiar en su estimación rápida" },
+      "outcome": { "en": "The director knows what the quick answer is worth before using it", "es": "La dirección sabe cuánto vale la respuesta rápida antes de usarla" },
+      "proof": {
+        "value": { "en": "0.73", "es": "0,73" },
+        "unit": { "en": "percentage points typical error in the size of the peak, on 20 runs held out", "es": "puntos porcentuales de error típico en el tamaño del pico, en 20 corridas reservadas" },
+        "statement": { "en": "The error was measured on runs the fast estimate never saw.", "es": "El error se midió en corridas que la estimación rápida nunca vio." }
+      }
+    }
+  ],
+  "dialogue": [
+    {
+      "question": { "en": "Is this a forecast for our region?", "es": "¿Es un pronóstico para nuestra región?" },
+      "answer": {
+        "en": "No. It is a teaching model with textbook assumptions and no real data; a live product would be fitted to our own admissions.",
+        "es": "No. Es un modelo de enseñanza con supuestos de texto y sin datos reales; un producto en uso se ajustaría a nuestros propios ingresos."
+      }
+    },
+    {
+      "question": { "en": "How do we know the numbers are right?", "es": "¿Cómo sabemos que las cifras son correctas?" },
+      "answer": {
+        "en": "The browser engine matches every stored result to the rounding of the trace, and the final size matches the textbook relation. Both are tests that fail on a mismatch.",
+        "es": "El motor del navegador coincide con cada resultado guardado hasta el redondeo de la traza, y el tamaño final coincide con la relación de texto. Ambos son pruebas que fallan ante una diferencia."
+      }
+    },
+    {
+      "question": { "en": "What does it cost to run?", "es": "¿Cuánto cuesta operarlo?" },
+      "answer": {
+        "en": "One workstation for a tenth of a second to prepare the cases, and a static website for readers, with no server to buy or secure.",
+        "es": "Una estación de trabajo por una décima de segundo para preparar los casos, y un sitio estático para los lectores, sin servidor que comprar ni asegurar."
+      }
+    },
+    {
+      "question": { "en": "Who stands behind a number that is wrong?", "es": "¿Quién responde por una cifra equivocada?" },
+      "answer": {
+        "en": "The example carries no operational claim. A real product names its owner, its data steward and its review before any number guides a decision.",
+        "es": "El ejemplo no hace ninguna afirmación operativa. Un producto real nombra a su responsable, a su custodio de datos y su revisión antes de que una cifra guíe una decisión."
+      }
+    }
+  ],
+  "illustrations": {
+    "initiative": {
+      "file": "executive/initiative.svg",
+      "caption": {
+        "en": "The operations director owns the winter plan for beds and staff, with the season approaching on the horizon.",
+        "es": "El director de operaciones es responsable del plan de invierno de camas y personal, con la temporada acercándose en el horizonte."
+      }
+    },
+    "problem": {
+      "file": "executive/problem.svg",
+      "caption": {
+        "en": "Without a forecast the wards fill, patients wait at the door and planned surgery is cancelled.",
+        "es": "Sin pronóstico las salas se llenan, los pacientes esperan en la puerta y se cancela la cirugía programada."
+      }
+    },
+    "solution": {
+      "file": "executive/solution.svg",
+      "caption": {
+        "en": "With the forecast in front of the planner, extra beds open before the surge and surgery stays on schedule.",
+        "es": "Con el pronóstico frente al planificador, se abren camas extra antes de la ola y la cirugía se mantiene en fecha."
+      }
+    }
+  },
+  "sources": [
+    {
+      "field": "why_now.figure",
+      "source": {
+        "en": "NHS Providers, NHS Activity Tracker, January 2026, Winter section (a compilation of NHS England weekly situation reports): general and acute bed occupancy of 95.7 percent in the first week of January 2026, above the 2023 to 2024 planning guidance target of 92 percent. https://thenhsalliance.org/resources/nhs-activity-tracker-january-2026/winter",
+        "es": "NHS Providers, NHS Activity Tracker, enero de 2026, sección Winter (compilación de los informes semanales de situación de NHS England): ocupación de camas generales y de agudos de 95,7 por ciento en la primera semana de enero de 2026, sobre la meta de la guía de planificación 2023 a 2024 de 92 por ciento. https://thenhsalliance.org/resources/nhs-activity-tracker-january-2026/winter"
+      }
+    },
+    {
+      "field": "outcomes[0].proof",
+      "source": {
+        "en": "The example's own committed results: peak on day 24.25 in data/derived/EX02_epidemic/trace.json (reproduction number 2.75, 100000 people); a figure of the teaching example, not a forecast.",
+        "es": "Resultados comprometidos del propio ejemplo: pico en el día 24,25 en data/derived/EX02_epidemic/trace.json (número de reproducción 2,75, 100000 personas); una cifra del ejemplo de enseñanza, no un pronóstico."
+      }
+    },
+    {
+      "field": "outcomes[1].proof",
+      "source": {
+        "en": "The example's own committed results: peak on day 9.25 in data/derived/EX03_fast_burn/trace.json (reproduction number 6); a figure of the teaching example, not a forecast.",
+        "es": "Resultados comprometidos del propio ejemplo: pico en el día 9,25 en data/derived/EX03_fast_burn/trace.json (número de reproducción 6); una cifra del ejemplo de enseñanza, no un pronóstico."
+      }
+    },
+    {
+      "field": "outcomes[2].proof",
+      "source": {
+        "en": "Computed as 1 minus 1 over 2.75 from the threshold relation of Diekmann, Heesterbeek and Metz 1990, https://doi.org/10.1007/BF00178324, with the example's reproduction number of 2.75 (data/derived/manifests/EX02_epidemic.json); the paper does not state 63.6 itself.",
+        "es": "Calculado como 1 menos 1 sobre 2,75 con la relación de umbral de Diekmann, Heesterbeek y Metz 1990, https://doi.org/10.1007/BF00178324, con el número de reproducción del ejemplo de 2,75 (data/derived/manifests/EX02_epidemic.json); el artículo no declara 63,6 en sí."
+      }
+    },
+    {
+      "field": "outcomes[3].proof",
+      "source": {
+        "en": "The example's own committed results: a root-mean-square error of 0.00732 in the peak infected fraction on 20 held-out runs, in data/derived/manifests/EX02_epidemic.json.",
+        "es": "Resultados comprometidos del propio ejemplo: un error cuadrático medio de 0,00732 en la fracción infectada en el pico en 20 corridas reservadas, en data/derived/manifests/EX02_epidemic.json."
+      }
+    }
+  ]
+}
