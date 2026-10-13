@@ -31,9 +31,9 @@ RESOURCES = ("| stage | memory | disk | time | where it runs |\n|---|---|---|---
              "| build | 400 MB | 2 MB | 8 s | workstation |\n| deploy payload | 0 | 2 MB | 5 s | CI |\n")
 
 
-BRIEF = """The executive view of the Introduction is data, kept apart from this document: one file holds the executive, the initiative,
-the figure that says why now, the vision, the outcomes with their proof, the dialogue, the three illustrations and the
-source of every figure, in English and Spanish. It is valid against the shell's schema and rendered by the shell.
+BRIEF = """The executive view of the Introduction is data, kept apart from this document: one file frames the problem space in five
+sections, with its headline figures, its three illustrations and the linked source of every figure, in English and
+Spanish. It is valid against the shell's schema and rendered by the shell.
 
 Data file: content/executive.json
 """
@@ -489,11 +489,12 @@ def test_sdd_crlf_in_every_file_still_passes(tmp_path):
     assert r.returncode == 0, r.stdout
 
 
-# ---------------------------------------------------------------- check_sdd: the executive view (problem-context-first, 0.06.000)
+# ---------------------------------------------------------------- check_sdd: the executive view (problem-context-first, schema 2.0.0, 0.07.000)
 
 GUIDE = "docs/guides/06_executive-brief.md"
 EXEC = "content/executive.json"
 DELETE = object()
+ILLUSTRATIONS = ("pain", "situation", "proposal")
 
 
 def example_data() -> dict:
@@ -540,6 +541,10 @@ def changed(path: list, value) -> dict:
     return data
 
 
+def words(n: int) -> str:
+    return " ".join(["word"] * n)
+
+
 def test_view_the_example_passes(tmp_path):
     r = view_run(tmp_path)
     assert r.returncode == 0, r.stdout
@@ -548,6 +553,16 @@ def test_view_the_example_passes(tmp_path):
 def test_view_the_real_repository_passes():
     r = run("check_sdd.py", str(ROOT))
     assert r.returncode == 0 and "check_sdd: OK" in r.stdout, r.stdout
+
+
+def test_view_the_example_is_a_frame_of_the_problem_space_with_sourced_links():
+    data = example_data()
+    assert set(data["illustrations"]) == set(ILLUSTRATIONS)
+    assert [c["c"]["en"] for c in data["proposal"]["four_cs"]] == ["Choice", "Context", "Cost", "Control"]
+    assert len(data["sources"]) >= 8
+    assert all(s["url"].startswith("https://") for s in data["sources"])
+    for old in ("executive", "organisation", "initiative", "why_now", "vision", "outcomes", "dialogue", "four_cs"):
+        assert old not in data, old
 
 
 def test_view_missing_file_fails_naming_it_and_the_guide(tmp_path):
@@ -568,37 +583,54 @@ def test_view_without_the_shell_schema_fails_instead_of_passing(tmp_path):
     assert r.returncode == 1 and "executive.schema.json" in r.stdout and "npm ci" in r.stdout, r.stdout
 
 
+def test_view_a_schema_of_the_old_version_is_refused(tmp_path):
+    tree = view_tree(tmp_path)
+    schema = tree / SCHEMA_REL
+    doc = json.loads(schema.read_text(encoding="utf-8"))
+    doc["title"] = doc["title"].replace("2.0.0", "1.0.0")
+    schema.write_text(json.dumps(doc), encoding="utf-8")
+    r = run("check_sdd.py", str(tree))
+    assert r.returncode == 1 and "2.0.0" in r.stdout and "npm ci" in r.stdout, r.stdout
+
+
 @pytest.mark.parametrize("path,value,expected", [
-    (["outcomes", 1, "proof", "unit"], DELETE, "outcomes[1].proof.unit"),
-    (["outcomes", 0, "proof", "value", "es"], DELETE, "outcomes[0].proof.value.es"),
-    (["executive"], ["Chief Risk Officer", "Chief Executive Officer"], "executive"),
-    (["why_now", "deadline"], DELETE, "why_now.deadline"),
-    (["why_now", "figure"], DELETE, "why_now.figure"),
-    (["initiative"], {"en": "", "es": "x"}, "initiative.en"),
-    (["dialogue"], [], "dialogue"),
-    (["illustrations", "problem"], DELETE, "illustrations.problem"),
+    (["pain", "bearers", 1, "cost"], DELETE, "pain.bearers[1].cost"),
+    (["pain", "bearers", 0, "who", "es"], DELETE, "pain.bearers[0].who.es"),
+    (["title"], "A title with no language", "title"),
+    (["key_statement"], {"en": "", "es": "x"}, "key_statement.en"),
+    (["headline_figures"], [], "headline_figures"),
+    (["pain", "causes"], [], "pain.causes"),
+    (["context", "forces", 0, "direction"], "sideways", "context.forces[0].direction"),
+    (["trends", "items", 0, "horizon"], "tomorrow", "trends.items[0].horizon"),
+    (["trends", "items", 0, "confidence"], DELETE, "trends.items[0].confidence"),
+    (["situation", "status"], DELETE, "situation.status"),
+    (["proposal", "four_cs"], [], "proposal.four_cs"),
+    (["illustrations", "situation"], DELETE, "illustrations.situation"),
+    (["illustrations", "initiative"], {"file": "executive/x.svg", "caption": {"en": "a", "es": "b"}}, "illustrations.initiative"),
     (["invented_field"], "x", "invented_field"),
+    (["executive"], {"en": "Chief Operating Officer", "es": "Director de Operaciones"}, "executive"),
 ])
 def test_view_a_file_that_breaks_the_schema_names_the_field_path(tmp_path, path, value, expected):
     r = view_run(tmp_path, changed(path, value))
     assert r.returncode == 1 and EXEC in r.stdout and expected in r.stdout, r.stdout
 
 
-def test_view_more_than_five_outcomes_fail(tmp_path):
+@pytest.mark.parametrize("path,floor", [
+    (["pain", "paragraphs"], 2), (["pain", "bearers"], 3), (["pain", "figures"], 2), (["pain", "causes"], 3),
+    (["context", "forces"], 3), (["situation", "roles"], 3), (["situation", "state_of_the_art"], 3),
+    (["trends", "items"], 3), (["proposal", "actions"], 3),
+])
+def test_view_a_sub_tab_below_its_floor_fails(tmp_path, path, floor):
     data = example_data()
-    data["outcomes"] = data["outcomes"] + [data["outcomes"][0]] * 2
+    node = data
+    for key in path[:-1]:
+        node = node[key]
+    node[path[-1]] = node[path[-1]][:floor - 1]
     r = view_run(tmp_path, data)
-    assert r.returncode == 1 and "outcomes" in r.stdout, r.stdout
+    assert r.returncode == 1 and ".".join(path) in r.stdout, r.stdout
 
 
-def test_view_two_outcomes_fail(tmp_path):
-    data = example_data()
-    data["outcomes"] = data["outcomes"][:2]
-    r = view_run(tmp_path, data)
-    assert r.returncode == 1 and "outcomes" in r.stdout, r.stdout
-
-
-@pytest.mark.parametrize("name", ["initiative", "problem", "solution"])
+@pytest.mark.parametrize("name", ILLUSTRATIONS)
 def test_view_a_missing_illustration_file_is_named(tmp_path, name):
     tree = view_tree(tmp_path)
     (tree / "frontend" / "public" / example_data()["illustrations"][name]["file"]).unlink()
@@ -607,43 +639,103 @@ def test_view_a_missing_illustration_file_is_named(tmp_path, name):
 
 
 def test_view_an_illustration_per_language_is_checked_for_each_language(tmp_path):
-    data = changed(["illustrations", "problem", "file"], {"en": "executive/problem.svg", "es": "executive/problem-es.svg"})
+    data = changed(["illustrations", "pain", "file"], {"en": "executive/pain.svg", "es": "executive/pain-es.svg"})
     r = view_run(tmp_path, data)
-    assert r.returncode == 1 and "illustrations.problem.file.es" in r.stdout, r.stdout
+    assert r.returncode == 1 and "illustrations.pain.file.es" in r.stdout, r.stdout
 
 
 def test_view_an_illustration_that_is_not_an_svg_with_a_viewbox_fails(tmp_path):
     tree = view_tree(tmp_path)
-    (tree / "frontend" / "public" / "executive" / "solution.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    (tree / "frontend" / "public" / "executive" / "proposal.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
     r = run("check_sdd.py", str(tree))
-    assert r.returncode == 1 and "illustrations.solution.file" in r.stdout and "viewBox" in r.stdout, r.stdout
+    assert r.returncode == 1 and "illustrations.proposal.file" in r.stdout and "viewBox" in r.stdout, r.stdout
 
 
 def test_view_an_illustration_path_that_leaves_the_site_fails(tmp_path):
-    r = view_run(tmp_path, changed(["illustrations", "initiative", "file"], "../../outside.svg"))
-    assert r.returncode == 1 and "illustrations.initiative.file" in r.stdout, r.stdout
+    r = view_run(tmp_path, changed(["illustrations", "pain", "file"], "../../outside.svg"))
+    assert r.returncode == 1 and "illustrations.pain.file" in r.stdout, r.stdout
 
 
-def test_view_a_figure_without_a_source_fails(tmp_path):
+# ---- the sources are links, each cited, each cited id real
+
+def test_view_a_figure_citing_an_unknown_source_fails(tmp_path):
+    r = view_run(tmp_path, changed(["headline_figures", 0, "source"], "nobody"))
+    assert r.returncode == 1 and "headline_figures[0].source" in r.stdout and "nobody" in r.stdout and "not the id of any source" in r.stdout, r.stdout
+
+
+def test_view_a_source_that_nothing_cites_fails(tmp_path):
     data = example_data()
-    data["sources"] = [s for s in data["sources"] if s["field"] != "outcomes[2].proof"]
+    data["sources"].append({"id": "orphan", "title": {"en": "A report nobody cites", "es": "Un informe que nadie cita"}, "url": "https://example.org/report"})
     r = view_run(tmp_path, data)
-    assert r.returncode == 1 and "outcomes[2].proof" in r.stdout and "no source" in r.stdout, r.stdout
+    assert r.returncode == 1 and "sources[" in r.stdout and "orphan" in r.stdout and "cited by no" in r.stdout, r.stdout
 
 
-def test_view_a_source_for_a_field_that_is_not_a_figure_fails(tmp_path):
+def test_view_two_sources_with_one_id_fail(tmp_path):
     data = example_data()
-    data["sources"].append({"field": "vision", "source": {"en": "x", "es": "x"}})
+    data["sources"].append(dict(data["sources"][0]))
     r = view_run(tmp_path, data)
-    assert r.returncode == 1 and "sources[5].field" in r.stdout and "vision" in r.stdout, r.stdout
+    assert r.returncode == 1 and "already the id" in r.stdout, r.stdout
 
 
-def test_view_the_four_cs_are_absent_in_the_example(tmp_path):
-    assert "four_cs" not in example_data()
-    assert view_run(tmp_path).returncode == 0
+@pytest.mark.parametrize("url", ["http://example.org/insecure", "report.pdf", "file 7", "", "ftp://example.org/x"])
+def test_view_a_source_that_is_not_an_https_link_fails(tmp_path, url):
+    r = view_run(tmp_path, changed(["sources", 0, "url"], url))
+    assert r.returncode == 1 and "sources[0].url" in r.stdout, r.stdout
+
+
+def test_view_a_source_without_a_url_fails(tmp_path):
+    r = view_run(tmp_path, changed(["sources", 0, "url"], DELETE))
+    assert r.returncode == 1 and "sources[0].url" in r.stdout and "required" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("title", ["Annex file 7 of the report", "Archivo 3 del informe", "The report.pdf", "Published on 3 May"])
+def test_view_a_source_that_cites_a_file_in_place_of_its_link_fails(tmp_path, title):
+    r = view_run(tmp_path, changed(["sources", 0, "title"], {"en": title, "es": title}))
+    assert r.returncode == 1 and "sources[0].title" in r.stdout and "link" in r.stdout, r.stdout
+
+
+# ---- the rules a schema cannot say
+
+def test_view_the_causes_weights_over_one_hundred_fail(tmp_path):
+    data = example_data()
+    for cause in data["pain"]["causes"]:
+        cause["weight"] = 60
+    r = view_run(tmp_path, data)
+    assert r.returncode == 1 and "pain.causes" in r.stdout and "at most 100" in r.stdout, r.stdout
+
+
+def test_view_an_action_whose_owner_is_not_a_role_of_the_situation_fails(tmp_path):
+    r = view_run(tmp_path, changed(["proposal", "actions", 0, "owner"], {"en": "A role nobody has", "es": "Un rol que nadie tiene"}))
+    assert r.returncode == 1 and "proposal.actions[0].owner" in r.stdout and "roles of the current situation" in r.stdout, r.stdout
+
+
+def test_view_the_four_cs_out_of_order_fail(tmp_path):
+    data = example_data()
+    data["proposal"]["four_cs"].reverse()
+    r = view_run(tmp_path, data)
+    assert r.returncode == 1 and "proposal.four_cs[0].c" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("path,value,expected", [
+    (["pain", "key_message", "en"], words(31) + ".", "pain.key_message.en"),
+    (["pain", "key_message", "es"], "Una frase. Y otra frase.", "pain.key_message.es"),
+    (["key_statement", "en"], "One. Two. Three.", "key_statement.en"),
+    (["pain", "paragraphs", 0, "en"], "Too short to be a paragraph.", "pain.paragraphs[0].en"),
+    (["context", "evidence", 0, "statement", "en"], "A statement with $x^2$ in it.", "context.evidence[0].statement.en"),
+    (["context", "evidence", 0, "statement", "en"], "A statement with an inline citation [1] in it.", "context.evidence[0].statement.en"),
+    (["proposal", "actions", 0, "action", "en"], "Buy the product now.", "proposal.actions[0].action.en"),
+    (["proposal", "actions", 0, "action", "es"], "Comprar el producto ahora.", "proposal.actions[0].action.es"),
+    (["proposal", "risks", 0, "en"], "Our client has a price for it.", "proposal.risks[0].en"),
+    (["trends", "items", 0, "effect", "en"], "Contact us for the offer.", "trends.items[0].effect.en"),
+    (["illustrations", "pain", "caption", "en"], "One caption. And a second one.", "illustrations.pain.caption.en"),
+])
+def test_view_the_writing_limits_fail_with_the_field_path(tmp_path, path, value, expected):
+    r = view_run(tmp_path, changed(path, value))
+    assert r.returncode == 1 and EXEC in r.stdout and expected in r.stdout, r.stdout
 
 
 # ---- the SDD section names the file and restates nothing
+
 
 def test_brief_missing_section_fails_and_points_at_the_guide(tmp_path):
     r = view_run(tmp_path, brief=None)
@@ -683,7 +775,7 @@ def test_brief_that_restates_the_view_in_structure_fails(tmp_path, plant):
 
 @pytest.mark.parametrize("lang", ["en", "es"])
 def test_brief_that_copies_a_sentence_of_the_file_fails(tmp_path, lang):
-    r = view_run(tmp_path, brief=BRIEF + "\n" + example_data()["vision"][lang] + "\n")
+    r = view_run(tmp_path, brief=BRIEF + "\n" + example_data()["key_statement"][lang].split(". ")[0] + "\n")
     assert r.returncode == 1 and "restates" in r.stdout, r.stdout
 
 

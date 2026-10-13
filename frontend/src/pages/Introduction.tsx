@@ -15,8 +15,8 @@ export function IntroductionPage({ data }: { data: unknown }) {
     <DocPage
       title={{ en: 'Introduction', es: 'Introducción' }}
       lede={t(
-        `${product.tagline.en} The executive view states the problem and what changes for its owner; the technical view gives the model, the pipeline and the limits of what the example proves.`,
-        `${product.tagline.es} La vista ejecutiva expone el problema y qué cambia para su responsable; la vista técnica da el modelo, el pipeline y los límites de lo que el ejemplo demuestra.`,
+        `${product.tagline.en} The executive view frames the problem space for a decision maker; the technical view gives the model, the pipeline and the limits of what the example proves.`,
+        `${product.tagline.es} La vista ejecutiva enmarca el espacio del problema para quien decide; la vista técnica da el modelo, el pipeline y los límites de lo que el ejemplo demuestra.`,
       )}
     >
       <Tabs

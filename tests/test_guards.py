@@ -140,9 +140,10 @@ def test_residue_marker_flags_the_example_executive_view_and_not_a_product_own()
     import check_template_residue as r
 
     marker = dict(r.MARKERS)["the example executive view"]
-    assert marker.search('"organisation": { "en": "a regional public hospital network in England" }')
-    assert marker.search("https://thenhsalliance.org/resources/nhs-activity-tracker-january-2026/winter")
-    assert not marker.search('"organisation": { "en": "a Chilean commercial bank" }')
+    assert marker.search('"en": "Hospital capacity in respiratory seasons"')
+    assert marker.search('"es": "Capacidad hospitalaria en las temporadas respiratorias"')
+    assert marker.search("https://www.nao.org.uk/wp-content/uploads/2026/09/Managing-the-flow-of-patients-through-hospital-from-AE-Summary.pdf")
+    assert not marker.search('"title": { "en": "Provisioning for commercial loans in Chile" }')
 
 
 def test_residue_guard_scans_the_helper_scripts_and_skips_its_own_tests(tmp_path):
