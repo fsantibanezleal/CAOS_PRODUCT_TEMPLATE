@@ -9,13 +9,20 @@ only appears in a string, a comment, another test's body or a skipped test.
 
 Checks, in increasing strength:
 
-0. **The executive view** (CAOS_MANAGE ``conventions/problem-context-first.md``, 0.06.000): the product commits
-   ``content/executive.json``, valid against the shell's ``executive.schema.json`` (read from
-   ``frontend/node_modules/@fasl-work/caos-app-shell/src/content/``; without ``npm ci`` the check fails and says so,
-   never passes), each finding naming the field path; every figure has one source by field path; the three
-   illustration files exist under ``frontend/public/`` as SVG documents with a viewBox. The SDD's ``Executive brief``
-   section sits right after ``Problem and non-goals``, once, and names the file in a ``Data file: content/executive.json``
-   line; it restates nothing of the view (no part heading, list, table, sentence of the file, or more than 120 words).
+0. **The executive view** (CAOS_MANAGE ``conventions/problem-context-first.md``, decided 2026-10-13; template 0.07.000): the
+   product commits ``content/executive.json``, valid against the shell's ``executive.schema.json`` version 2.0.0 (read from
+   ``frontend/node_modules/@fasl-work/caos-app-shell/src/content/``; without ``npm ci``, or with an older schema, the check
+   fails and says so, never passes), each finding naming the field path. The file frames a problem space for a decision
+   maker: a title, a key statement, headline figures, the five sub-tabs (pain, context, situation, trends, proposal) at their
+   floors and the three illustrations (pain, situation, proposal). On top of the schema the check holds what a schema
+   cannot say, the same rules as the shell's ``validateExecutive``: the 4 C's in order, the weights of the causes at most
+   100, every action owner a role of the situation, the writing limits in both languages (30 words a sentence, one
+   sentence for key messages, captions, actions and checks, two for the key statement, 25 words a paragraph, no equation,
+   no inline citation, no promotional or client-bound wording), and the sources: unique ids, every citation names one,
+   every source is cited, each an https link whose title and note cite no file. The three illustration files exist under
+   ``frontend/public/`` as SVG documents with a viewBox. The SDD's ``Executive brief`` section sits right after
+   ``Problem and non-goals``, once, and names the file in a ``Data file: content/executive.json`` line; it restates nothing of
+   the view (no part heading, list, table, sentence of the file, or more than 120 words).
    Guide: ``docs/guides/06_executive-brief.md``. Needs the ``jsonschema`` package (``requirements-dev.txt``).
 1. ``docs/design/SDD.md`` has the twelve sections the convention requires, each a level-2 heading ``## <name>`` (an
    optional ``N.`` prefix) outside code fences and HTML comments, once, in order, each with a non-blank line under it;
@@ -73,6 +80,17 @@ BRIEF = "Executive brief"
 GUIDE = "see docs/guides/06_executive-brief.md"
 EXEC_FILE = "content/executive.json"
 EXEC_SCHEMA = "frontend/node_modules/@fasl-work/caos-app-shell/src/content/executive.schema.json"
+EXEC_SCHEMA_VERSION = "2.0.0"  # the contract: the shell 0.13.0 schema; an older installed schema is refused
+# The 4 C's of the proposal, in order (Felipe, 2026-10-13): the shell's FOUR_CS names, English and Spanish.
+FOUR_CS = (("Choice", "Elección"), ("Context", "Contexto"), ("Cost", "Costo"), ("Control", "Control"))
+MAX_WORDS = 30
+MIN_PARAGRAPH_WORDS = 25
+EQUATION = re.compile(r"\$|\\\(|\\\[|\\[a-zA-Z]+")
+INLINE_CITATIONS = (re.compile(r"\(\s*Source", re.I), re.compile(r"\[\d+\]"), re.compile(r"\(\s*ECB"), re.compile(r"\(\w[^()]*\d{4}\)"))
+FILE_CITATIONS = (re.compile(r"\bfile\s*\d", re.I), re.compile(r"\barchivo\s*\d", re.I), re.compile(r"\.pdf\b", re.I), re.compile(r"\bPublished on\b", re.I))
+PROMOTIONAL = tuple(re.compile(p, re.I) for p in (
+    r"\bour\s+clients?\b", r"\bnuestros?\s+clientes?\b", r"\bcontact\s+us\b", r"\bcontáctenos\b", r"\bbuy\b", r"\bcomprar\b",
+    r"\bprices?\b", r"\bprecios?\b", r"\boffers?\b", r"\bofertas?\b"))
 DATA_LINE = re.compile(rf"^\s*Data file: `?{re.escape(EXEC_FILE)}`?\s*$")
 BRIEF_MAX_WORDS = 120  # the section names the file and says why; the view itself is the file
 FENCE = re.compile(r"^\s*(```+|~~~+)")
@@ -316,6 +334,9 @@ def schema_findings(data: dict) -> list[str]:
         validator = jsonschema.Draft202012Validator(schema)
     except (ValueError, OSError, jsonschema.SchemaError) as e:
         return [f"{EXEC_SCHEMA} cannot be read as a JSON Schema: {e}"]
+    if f"version {EXEC_SCHEMA_VERSION}" not in str(schema.get("title", "")):
+        return [f"{EXEC_SCHEMA} is not version {EXEC_SCHEMA_VERSION} (its title says {schema.get('title')!r}): the executive view is written to "
+                f"schema {EXEC_SCHEMA_VERSION} of shell 0.13.0; run 'npm ci' in frontend/ with the pinned shell"]
     out: list[str] = []
     for err in sorted(validator.iter_errors(data), key=lambda e: [str(p) for p in e.absolute_path]):
         where = field_path(err.absolute_path)
@@ -333,26 +354,185 @@ def schema_findings(data: dict) -> list[str]:
     return out
 
 
-def figure_fields(data: dict) -> list[str]:
-    """The fields that carry a figure, so need a source: ``why_now.figure`` and each outcome's ``proof``."""
-    return ["why_now.figure", *(f"outcomes[{i}].proof" for i in range(len(data.get("outcomes", []))))]
+def sentences_of(text: str) -> list[str]:
+    """A sentence ends at ``.``, ``?`` or ``!`` followed by a space or the end; a decimal point is not an end."""
+    return [s.strip() for s in re.split(r"(?<=[.?!])\s+", text) if s.strip()]
 
 
-def sources_findings(data: dict) -> list[str]:
-    """Every figure has one source by field path, and a source names a field that is a figure (the shell's rule)."""
-    wanted = figure_fields(data)
+def words_in(text: str) -> int:
+    return sum(1 for w in text.split() if re.search(r"[^\W_]", w))
+
+
+def writing_problems(text: str, max_sentences: int | None = None, min_words: int | None = None) -> list[str]:
+    """What breaks the writing limits of the view in one text, as the shell's ``writingProblems`` says it."""
     out: list[str] = []
-    seen: set[str] = set()
-    for i, s in enumerate(data.get("sources", [])):
-        field = s.get("field") if isinstance(s, dict) else None
-        if field not in wanted:
-            out.append(f"{EXEC_FILE}: sources[{i}].field {field!r} is not a figure of this view (the figures are {', '.join(wanted)})")
-        elif field in seen:
-            out.append(f"{EXEC_FILE}: sources[{i}].field {field!r} already has a source")
-        seen.add(field)
-    missing = [f for f in wanted if f not in seen]
-    if missing:
-        out.append(f"{EXEC_FILE}: sources has no source for {', '.join(missing)}: every figure is shown with its source")
+    sentences = sentences_of(text)
+    for s in sentences:
+        n = words_in(s)
+        if n > MAX_WORDS:
+            out.append(f"a sentence of {n} words; the limit is {MAX_WORDS}")
+    if max_sentences is not None and len(sentences) > max_sentences:
+        out.append(f"must be one sentence, has {len(sentences)}" if max_sentences == 1 else f"has {len(sentences)} sentences; the limit is {max_sentences}")
+    if min_words is not None and words_in(text) < min_words:
+        out.append(f"has {words_in(text)} words; a paragraph needs at least {min_words} (no one-line sections)")
+    if EQUATION.search(text):
+        out.append("holds an equation or a TeX marker; the executive view holds none")
+    if any(rx.search(text) for rx in INLINE_CITATIONS):
+        out.append('holds an inline citation; give the source in "sources"')
+    for rx in PROMOTIONAL:
+        m = rx.search(text)
+        if m:
+            out.append(f'holds promotional or client-bound wording ("{m.group(0)}"); the executive view is general, never a client, never a pitch')
+    return out
+
+
+def source_text_problems(text: str, max_sentences: int | None = None) -> list[str]:
+    """A source's title or note: the sentence limit, and no file name or number in place of the link."""
+    out: list[str] = []
+    sentences = sentences_of(text)
+    for s in sentences:
+        n = words_in(s)
+        if n > MAX_WORDS:
+            out.append(f"a sentence of {n} words; the limit is {MAX_WORDS}")
+    if max_sentences is not None and len(sentences) > max_sentences:
+        out.append(f"must be one sentence, has {len(sentences)}")
+    written = re.search(r"https?://", text, re.I) is not None
+    for rx in FILE_CITATIONS:
+        if rx.pattern.startswith(r"\.pdf") and written:
+            continue
+        m = rx.search(text)
+        if m:
+            out.append(f'cites a file name or number in place of the link ("{m.group(0)}"); give the publication as the title and its https link as the url')
+    return out
+
+
+def text_fields(d: dict) -> list[tuple[str, dict, int | None, int | None]]:
+    """Every text field with its path, the most sentences it may hold and the fewest words (the shell's ``executiveTextFields``)."""
+    out: list[tuple[str, dict, int | None, int | None]] = []
+
+    def add(path, text, sentences=None, min_words=None):
+        out.append((path, text, sentences, min_words))
+
+    def figure(base, f):
+        for k in ("heading", "value", "unit"):
+            add(f"{base}.{k}", f[k])
+
+    add("title", d["title"], 1)
+    add("key_statement", d["key_statement"], 2)
+    for i, f in enumerate(d["headline_figures"]):
+        figure(f"headline_figures[{i}]", f)
+    pain, context, situation, trends, proposal = d["pain"], d["context"], d["situation"], d["trends"], d["proposal"]
+    add("pain.key_message", pain["key_message"], 1)
+    for i, p in enumerate(pain["paragraphs"]):
+        add(f"pain.paragraphs[{i}]", p, None, MIN_PARAGRAPH_WORDS)
+    for i, b in enumerate(pain["bearers"]):
+        for k in ("who", "cost", "measure"):
+            add(f"pain.bearers[{i}].{k}", b[k])
+    for i, f in enumerate(pain["figures"]):
+        figure(f"pain.figures[{i}]", f)
+    for i, c in enumerate(pain["causes"]):
+        add(f"pain.causes[{i}].cause", c["cause"])
+    add("context.key_message", context["key_message"], 1)
+    for i, p in enumerate(context["paragraphs"]):
+        add(f"context.paragraphs[{i}]", p, None, MIN_PARAGRAPH_WORDS)
+    add("context.setting", context["setting"])
+    for i, f in enumerate(context["forces"]):
+        add(f"context.forces[{i}].force", f["force"])
+    for i, e in enumerate(context["evidence"]):
+        add(f"context.evidence[{i}].statement", e["statement"], 1)
+    add("situation.key_message", situation["key_message"], 1)
+    for i, r in enumerate(situation["roles"]):
+        for k in ("role", "decides", "needs"):
+            add(f"situation.roles[{i}].{k}", r[k])
+    add("situation.interaction", situation["interaction"], 1)
+    for i, a in enumerate(situation["state_of_the_art"]):
+        for k in ("approach", "achieves", "falls_short"):
+            add(f"situation.state_of_the_art[{i}].{k}", a[k])
+    figure("situation.status", situation["status"])
+    add("situation.status.date", situation["status"]["date"])
+    add("trends.key_message", trends["key_message"], 1)
+    for i, t in enumerate(trends["items"]):
+        add(f"trends.items[{i}].trend", t["trend"])
+        add(f"trends.items[{i}].signal.statement", t["signal"]["statement"], 1)
+        add(f"trends.items[{i}].effect", t["effect"])
+    add("proposal.key_message", proposal["key_message"], 1)
+    for i, p in enumerate(proposal["paragraphs"]):
+        add(f"proposal.paragraphs[{i}]", p, None, MIN_PARAGRAPH_WORDS)
+    for i, c in enumerate(proposal["four_cs"]):
+        add(f"proposal.four_cs[{i}].c", c["c"])
+        add(f"proposal.four_cs[{i}].applies", c["applies"], 1)
+    for i, a in enumerate(proposal["actions"]):
+        add(f"proposal.actions[{i}].action", a["action"], 1)
+        add(f"proposal.actions[{i}].owner", a["owner"])
+        add(f"proposal.actions[{i}].horizon", a["horizon"])
+        add(f"proposal.actions[{i}].check", a["check"], 1)
+    for i, r in enumerate(proposal["risks"]):
+        add(f"proposal.risks[{i}]", r, 1)
+    for i, u in enumerate(proposal["unknowns"]):
+        add(f"proposal.unknowns[{i}]", u, 1)
+    if "handoff" in proposal:
+        add("proposal.handoff", proposal["handoff"], 1)
+    for name in ("pain", "situation", "proposal"):
+        add(f"illustrations.{name}.caption", d["illustrations"][name]["caption"], 1)
+    return out
+
+
+def citations(d: dict) -> list[tuple[str, str]]:
+    """Every citation of a source as (field path, source id), in the order the view shows them."""
+    out = [(f"headline_figures[{i}].source", f["source"]) for i, f in enumerate(d["headline_figures"])]
+    out += [(f"pain.figures[{i}].source", f["source"]) for i, f in enumerate(d["pain"]["figures"])]
+    out += [(f"context.evidence[{i}].source", e["source"]) for i, e in enumerate(d["context"]["evidence"])]
+    out += [(f"situation.state_of_the_art[{i}].source", a["source"]) for i, a in enumerate(d["situation"]["state_of_the_art"])]
+    out.append(("situation.status.source", d["situation"]["status"]["source"]))
+    out += [(f"trends.items[{i}].signal.source", t["signal"]["source"]) for i, t in enumerate(d["trends"]["items"])]
+    return out
+
+
+def rules_findings(d: dict) -> list[str]:
+    """What the schema cannot say, on a structurally sound file: the 4 C's, the weights, the owners, the writing and the sources."""
+    out: list[str] = []
+
+    def add(path: str, message: str) -> None:
+        out.append(f"{EXEC_FILE}: {path}: {message}")
+
+    for i, row in enumerate(d["proposal"]["four_cs"]):
+        en, es = FOUR_CS[i]
+        if row["c"]["en"] != en or row["c"]["es"] != es:
+            found = f'"{row["c"]["en"]}" and "{row["c"]["es"]}"'
+            add(f"proposal.four_cs[{i}].c", f'must be "{en}" in English and "{es}" in Spanish (the 4 C\'s in order); found {found}')
+    total = sum(c["weight"] for c in d["pain"]["causes"])
+    if total > 100:
+        add("pain.causes", f"the weights add to {total} percent; non-overlapping causes add to at most 100")
+    roles = {(r["role"]["en"], r["role"]["es"]) for r in d["situation"]["roles"]}
+    for i, a in enumerate(d["proposal"]["actions"]):
+        if (a["owner"]["en"], a["owner"]["es"]) not in roles:
+            names = ", ".join(f'"{r[0]}"' for r in sorted(roles))
+            add(f"proposal.actions[{i}].owner", f"must be one of the roles of the current situation ({names}), written the same in both languages")
+    for path, text, sentences, min_words in text_fields(d):
+        for lang in ("en", "es"):
+            for m in writing_problems(text[lang], sentences, min_words):
+                add(f"{path}.{lang}", m)
+    ids: dict[str, int] = {}
+    for i, s in enumerate(d["sources"]):
+        if s["id"] in ids:
+            add(f"sources[{i}].id", f'"{s["id"]}" is already the id of sources[{ids[s["id"]]}]')
+        else:
+            ids[s["id"]] = i
+        for lang in ("en", "es"):
+            for m in source_text_problems(s["title"][lang]):
+                add(f"sources[{i}].title.{lang}", m)
+            if "note" in s:
+                for m in source_text_problems(s["note"][lang], 1):
+                    add(f"sources[{i}].note.{lang}", m)
+    cited: set[str] = set()
+    for path, sid in citations(d):
+        if sid not in ids:
+            add(path, f'"{sid}" is not the id of any source (the ids are {", ".join(ids)})')
+        else:
+            cited.add(sid)
+    for i, s in enumerate(d["sources"]):
+        if s["id"] not in cited:
+            add(f"sources[{i}].id", f'"{s["id"]}" is cited by no figure or claim; every source backs a figure or a claim')
     return out
 
 
@@ -391,7 +571,7 @@ def executive_findings() -> list[str]:
     out = schema_findings(data)
     if out:  # the later rules read the structure: run them only on a structurally sound file, so a typo never throws
         return out
-    out += sources_findings(data)
+    out += rules_findings(data)
     out += illustration_findings(data)
     return out
 
@@ -409,11 +589,10 @@ def restated(data: dict | None, body: str) -> list[str]:
         out.append("a table")
     if data is not None:
         flat = " ".join(re.sub(r"[\s`*_]+", " ", body).lower().split())
-        for text in _texts(data):
-            sentence = " ".join(text.lower().split()).rstrip(".?!")
-            if len(sentence.split()) >= 4 and sentence in flat:
-                out.append(f"a sentence of {EXEC_FILE} ({sentence[:40]!r}...)")
-                break
+        copied = next((s for text in _texts(data) for part in sentences_of(text)
+                       if len((s := " ".join(part.lower().split()).rstrip(".?!")).split()) >= 4 and s in flat), None)
+        if copied:
+            out.append(f"a sentence of {EXEC_FILE} ({copied[:40]!r}...)")
     prose = [ln for ln in lines if not DATA_LINE.match(ln)]
     n = len(" ".join(prose).split())
     if n > BRIEF_MAX_WORDS:

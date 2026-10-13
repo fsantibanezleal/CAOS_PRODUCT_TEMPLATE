@@ -13,12 +13,13 @@ Research, then the executive brief, then sizing, contracts and the units.
    URL), at least three distinct sources (one work cited as a DOI and as its URL counts once; example and localhost
    hosts count for none), and a line starting `UNVERIFIED:` for what stayed unverified (it may say none). Section
    `Research basis` of [`SDD.md`](SDD.md). Checked by `scripts/check_sdd.py`.
-2. **Executive view.** The problem in its real context, in business language, before any development: one data file,
-   `content/executive.json`, valid against the shell's `executive.schema.json` (the executive, the organisation, the
-   initiative, the why-now figure, the vision, the outcomes with their proof, the dialogue, three illustrations, a source
-   for every figure). Section `Executive brief` of [`SDD.md`](SDD.md), right after `Problem and non-goals`, names the file
-   in a `Data file: content/executive.json` line and restates nothing. Checked by `scripts/check_sdd.py` (the file, its
-   schema, its sources, its illustrations, the section). How to write it:
+2. **Executive view.** The problem space in its real context, framed for a decision maker in executive language, before any
+   development, general (never a client, never a pitch): one data file, `content/executive.json`, valid against the
+   shell's `executive.schema.json` 2.0.0 (a title, a key statement and headline figures; five sub-tabs: the pain, the
+   context, the current situation, the trends and the proposal with the 4 C's; three illustrations; a linked source for
+   every figure and claim). Section `Executive brief` of [`SDD.md`](SDD.md), right after `Problem and non-goals`, names the
+   file in a `Data file: content/executive.json` line and restates nothing. Checked by `scripts/check_sdd.py` (the file,
+   its schema, its rules, its sources, its illustrations, the section). How to write it:
    [`../guides/06_executive-brief.md`](../guides/06_executive-brief.md).
 3. **Sizing, summarised.** The product dimensioned before it is built: its components, its boundaries, the
    technology and version matrix and the resources of each stage. The sizing's coordination records (the parallel
@@ -95,8 +96,10 @@ Listed so nobody takes a pass for more than it is; none is fixed in 0.05.000 (fo
 - `check_tech_matrix.py`: it has no `--base`; in `frontend/package-lock.json` it does not check that `resolved` names
   the locked version, and a git pin on a branch name passes as a pin (a SHA or a tag is better).
 - `check_sdd.py`, the executive view: the shell's schema is read from `frontend/node_modules`, so the check needs
-  `npm ci` first (it fails, and says so, without it) and the `jsonschema` package; the writing limits (30 words, one
-  sentence) and the 4 C's rule live in the shell's `validateExecutive`, run by `frontend/src/content/executive.test.ts`,
-  and what an illustration draws is the shell's gate and a reviewer's judgement.
+  `npm ci` first (it fails, and says so, without it, and with a schema that is not 2.0.0) and the `jsonschema` package. The
+  rules a schema cannot say (the writing limits, the 4 C's, the owners, the weights, the sources by id, the wording) are
+  held twice, in this script and in the shell's `validateExecutive` that `frontend/src/content/executive.test.ts` runs;
+  the acronym rule, whether a figure says what its source says, and what an illustration draws are the shell's gate and a
+  reviewer's judgement.
 - `check_ci_budget.py`: a regular-expression detector cannot see every way to start pytest (for example
   `python -c "import pytest; pytest.main(...)"`).
