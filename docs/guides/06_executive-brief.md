@@ -1,148 +1,147 @@
-# Guide: write the executive brief
+# Guide: write the executive view
 
-The executive brief is the first thing a CAOS product writes, before its sizing, its contracts and any code. It is
-the problem in its real context, in business language, in the design document
-([`docs/design/SDD.md`](../design/SDD.md), section `Executive brief`). `scripts/check_sdd.py` fails an SDD without it.
-This guide is enough to write one with no other context; the binding text is the convention
-`conventions/problem-context-first.md` of CAOS_MANAGE, quoted and followed here.
+The executive view is the first thing a CAOS product writes, before its sizing, its contracts and any code. It is
+the problem in its real context, in business language, kept in one data file, `content/executive.json`, that the
+shell renders as the first view of the Introduction. This guide is enough to fill it with no other context. The
+binding text is CAOS_MANAGE `conventions/problem-context-first.md` (Felipe, 2026-10-12); the shell's own guide is
+its page `06_executive-view` (CAOS_APP_SHELL, folder `docs`). If they differ from this page, they win.
+
+A product writes content. It never designs this view: the shell's `ExecutiveView` takes no children, no section can be
+added, removed or reordered, and the shell's gate cannot be waived for it.
 
 ## 1. Why it is the core
 
-Felipe, 2026-10-12: "it is the point of my apps. Anyone can write code and release an app, but tailored on a real
-problem context is the expected core."
+Felipe, 2026-10-12: "force that, it is the point of my apps, anyone can write code and release an app, but tailored
+on a real problem context is the expected core." And: "the 4 initial are the expected content on the intro sections.
+The intro must have 2 visions, the executive and the technical." And: "i need clear rules so any product produces a
+consistent output."
 
-A CAOS app is not judged by its code, its stack or its feature list. It is judged by whether the person who owns a
-real problem, in a real industry, would give it thirty more minutes. Code can be regenerated; the tailoring to a
-named problem, its owner, its numbers and its limits cannot. The brief is shown first on the product's Introduction
-page (see [guide 07](07_documentation-pages.md)) and reviewed against the golden rule below.
+A CAOS app is judged by whether the person who owns a real problem, in a real industry, would give it thirty more
+minutes. Code can be regenerated; the tailoring to a named problem, its owner, its numbers and its limits cannot.
 
-What it rules out: starting from a method, a dataset or a stack and looking for a problem afterwards; an
-Introduction that begins with the physics, the mathematics or the architecture; value stated without a number, or a
-number without its unit and source; a product whose owner, industry and operation cannot be named; a feature list
-presented as the reason the product exists.
+The golden rule: "If you were the CxO sitting in that room, would you give this rep 30 more minutes of your time or
+delegate them down to someone on your team?"
 
-## 2. The golden rule
+## 2. The four sections (Felipe's rubric, verbatim)
 
-If you were the executive who owns this problem, would you give this product thirty more minutes of your time, or
-delegate it down to someone on your team? Write for the executive. A part that reads like its miss (below) is not
-done, whatever the guard says: the guard checks structure, a reviewer checks the rule.
+The four sections are the first four goals of the executive-pitch rubric, in this order, with these titles. Each must
+read as the HIT, never as the MISS. The shell writes the titles and the questions; the product writes the data.
+
+| # | Section title | Question | HIT | MISS |
+|---|---|---|---|---|
+| 1 | Industry & Exec Tailoring | Built for a C-suite exec? | Named exec owned initiative, quantified why they need to act now. | Generic; no exec story or data. |
+| 2 | AI Transformation Story | Outcomes, not a feature tour | Vision first; each product ties to non-technical business outcome, presents quantified proof points | Product tour; no vision or outcomes. |
+| 3 | 4Cs Positioning | Value story, not features dump | Ties the 4 C's back to the exec's problems. | Lists the C's without tying to the exec. |
+| 4 | Delivery & Credibility | Trust them in front of a CxO? | Composed, two-way dialogue with business relevant questions. | Rushed, monologues at the exec, asks few questions. |
+
+The names and the order of the 4 C's are Felipe's to give. Until he does, `four_cs` is absent from the file (the shell
+refuses it) and section 3 shows the shell's declared pending state.
 
 ## 3. The research it needs first
 
-Never write the brief from memory. Before it, research the problem context and persist it as dated dossiers (the
-same place as the product's method research, cited in `Research basis`). It answers four questions:
+Never write the view from memory. Research the problem context and persist it as dated dossiers (the same place as the
+method research, cited in `Research basis`). It answers four questions:
 
-1. **Who owns the problem?** A role and an industry or sector, and the operation it sits in.
-2. **What does it cost today?** The quantified cost of the problem or of acting late or too much, each number with
-   its source (a DOI, a URL, a committed file). A number with no source is marked UNVERIFIED in the dossier and is
-   not shown in the brief as a claim.
+1. **Who owns the problem?** One C-suite role in one organisation, and the operation it sits in.
+2. **What does it cost today, and by when?** One quantified figure with its unit and its source (a DOI, a URL, a
+   committed file), and the deadline the executive works to.
 3. **What was tried?** The current practice and its gap.
-4. **What would a decision maker ask?** The business questions, each with the plain answer, the evidence and the limit.
+4. **What would that executive ask?** The business questions, each with the plain answer, the evidence and the limit.
 
-Every number in the brief traces to a dossier. A real product replaces every assumption by a sourced number from
-its dossiers before its first release. The guard enforces it: in this template (the repository without a
-`.template-version` file) a labelled assumption is accepted so the example can teach the format; in a product made
-from it (`.template-version` present) an assumption is a finding, so no product ships on one.
+A figure with no primary source you read is not written. Every figure of the file has its entry in `sources`.
 
-## 4. The four parts, each with its hit and its miss
+## 4. The data file
 
-| Part | The hit | The miss |
+`content/executive.json`, English and Spanish together, valid against the shell's `executive.schema.json` (installed by
+`npm ci` at `frontend/node_modules/@fasl-work/caos-app-shell/src/content/executive.schema.json`). These fields, and
+nothing else; every text is `{ "en": ..., "es": ... }`.
+
+| Section | Field | Rule |
 |---|---|---|
-| Initiative (industry and executive tailoring) | The initiative an executive owns, named by role and industry, and the quantified reason to act now, with the source of each number | Generic; no executive story or data |
-| Outcomes (the transformation story) | The vision first; then each capability of the product tied to a non-technical business outcome, with a quantified proof point | A product tour; no vision or outcomes |
-| Positioning (the value story) | Each value point tied back to that executive's problem (four named value points until the four C's are defined) | A list of value points not tied to the executive |
-| Credibility (delivery) | The business questions that executive would ask, each answered plainly, with the evidence and the honest limits | A monologue; few questions |
+| 1 | `executive` | One C-suite role (for example Chief Risk Officer). One, never a list. |
+| 1 | `organisation` | One industry and one context (for example "a Chilean commercial bank"). One, never several regions. |
+| 1 | `initiative` | One sentence: what that executive owns and must achieve. |
+| 1 | `why_now` | `figure` (`value`, `unit`) and `deadline`: one figure and one date or deadline. |
+| 2 | `vision` | One sentence: what changes for the executive's business. Comes first. |
+| 2 | `outcomes` | 3 to 5 rows, each `capability` (what the product does, plain words), `outcome` (the business result, non-technical), `proof` (`value`, `unit` and a one-line `statement`). |
+| 3 | `four_cs` | Exactly 4 rows, one per C, in Felipe's order: `c` and `exec_problem` (one sentence tying it to this executive's problem). Absent until the names are given. |
+| 4 | `dialogue` | 3 to 5 pairs: `question` (a business question that executive asks) and `answer` (at most 2 sentences). |
+| 1, 2 | `illustrations` | Exactly `initiative`, `problem`, `solution`, each with its SVG `file` (a path under `frontend/public/`, or one per language) and its `caption` (one sentence). |
+| all | `sources` | `{ field, source }` rows: the source of every figure, by field path (`why_now.figure`, `outcomes[0].proof`, ...). Shown as numbered notes, never inline. |
 
-A short worked example, from this template's own SDD (an SIR epidemic model, a teaching example; its brief says so):
+Writing limits, checked by `validateExecutive` (run it in a unit test, as `frontend/src/content/executive.test.ts`
+does) and by the gate on the rendered page, in both languages alike:
 
-- Initiative: "The owner is the head of the epidemiology unit of a regional health authority (public health)", then
-  "In the epidemic case (reproduction number 2.75, 100000 people), infections peak at 27345 people on day 24.25 ...
-  (source: data/derived/EX02_epidemic/trace.json)". A role, a sector and a number with its source.
-- Outcomes: the capability "Live re-run in the browser", the outcome "A what-if ... is answered while the room waits",
-  the proof point "median 0.006 to 0.010 ms per run against a budget of 1500 ms (source: docs/design/measured-resources.md)".
-- Positioning: "**An answer in the meeting**: the what-if does not wait for an analyst, so the decision is made with
-  the numbers in the room." The value point and the owner's problem it answers.
-- Credibility: "Q: Is this a forecast for our region?" then "A: No. It is a teaching model ... and no real data".
-  The honest answer is the one that earns the next thirty minutes.
+- every sentence at most 30 words; `answer` at most 2 sentences; `initiative`, `vision`, `proof.statement`,
+  `exec_problem` and `caption` one sentence each;
+- no equation, no formula, no code (a `$`, `\(`, `\[` or a TeX command fails);
+- no inline citation (`(Source`, `[1]`, a parenthesised author and year): the source goes in `sources`;
+- no acronym the executive would not use without its words in full the first time (a reviewer's duty).
 
-## 5. The exact format the guard checks
+The template ships a filled example (a hospital network's chief operating officer planning beds for the winter
+respiratory season; every figure sourced or read from the example's own committed results). Replace every field.
 
-A level-2 section `## Executive brief` placed right after `## Problem and non-goals`, with four level-3 parts in this
-order. Headings may carry a number (`## 1. Problem and non-goals`,
-`## 2. Executive brief`). The guard reads the section as a reader sees it: text inside a fenced block (``` or ~~~, each
-closed only by its own marker) or an HTML comment does not count, neither its headings nor the content of a part, so
-a part whose whole body is a code block is empty. CRLF and trailing spaces are fine.
+## 5. The three illustrations
+
+Felipe, 2026-10-12: "i need high quality diagrams, not graphs, illustrations of the initiative, the problem, the
+proposed solutions." Three, authored for the product, as SVG files under `frontend/public/` (the example's are
+`frontend/public/executive/`):
+
+| Illustration | Placed in | What it shows |
+|---|---|---|
+| `initiative` | Section 1 | The executive in the organisation's real setting, the initiative they own and its deadline. |
+| `problem` | Section 1, after the why-now | What goes wrong today in that setting, and what it costs: the actors, the systems and the failure, drawn as a scene. |
+| `solution` | Section 2, after the vision | The same setting with the product in place: what it does, who uses it, and where each business outcome appears. |
+
+Each meets this standard:
+
+- An illustration, not a graph: a drawn scene of people, places, systems and their flow; no axes, no plotted data, no
+  chart, no screenshot, no stock image, no boxes joined by arrows.
+- Hand-authored SVG with a `viewBox`, inserted inline by the shell (never through an `img` tag, which cannot read the
+  theme). Coloured only with the shell's theme tokens (`var(--color-...)`), `none` or `currentColor`, correct in light
+  and dark. Give `text` no font family of its own.
+- Labels in plain business words, in English and Spanish, inside the drawing: one file may carry both sets, each
+  `text` marked `data-lang="en"` or `data-lang="es"`. Readable at the rendered size: at least 9 px once scaled to the
+  column, so at a 640 wide viewBox use a font size of 18 or more and keep each label short.
+- No equation, no acronym, no `data-chart`.
+- One caption sentence under each, saying what the reader should take from it.
+- The problem and the solution share the same setting and layout, so the change is visible between them (the example
+  keeps the office, the hospital, the annex, the plaza and the wave in the same places in all three).
+
+The shell's gate measures what a machine can: the three exist, are inline, use only tokens, declare no chart, and
+every label sits inside its drawing at a readable size in both languages. Whether a drawing reads as a scene and not
+as a chart in disguise is a reviewer's judgement.
+
+## 6. The SDD names the file
+
+The design document's `Executive brief` section (right after `Problem and non-goals`) says what the file is and where
+it is, and nothing more: a short paragraph and the line
 
 ```
-### Initiative
-
-<who owns it (role and sector), the initiative, in prose>
-
-- <claim with a number and its unit> (source: <DOI, URL or a path that exists in the repository>)
-- <claim with a number and its unit> (assumption: <why this value is used, at least five words>)
-
-### Outcomes
-
-<the vision, in prose>
-
-| capability | business outcome | proof point |
-|---|---|---|
-| <capability> | <non-technical outcome> | <number and unit> (source: <...>) |
-
-### Positioning
-
-- **<value point>**: <the problem of that owner it answers>
-
-### Credibility
-
-- Q: <a business question that owner would ask>
-  A: <the plain answer, with the evidence and the limit>
-
-Limits: <what the product is not and what is not yet proven>
+Data file: content/executive.json
 ```
 
-The guard fails when:
+It restates nothing: no part headings, no list, no table, no sentence copied from the file, at most 120 words. The
+old four parts (Initiative, Outcomes, Positioning, Credibility) are not the standard.
 
-- the section is missing, is not right after `Problem and non-goals`, or a part is missing, out of order or empty;
-- Initiative has no line with a number and a source or an assumption;
-- Outcomes has fewer than three rows, or a proof point without a number, or without a source or an assumption;
-- Positioning does not have exactly four bullets of the form above;
-- Credibility has fewer than three questions each followed by an answer, or no `Limits:` line;
-- a text is a placeholder or a stub: made of TBD, TODO, lorem ipsum or the like, or with too few distinct words (an
-  introduction of 8, a claim of 3, a business outcome of 3, a value point's problem of 6, a question and an answer of 3
-  each, `Limits:` of 5);
-- Positioning repeats a value point, Outcomes repeats a capability, or Credibility's three questions are not different;
-- the section holds an equation (`$`, `\(` or a fenced `math` block): the brief is business language. Write "USD", not
-  a dollar sign.
+## 7. What `scripts/check_sdd.py` fails
 
-A number is digits standing alone, with an optional unit: "many", "significant" and "several" are not numbers, the
-0 of R0 is part of a name, and neither a date, a year (`since 2026`, `in 2026`, a lone `2026`) nor an index (`Step 1`,
-`item 2`, `3.`) is the number of a claim. A source is a DOI (`10.xxxx/...`) or an `http` URL of a real work (not
-example, localhost or a made-up DOI such as `10.0000/fake`), or a file that exists in the repository, never a
-directory or the root (several sources are separated by `;`). An assumption (template only) needs a reason of at
-least five words, in plain words, so a reader sees it is an assumption.
+- `content/executive.json` is missing, is not JSON or breaks the schema (each finding names the field path, such as
+  `outcomes[1].proof.unit`);
+- the shell's schema is not installed (run `npm ci` in `frontend/`; the check fails rather than pass unvalidated);
+- a figure has no source, or a source names a field that is not a figure;
+- an illustration file is missing, leaves `frontend/public/`, or is not an SVG with a viewBox;
+- the SDD has no `Executive brief` section in its place, lacks the `Data file:` line or restates the view.
 
-## 6. Common failures
+## 8. Checklist
 
-- **A product tour.** Outcomes lists screens and features ("a dashboard, a map, an export"). Each row is a capability
-  tied to what the owner can now do or avoid, with a number.
-- **Value without a number.** "Faster decisions" is the miss; "a what-if in 0.01 ms against a 1500 ms budget" is the hit.
-- **A generic owner.** "Organizations that need insight" names nobody. Name the role and the sector, and what that
-  person is accountable for.
-- **Positioning that lists the product's strengths.** Each value point answers a problem the owner has; say which.
-- **Credibility as a monologue.** Write the questions the owner would actually ask (cost, risk, evidence, who stands
-  behind a wrong number) and answer each, including "no" and "not yet".
-- **A number from memory.** If it is not in a dossier, it is an assumption, written as one.
+- [ ] The dossiers answer the four questions of section 3 and are cited in `Research basis`.
+- [ ] One executive, one organisation, one initiative sentence they would recognise.
+- [ ] One why-now figure with its unit, its deadline and its primary source.
+- [ ] The vision comes first; 3 to 5 outcomes, each a plain capability, a business result and a sourced proof.
+- [ ] 3 to 5 dialogue pairs, honest ("no" and "not yet" included), answers of at most 2 sentences.
+- [ ] Three illustrations that are scenes, in tokens, with both languages, the problem and solution sharing a layout.
+- [ ] `python scripts/check_sdd.py .` and `npm test` pass, `npm run gate` reports 0 failures, and a reviewer has read the
+  rendered view against the HIT and MISS of each section and the golden rule.
 
-## 7. Checklist
-
-- [ ] The research dossiers answer the four questions of section 3 and are cited in `Research basis`.
-- [ ] The owner is a role in a sector, and the initiative is one sentence the owner would recognise.
-- [ ] Every claim of value has a number, a unit and a source, or is an assumption labelled in plain words.
-- [ ] Outcomes starts with the vision and has at least three capability rows, each tied to a business outcome.
-- [ ] Positioning has four value points, each naming the problem it answers.
-- [ ] Credibility has at least three business questions with plain answers, and a `Limits:` line that is honest.
-- [ ] No equation, no jargon the owner would not use.
-- [ ] `python scripts/check_sdd.py .` passes, and a reviewer has read it against the golden rule of section 2.
-
-Next: [guide 07, the five documentation pages](07_documentation-pages.md) carries the brief to the page.
+Next: [guide 07, the five documentation pages](07_documentation-pages.md) carries the technical view of the page.
