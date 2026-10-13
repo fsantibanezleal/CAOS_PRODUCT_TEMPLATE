@@ -25,6 +25,8 @@ needs_web = pytest.mark.skipif(NODE is None or not (NODE_MODULES / "@fasl-work")
 def link_node_modules(frontend: Path) -> None:
     """Make the copy's frontend/node_modules the real one (a junction on Windows, a symlink elsewhere)."""
     target = frontend / "node_modules"
+    if target.is_dir() and not target.is_symlink():
+        shutil.rmtree(target)  # the copy holds only the executive schema the SDD guard reads (conftest add_schema)
     if os.name == "nt":
         subprocess.run(["cmd", "/c", "mklink", "/J", str(target), str(NODE_MODULES)], check=True, capture_output=True)
     else:
