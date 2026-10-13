@@ -6,9 +6,10 @@ Benchmark. This guide says what each must contain. It is transcribed from ADR-00
 text; if the two differ, the ADR wins and this guide is wrong.
 
 Status: the checks below run in the shell's gate (`caos-shell-gate`, check `ADR-0017.2`) from shell 0.11.0, which ships
-the page components. The template's example carries all of these areas, as ADR-0017 section 2.1 states; the pages
-that carry them land in the release that pins that shell, and the gate measures them from then. A product written now
-is written to them so it needs no rework. The executive view of the Introduction is already the shell's standard (shell 0.12.0, [guide 06](06_executive-brief.md)): `content/executive.json`, checked by `scripts/check_sdd.py` and by the gate.
+the page components, and the template's example carries every area of the five pages from release 0.06.000 (shell
+0.12.0): Methodology has six topics (four classical, two learned), Implementation nine topics in four groups, Experiments
+six topics, Benchmark its six areas, the Introduction its two views. A product replaces the content and keeps the
+structure, so it needs no rework. The executive view of the Introduction is the shell's standard ([guide 06](06_executive-brief.md)).
 
 ## 1. How a section declares its area
 

@@ -202,6 +202,8 @@
 <text data-lang="es" x="626" y="26" text-anchor="end" font-size="18" font-weight="600" fill="var(--color-fg)">Ola absorbida</text>
 <text data-lang="en" x="626" y="428" text-anchor="end" font-size="18" font-weight="600" fill="var(--color-fg)">Patients seen</text>
 <text data-lang="es" x="626" y="428" text-anchor="end" font-size="18" font-weight="600" fill="var(--color-fg)">Pacientes atendidos</text>
-<text data-lang="en" x="14" y="356" text-anchor="start" font-size="18" font-weight="500" fill="var(--color-fg-subtle)">Operations director</text>
-<text data-lang="es" x="14" y="356" text-anchor="start" font-size="18" font-weight="500" fill="var(--color-fg-subtle)">Director de operaciones</text>
+<text data-lang="en" x="14" y="350" text-anchor="start" font-size="18" font-weight="500" fill="var(--color-fg-subtle)">Chief Operating</text>
+<text data-lang="en" x="14" y="372" text-anchor="start" font-size="18" font-weight="500" fill="var(--color-fg-subtle)">Officer</text>
+<text data-lang="es" x="14" y="350" text-anchor="start" font-size="18" font-weight="500" fill="var(--color-fg-subtle)">Director de</text>
+<text data-lang="es" x="14" y="372" text-anchor="start" font-size="18" font-weight="500" fill="var(--color-fg-subtle)">Operaciones</text>
 </svg>
