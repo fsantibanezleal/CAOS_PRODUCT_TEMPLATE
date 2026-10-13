@@ -1,6 +1,6 @@
-# Measured resources and the numbers of the example brief
+# Measured resources and the numbers of the example executive view
 
-The committed evidence behind the numbers that [`SDD.md`](SDD.md) states in its executive brief, its Lanes, its
+The committed evidence behind the numbers that the example's executive view (`content/executive.json`) and [`SDD.md`](SDD.md) state in its Lanes, its
 Resources and its Deploy driver. Measured on 2026-10-12 on the development workstation (Windows 11, Python 3.13, Node
 24.14.1) on a `git archive` copy of the release branch, so that nothing of the working tree was touched. A product
 measures its own and replaces this record. Sizes are bytes of file content unless a line says "on disk" (allocated
@@ -133,7 +133,7 @@ The deploy payload is the whole of `frontend/dist`: 1,917,973 bytes (1.9 MB) in 
 site files (1.88 MB, 1.07 MB of them KaTeX fonts) and 35,145 bytes of artifacts (35 KB, the same bytes as
 `data/derived`). The 2.2 MB the SDD used to state is the allocation on disk (2274 KB), not the payload that is uploaded.
 
-## The numbers of the brief that come from committed files
+## The numbers of the executive view that come from committed files
 
 - Epidemic case: `data/derived/manifests/EX02_epidemic.json` holds `beta 0.55`, `gamma 0.2`, `N 100000.0`, so the
   reproduction number is 0.55 / 0.2 = 2.75 for 100000 people; `data/derived/EX02_epidemic/trace.json` holds
