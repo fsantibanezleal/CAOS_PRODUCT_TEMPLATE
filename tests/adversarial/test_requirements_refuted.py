@@ -35,8 +35,10 @@ def link_node_modules(frontend: Path) -> None:
 
 def unlink_node_modules(frontend: Path) -> None:
     target = frontend / "node_modules"
-    if target.is_symlink() or os.name == "nt":
-        os.rmdir(target)  # removes the link, never the real tree
+    if os.name == "nt":
+        os.rmdir(target)  # a junction: removes the link, never the real tree
+    elif target.is_symlink():
+        target.unlink()  # a symlink: os.rmdir raises NotADirectoryError on it (Linux CI)
 
 
 # ------------------------------------------------------------------ EX-003, EX-012, EX-013
