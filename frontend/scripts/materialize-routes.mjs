@@ -1,6 +1,6 @@
 // Postbuild (T2): write every standard route as its own page, so a static host answers a deep link with the app
 // instead of a 404 (failure classes 2 and 22). Each route gets <route>/index.html (served for /route/ and, through
-// the host's redirect, /route); 404.html is the app as well, so an unknown path shows the app's own not-found page.
+// the host's redirect, /route); 404.html is the app as well, so an unknown path reaches the router, whose catch-all opens the Introduction.
 // The build fails on a partial set.
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

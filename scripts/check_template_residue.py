@@ -42,7 +42,7 @@ MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("the example immunisation variants", re.compile(r"(?<![\w-])COVERAGE(?![\w-])|herd threshold")),
     ("prose about the example engine", re.compile(r"\bEXAMPLE engine\b|\bteaching engine\b")),
     # the example's executive view (content/executive.json): a product writes its own, never keeps the example's
-    ("the example executive view", re.compile(r"regional public hospital network in England|nhs-activity-tracker-january-2026")),
+    ("the example executive view", re.compile(r"Hospital capacity in respiratory seasons|Capacidad hospitalaria en las temporadas respiratorias|Managing-the-flow-of-patients-through-hospital")),
 )
 FORBIDDEN_FILES = ("STRUCTURE.md", ".vscode/")
 # the helper scripts too: precompute.sh and precompute.ps1 named an example case and were never scanned

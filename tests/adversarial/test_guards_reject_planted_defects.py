@@ -118,11 +118,11 @@ def test_sdd_the_brief_without_its_data_line_and_with_the_old_parts(repo: Path) 
 
 def test_executive_view_the_data_file_removed_or_broken(repo: Path) -> None:
     data = _load(repo)
-    del data["outcomes"][1]["proof"]["unit"]
+    del data["pain"]["bearers"][1]["cost"]
     data["invented_field"] = "x"
     _save(repo, data)
     r = guard(repo, "check_sdd.py")
-    assert r.returncode == 1 and "outcomes[1].proof.unit" in r.stdout and "invented_field" in r.stdout, r.stdout
+    assert r.returncode == 1 and "pain.bearers[1].cost" in r.stdout and "invented_field" in r.stdout, r.stdout
     (repo / EXEC).unlink()
     r = guard(repo, "check_sdd.py")
     assert r.returncode == 1 and EXEC in r.stdout and "missing" in r.stdout, r.stdout
@@ -148,18 +148,32 @@ def test_executive_view_a_missing_or_blank_illustration(repo: Path) -> None:
         copy.write_bytes(keep)
 
 
-def test_executive_view_a_figure_without_its_source(repo: Path) -> None:
+def test_executive_view_a_figure_without_its_source_link(repo: Path) -> None:
     data = _load(repo)
-    data["sources"] = [s for s in data["sources"] if s["field"] != "why_now.figure"]
+    gone = data["headline_figures"][0]["source"]
+    data["sources"] = [s for s in data["sources"] if s["id"] != gone]
     _save(repo, data)
     r = guard(repo, "check_sdd.py")
-    assert r.returncode == 1 and "why_now.figure" in r.stdout and "no source" in r.stdout, r.stdout
+    assert r.returncode == 1 and "headline_figures[0].source" in r.stdout and "not the id of any source" in r.stdout, r.stdout
     data = _load(repo)
-    data["sources"].append({"field": "vision", "source": {"en": "x", "es": "x"}})
-    data["sources"].append({"field": "why_now.figure", "source": {"en": "x", "es": "x"}})
+    data["sources"].append({"id": "orphan", "title": {"en": "A report nobody cites", "es": "Un informe que nadie cita"}, "url": "https://example.org/r"})
     _save(repo, data)
     r = guard(repo, "check_sdd.py")
-    assert r.returncode == 1 and "vision" in r.stdout, r.stdout
+    assert r.returncode == 1 and "orphan" in r.stdout and "cited by no" in r.stdout, r.stdout
+    data = _load(repo)
+    data["sources"][0]["url"] = "http://example.org/insecure"
+    _save(repo, data)
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "sources[0].url" in r.stdout, r.stdout
+
+
+def test_executive_view_a_pitch_a_client_or_an_unowned_action(repo: Path) -> None:
+    data = _load(repo)
+    data["proposal"]["actions"][0]["action"]["en"] = "Buy the product now."
+    data["proposal"]["actions"][1]["owner"] = {"en": "A role nobody has", "es": "Un rol que nadie tiene"}
+    _save(repo, data)
+    r = guard(repo, "check_sdd.py")
+    assert r.returncode == 1 and "proposal.actions[0].action.en" in r.stdout and "proposal.actions[1].owner" in r.stdout, r.stdout
 
 
 # ---------------------------------------------------------------- check_contract_versions
