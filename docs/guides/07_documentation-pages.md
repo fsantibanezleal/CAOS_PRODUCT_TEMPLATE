@@ -33,8 +33,9 @@ Terms the gate counts:
 
 The page opens for a decision maker and then serves the engineer. Its two top-level topics are `executive` (the
 default, first) and `technical`. The executive view is the shell's `ExecutiveView`, fed by `content/executive.json`: the
-four sections of Felipe's executive-pitch rubric with their fixed titles, three illustrations, numbered source notes. It
-has no areas to declare and nothing is placed beside it; the product fills the data file and never designs the view
+landing block (the problem's title, a key statement, headline figures) and five sub-tabs with their fixed titles (the pain,
+the context, the current situation, the trends, the proposal), three illustrations and numbered linked sources. It has no
+areas to declare and nothing is placed beside it; the product fills the data file and never designs the view
 ([guide 06](06_executive-brief.md)). It cannot be waived.
 
 The executive view holds no `Equation` and no symbol glossary (an equation there fails). The technical view holds the
@@ -96,15 +97,14 @@ reviewer reads these against the rubric before a release is called ready.
 
 A page that cannot carry an area for a stated reason declares it on the page: `floorWaivers` on `DocPage`, rendered as
 `data-floor-waiver="<area or floor>: <reason>"`. Legitimate: a product with no learned method (Methodology's
-`learned` topics), no live lane (`live`) or no governing equation (`math`). Not legitimate: the executive view or any of its four areas
-(`initiative`, `outcomes`, `positioning`, `credibility`), which cannot be waived (ADR-0017 section 2.1), or an area skipped
-for lack of time. The gate lists every waiver in its report, fails a waiver
+`learned` topics), no live lane (`live`) or no governing equation (`math`). Not legitimate: the executive view or any of its five sub-tabs, which cannot be waived (ADR-0017 section 2.1), or an area
+skipped for lack of time. The gate lists every waiver in its report, fails a waiver
 without a reason or naming an unknown area, and the waiver is reviewed with the pull request that adds it.
 
 ## 9. The order to build a page in
 
 1. Write the executive brief in the SDD ([guide 06](06_executive-brief.md)) and have it reviewed with the plan.
-2. Build the Introduction from it: the executive view first (transcribe the four parts, both languages), then the
+2. Build the Introduction from it: the executive view first (transcribe the landing block and the five sub-tabs, both languages), then the
    technical view from the research dossiers.
 3. For each other page, take its area table above as the outline: one `DocSection area="..."` per row, content
    transcribed from the dossiers, the code and its tests, never from memory.
