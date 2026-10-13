@@ -7,6 +7,17 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+SCHEMA_REL = "frontend/node_modules/@fasl-work/caos-app-shell/src/content/executive.schema.json"
+
+
+def add_schema(dest: Path) -> Path:
+    """Copy the shell's executive schema, as ``npm ci`` installs it, into a copy: ``check_sdd.py`` validates the
+    executive view against it and fails without it. A missing install fails the test with the reason."""
+    src = ROOT / SCHEMA_REL
+    assert src.is_file(), f"{SCHEMA_REL} is absent: run npm ci in frontend/ (the shell's schema is the contract under test)"
+    (dest / SCHEMA_REL).parent.mkdir(parents=True, exist_ok=True)
+    (dest / SCHEMA_REL).write_bytes(src.read_bytes())
+    return dest
 
 
 def guard(repo: Path, script: str, *args: str, ok_marker: str | None = None) -> subprocess.CompletedProcess:
