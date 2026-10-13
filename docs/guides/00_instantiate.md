@@ -35,14 +35,16 @@ The map is [`docs/design/README.md`](../design/README.md). In this order, each s
    [`docs/design/SDD.md`](../design/SDD.md) replace the example's `Research basis`: what was decided, each claim with
    a DOI or URL (at least three distinct works), and a line starting `UNVERIFIED:` (`UNVERIFIED: none` if so). Never write it
    from memory.
-2. **Executive brief.** The first thing the product writes after its research and before its sizing: the problem in
-   its real context, in business language. In [`docs/design/SDD.md`](../design/SDD.md) replace the example's
-   `Executive brief` (it follows `Problem and non-goals`): the Initiative (who owns the problem, the quantified reason
-   to act now), the Outcomes, the Positioning (four value points) and the Credibility (the questions the owner would
-   ask, and the honest limits), every number with its source or labelled an assumption. It is the core of the
-   product ("anyone can write code and release an app, but tailored on a real problem context is the expected core"),
-   `scripts/check_sdd.py` fails without it, and it is transcribed to the Introduction page's executive view. How to
-   write it: [guide 06](06_executive-brief.md); the five pages it feeds: [guide 07](07_documentation-pages.md).
+2. **Executive view.** The first thing the product writes after its research and before its sizing, and the first
+   thing to do after instantiating: `instantiate.py` leaves the example's `content/executive.json` and its three
+   illustrations in `frontend/public/executive/` in place, to be replaced, not kept. Fill the file (the executive, the
+   organisation, the initiative, the why-now figure with its deadline, the vision, 3 to 5 outcomes with sourced proof,
+   the dialogue, the sources), author the three illustrations of the initiative, the problem and the proposed solution,
+   and point the SDD's `Executive brief` section at the file with `Data file: content/executive.json` (it restates
+   nothing). It is the core of the product ("anyone can write code and release an app, but tailored on a real problem
+   context is the expected core"), `scripts/check_sdd.py` fails without a valid file, and the shell renders it as the
+   first view of the Introduction. How to write it: [guide 06](06_executive-brief.md); the technical view and the other
+   pages: [guide 07](07_documentation-pages.md).
 3. **Sizing.** Contract-first parallel delivery (ADR-0080): size the product (repositories, components, modules with
    their owner units, every boundary, the machine limits, the parallel units with disjoint write scopes) in the
    coordination records, and summarise it in `Sizing and contracts`. Fill `Technology and versions` with every pinned

@@ -10,6 +10,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from planting import add_schema
 
 ROOT = Path(__file__).resolve().parents[2]
 SKIP = shutil.ignore_patterns("node_modules", "dist", "gate-output", "__pycache__", ".venv*", ".git", ".pytest_cache",
@@ -34,7 +35,8 @@ def base_copy(tmp_path_factory: pytest.TempPathFactory) -> Path:
     for name in FILES:
         if (ROOT / name).exists():
             shutil.copy2(ROOT / name, base / name)
-    return base
+    shutil.copytree(ROOT / "content", base / "content")
+    return add_schema(base)
 
 
 @pytest.fixture
