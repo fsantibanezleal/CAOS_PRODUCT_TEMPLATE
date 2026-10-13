@@ -12,10 +12,10 @@ import re
 from pathlib import Path
 
 import pytest
-from planting import drop_row, edit, git_commit, guard, make_tree, set_cell
+from planting import add_schema, drop_row, edit, git_commit, guard, make_tree, set_cell
 
-SDD_INPUTS = ("scripts/*.py", "docs/design", "tests", "data", "frontend/src/**/*.test.ts", "frontend/scripts", "requirements*.txt",
-              "data-pipeline/requirements.txt")
+SDD_INPUTS = ("scripts/*.py", "docs/design", "tests", "data", "frontend/src/**/*.test.ts", "frontend/src/**/*.test.tsx", "frontend/scripts",
+              "requirements*.txt", "data-pipeline/requirements.txt", "content", "frontend/public/executive")
 TECH_INPUTS = ("scripts/check_tech_matrix.py", "docs/design/SDD.md", "requirements*.txt", "data-pipeline/requirements.txt",
                "pyproject.toml", "frontend/package.json", "frontend/package-lock.json")
 VERSIONS_INPUTS = ("scripts/*.py", "docs/contracts")
@@ -31,7 +31,7 @@ GHOST_TS = "frontend/src/ghost.test.ts"
 
 @pytest.fixture
 def sdd_repo(tmp_path: Path) -> Path:
-    return make_tree(tmp_path / "repo", *SDD_INPUTS)
+    return add_schema(make_tree(tmp_path / "repo", *SDD_INPUTS))
 
 
 def gate(repo: Path, cell: str, *, rid: str = "EX-001", rel: str = WORKBENCH) -> None:
@@ -546,60 +546,13 @@ def _replace_line(repo: Path, rel: str, prefix: str, new: str) -> None:
 
 
 def _brief_span(text: str) -> tuple[int, int]:
-    """The brief's parts: from ``### Initiative`` to the line before ``## Research basis``."""
-    return text.index("### Initiative\n"), text.index("## Research basis\n")
-
-
-EPIDEMIC_LINE = "- In the epidemic case (reproduction number 2.75, 100000 people)"
-EPIDEMIC_SOURCE = "(source: data/derived/EX02_epidemic/trace.json)"
-
-
-@pytest.mark.parametrize("plant,line", [
-    ("M2a the number is a year", "- The problem has mattered since 2026 (source: README.md)"),
-    ("M2b the number is a list index", "- Step 1: the cost is high (source: README.md)"),
-    ("M2d a source path that does not exist", "- 27345 people at the peak (source: docs/research/does-not-exist.md)"),
-    ("M2e a source that is the repository root", "- 27345 people at the peak (source: .)"),
-    ("M2e a source that is a directory", "- 27345 people at the peak (source: docs/design)"),
-    ("M2f a placeholder host", "- 27345 people at the peak (source: https://example.com/made-up)"),
-    ("M2f a placeholder DOI", "- 27345 people at the peak (source: 10.0000/fake)"),
-    ("X-S3 localhost", "- 27345 people at the peak (source: http://localhost/x)"),
-])
-def test_sdd_rereview_the_initiative_claims_that_are_not_quantified_or_not_sourced(sdd_repo: Path, plant: str, line: str) -> None:
-    _replace_line(sdd_repo, SDD, EPIDEMIC_LINE, line)
-    r = sdd(sdd_repo)
-    assert r.returncode == 1 and "Initiative statement" in r.stdout, r.stdout
-
-
-def test_sdd_rereview_m2c_proof_points_that_are_indexes(sdd_repo: Path) -> None:
-    text = _sdd_text(sdd_repo)
-    for n, claim in enumerate(("5 cases baked in 0.1 s", "median 0.006 to 0.010 ms per run against a budget of 1500 ms",
-                               "peak-fraction error of 0.00732 (root mean square) on 20 held-out runs", "1.9 MB deploy payload"), 1):
-        assert claim in text, claim
-        text = text.replace(claim, f"item {n}", 1)
-    (sdd_repo / SDD).write_bytes(text.encode("utf-8"))
-    r = sdd(sdd_repo)
-    assert r.returncode == 1 and "proof point" in r.stdout and "states no number" in r.stdout, r.stdout
-
-
-def test_sdd_rereview_m1d_a_brief_of_placeholders_in_the_shape_the_guard_reads(sdd_repo: Path) -> None:
-    text = _sdd_text(sdd_repo)
-    a, b = _brief_span(text)
-    placeholder = (
-        "### Initiative\n\nTBD\n\n- TBD 1 (assumption: lorem ipsum dolor sit amet)\n\n"
-        "### Outcomes\n\nTBD\n\n| capability | business outcome | proof point |\n|---|---|---|\n"
-        + "| TBD | TBD | 1 (source: README.md) |\n" * 3
-        + "\n### Positioning\n\n" + "- **TBD**: TBD\n" * 4
-        + "\n### Credibility\n\n" + "- Q: TBD\n  A: TBD\n" * 3 + "\nLimits: TBD\n\n")
-    (sdd_repo / SDD).write_bytes((text[:a] + placeholder + text[b:]).encode("utf-8"))
-    r = sdd(sdd_repo)
-    assert r.returncode == 1, r.stdout
-    for part in ("Initiative", "Outcomes", "Positioning", "Credibility"):
-        assert part in r.stdout, (part, r.stdout)
+    """The brief section: from its heading to the next level-2 heading."""
+    return _section(text, "Executive brief")
 
 
 def test_sdd_rereview_m3b_a_brief_after_resources_when_the_headings_are_numbered(sdd_repo: Path) -> None:
     text = _sdd_text(sdd_repo)
-    a, b = _section(text, "Executive brief")
+    a, b = _brief_span(text)
     brief = text[a:b]
     text = text[:a] + text[b:]
     at = text.index("## Lanes\n")
@@ -626,55 +579,10 @@ def test_sdd_rereview_m3d_the_brief_inside_a_tilde_fence_with_a_backtick_line(sd
     assert r.returncode == 1, r.stdout
 
 
-def test_sdd_rereview_m3e_the_body_of_every_part_inside_a_code_fence(sdd_repo: Path) -> None:
-    text = _sdd_text(sdd_repo)
-    a, b = _brief_span(text)
-    out = []
-    for chunk in re.split(r"(?m)^(?=### )", text[a:b]):
-        if chunk.strip():
-            head, _, body = chunk.partition("\n")
-            out.append(f"{head}\n\n```text\n{body.strip()}\n```\n\n")
-    (sdd_repo / SDD).write_bytes((text[:a] + "".join(out) + text[b:]).encode("utf-8"))
+def test_sdd_rereview_the_data_line_inside_a_code_block_is_not_the_data_line(sdd_repo: Path) -> None:
+    _replace_line(sdd_repo, SDD, "Data file: content/executive.json", "```\nData file: content/executive.json\n```")
     r = sdd(sdd_repo)
-    assert r.returncode == 1 and "is empty" in r.stdout, r.stdout
-
-
-def test_sdd_rereview_m4c_four_positioning_bullets_with_nothing_in_them(sdd_repo: Path) -> None:
-    text = _sdd_text(sdd_repo)
-    a = text.index("### Positioning\n") + len("### Positioning\n\n")
-    b = text.index("### Credibility\n")
-    (sdd_repo / SDD).write_bytes((text[:a] + "- **-**: -\n" * 4 + "\n" + text[b:]).encode("utf-8"))
-    r = sdd(sdd_repo)
-    assert r.returncode == 1 and "Positioning" in r.stdout, r.stdout
-
-
-@pytest.mark.parametrize("plant,block", [
-    ("X-S1 one question three times", "- Q: Is it good?\n  A: Yes.\n" * 3),
-    ("X-S1 three questions, one-word answers", "- Q: Is it good for us?\n  A: Yes.\n- Q: Is it cheap to run?\n  A: Yes.\n- Q: Is it safe to use?\n  A: Yes.\n"),
-])
-def test_sdd_rereview_xs1_questions_that_are_one_question_or_answered_by_a_word(sdd_repo: Path, plant: str, block: str) -> None:
-    text = _sdd_text(sdd_repo)
-    a = text.index("### Credibility\n") + len("### Credibility\n\n")
-    b = text.index("Limits: ", a)
-    (sdd_repo / SDD).write_bytes((text[:a] + block + "\n" + text[b:]).encode("utf-8"))
-    r = sdd(sdd_repo)
-    assert r.returncode == 1 and "Credibility" in r.stdout, r.stdout
-
-
-def test_sdd_rereview_a_limits_line_of_a_placeholder(sdd_repo: Path) -> None:
-    _replace_line(sdd_repo, SDD, "Limits: the model is closed", "Limits: TBD")
-    r = sdd(sdd_repo)
-    assert r.returncode == 1 and "Limits" in r.stdout, r.stdout
-
-
-def test_sdd_rereview_q2_an_assumption_is_refused_in_an_instantiated_product_and_accepted_in_the_template(sdd_repo: Path) -> None:
-    assert sdd(sdd_repo).returncode == 0  # the template itself (no .template-version) keeps its labelled assumption
-    (sdd_repo / ".template-version").write_text("CAOS_PRODUCT_TEMPLATE (the version it started from)\n", encoding="utf-8")
-    r = sdd(sdd_repo)
-    assert r.returncode == 1 and "assumption" in r.stdout and ".template-version" in r.stdout, r.stdout
-    _replace_line(sdd_repo, SDD, "- A closure held one week longer than needed",
-                  "- A closure held one week longer than needed costs 100000 people one week of normal activity (source: data/derived/manifests/EX02_epidemic.json)")
-    assert sdd(sdd_repo).returncode == 0
+    assert r.returncode == 1 and "Data file: content/executive.json" in r.stdout, r.stdout
 
 
 # ---- a validation gate that skips for lack of a tool is not a gate that ran (Q1, S-3d), and the name is a prefix (M9c)
