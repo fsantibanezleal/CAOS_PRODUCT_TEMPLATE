@@ -43,6 +43,26 @@ five lines), then its supporting content at its floor:
 | 4 | The trends | The shift that makes it urgent, with its horizon | 3 to 5 trends (regulatory, technological, market, practice), each with direction, horizon (now, two years, ten years), a sourced signal, its effect on the roles of tab 3 and how sure the signal is | Hype, a trend without its effect on a role, an unsourced forecast | This is changing, by when, and who it hits first |
 | 5 | The proposal | The approach in one sentence and the first action with its owner | One or two paragraphs tied to the causes of tab 1; the 4 C's, each applied; 3 to 6 actions (owner, horizon, how success is checked); 1 to 4 risks and 1 to 4 unknowns; the proposal illustration; at most one closing line on the part the work explores | A call to buy, a price, a contact, a feature tour, an action without an owner | This is how the problem should be approached, who does what by when, and how we would know |
 
+### 2.1 Cards that flip, and the carousel (shell 0.14.0)
+
+The shell shows four groups of the view as small cards that flip: the bearers of the pain (`pain.bearers`), the roles
+(`situation.roles`), the approaches of the state of the art (`situation.state_of_the_art`) and the 4 C's
+(`proposal.four_cs`). The face shows the title; a click, Enter or Space turns the card and shows its content on the back;
+Escape or another click turns it back. The other groups (`context.forces`, `trends.items`, `proposal.actions`) stay plain. A
+product does not choose which groups flip; it writes the data so that those four groups fit the rule of use.
+
+**The rule of use (Felipe, 2026-10-13): small cards only, where the reader scans the titles and opens the ones that matter.**
+A card is small when its title has at most 8 words in English and 10 in Spanish and its back at most 40 words in English
+and 50 in Spanish, the labels the shell prints on the back (such as "Cost" or "Falls short") counted. The gate (G16) fails a
+longer title or back, so a longer text is cut, or the point is moved into a paragraph, where it reads whole. A card that
+needs more than that is not a flip card and is not written as one.
+
+**The carousel.** A group longer than four cards is shown as a carousel: as many cards as fit the width (at least one),
+previous and next buttons, a swipe on touch, the arrow keys, Home and End, and a position ("2 of 5"). There is no autoplay,
+every card is reachable by keyboard and the page never scrolls sideways. The floors allow up to five bearers, five roles and
+five approaches; a group of five is a carousel, so write a fifth card only when it carries real content (the example holds
+five bearers, the fifth being the ambulance crews held at the hospital door), never a filler to reach the number.
+
 Below the sub-tabs the shell lists the numbered linked sources and two onward links, "How the work explores this problem"
 (the technical view) and "Open the App". The App is at `/app`; the root opens this view.
 
@@ -70,7 +90,7 @@ else; every text is `{ "en": ..., "es": ... }`.
 |---|---|---|
 | landing | `title`, `key_statement` | One sentence; one or two sentences |
 | landing | `headline_figures` | 2 or 3: `heading`, `value`, `unit`, `source` (a source id) |
-| 1 | `pain` | `key_message`; `paragraphs` (2 or 3); `bearers` (3 to 5: `who`, `cost`, `measure`); `figures` (2 to 4, as above); `causes` (3 to 5: `cause`, `weight` a whole percent, adding to at most 100) |
+| 1 | `pain` | `key_message`; `paragraphs` (2 or 3); `bearers` (3 to 5: `who`, `cost`, `measure`; flip cards, a carousel at 5); `figures` (2 to 4, as above); `causes` (3 to 5: `cause`, `weight` a whole percent, adding to at most 100) |
 | 2 | `context` | `key_message`; `paragraphs` (1 or 2); `setting`; `forces` (3 or 4: `force`, `direction` rising, easing or steady); `evidence` (1 to 4: `statement`, `source`) |
 | 3 | `situation` | `key_message`; `roles` (3 to 5: `role`, `decides`, `needs`); `interaction`; `state_of_the_art` (3 to 5: `approach`, `achieves`, `falls_short`, `source`); `status` (`heading`, `value`, `unit`, `date`, `source`) |
 | 4 | `trends` | `key_message`; `items` (3 to 5: `trend`, `kind`, `direction`, `horizon`, `signal` with `statement` and `source`, `effect`, `confidence`) |
@@ -135,8 +155,32 @@ Each meets this standard:
   hospital, its wards, hall, theatre and lounge in the same places in both, with the queue, the full beds and the cancelled
   surgery replaced by the free beds, the planning board and the surgery that goes ahead).
 
+### 5.1 Animation: when to animate, and the reduced-motion block (shell 0.14.0)
+
+Felipe, 2026-10-13: "in the intro promote the use of animation, not only static illustration". **Animate an illustration
+when it explains a change, a flow or a sequence**: the pain growing, the roles handing work over, the proposal's before and
+after. A still stays right for a single state (a map of who is where, a snapshot). The example's pain illustration is
+animated: the winter wave arrives, the queue of waiting patients grows one by one, a clock runs and the surgery is
+cancelled, with the labels fixed in place.
+
+An animated illustration is an SVG that carries its animation in the file (CSS keyframes or SMIL; CSS keyframes are the
+choice for a figure in a documentation page) and keeps these rules:
+
+- a gentle loop or a single play of **ten seconds at most**;
+- theme tokens only, as for any illustration, and **labels that stay put**: only the scene moves;
+- **a `@media (prefers-reduced-motion: reduce)` block in the file that stops every animation (`animation: none`) and shows the
+  static final frame.** Draw the drawing without the animation as its final frame (everything visible, nothing translated),
+  and let the keyframes start from the hidden or displaced state, so the reduced-motion block only has to switch them off.
+
+The shell pauses a SMIL animation at its last frame under reduced motion in the executive view and removes an animation
+that writes a link or an event handler. `scripts/check_svg_animation.py` (run in CI after `npm ci`) reads every `.svg` under
+`frontend/public/` and `frontend/src/` with the shell's own analysis (`analyseSvgAnimation` and `animationFailures` of the
+installed shell's `gate/areas.mjs`, so it and the gate's G17 cannot disagree) and fails an animated file with no
+reduced-motion block, with a block that does not stop its animation, or that plays for more than ten seconds.
+
 The shell's gate measures what a machine can: the three exist, are inline, use only tokens, declare no chart, and every
-label sits inside its drawing at a readable size in both languages. Whether a drawing reads as a scene and not as a chart in
+label sits inside its drawing at a readable size in both languages; G16 measures the flip cards and the carousel and G17 the
+animated drawings, also under emulated reduced motion. Whether a drawing reads as a scene and not as a chart in
 disguise is a reviewer's judgement.
 
 ## 6. The SDD names the file
@@ -162,6 +206,8 @@ It restates nothing: no part headings, no list, no table, no sentence copied fro
 - a figure or claim cites an id that is no source, a source is cited by nothing, two sources share an id, a source is not an
   https link or cites a file in place of the link;
 - an illustration file is missing, leaves `frontend/public/`, or is not an SVG with a viewBox;
+- (`scripts/check_svg_animation.py`, not `check_sdd.py`) an animated SVG has no `prefers-reduced-motion` block that stops it, or
+  plays for more than ten seconds;
 - the SDD has no `Executive brief` section in its place, lacks the `Data file:` line or restates the view.
 
 ## 8. Checklist
@@ -172,6 +218,10 @@ It restates nothing: no part headings, no list, no table, no sentence copied fro
 - [ ] Each sub-tab meets its row of the table in section 2: its key message, its floor, what it avoids, what the reader can say.
 - [ ] The 4 C's each applied in one sentence; every action has an owner that is a role, a horizon and a check.
 - [ ] Three illustrations that are scenes, in tokens, with both languages, the pain and proposal sharing a setting.
+- [ ] The four flip groups hold small cards (a title of at most 8 words, a back of at most 40; in Spanish 10 and 50), and a
+  group of five is a carousel of real content, not filler.
+- [ ] Each illustration that explains a change, a flow or a sequence is animated (ten seconds at most, labels fixed) and
+  carries its `prefers-reduced-motion` block with the static final frame; a single state stays a still.
 - [ ] `python scripts/check_sdd.py .` and `npm test` pass, `npm run gate` reports 0 failures, and a reviewer has read the
   rendered view against the row of each sub-tab.
 

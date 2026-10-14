@@ -45,6 +45,12 @@ the context, the current situation, the trends, the proposal), three illustratio
 areas to declare and nothing is placed beside it; the product fills the data file and never designs the view
 ([guide 06](06_executive-brief.md)). It cannot be waived.
 
+Since shell 0.14.0 the executive view shows four groups as small cards that flip (the bearers, the roles, the approaches of
+the state of the art and the 4 C's), turns a group of five or more cards into a carousel, and accepts animated
+illustrations that carry a `prefers-reduced-motion` block with their static final frame. The rules of use (a title of at
+most 8 words and a back of at most 40 in English, 10 and 50 in Spanish; animate what explains a change, a flow or a
+sequence; the ten second limit) are in [guide 06](06_executive-brief.md), sections 2.1 and 5.1.
+
 The executive view holds no `Equation` and no symbol glossary (an equation there fails). The technical view holds the
 five areas below, with at least 1 overview figure and 3 captioned equations.
 

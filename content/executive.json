@@ -95,6 +95,17 @@
           "en": "Cost of bed days used by patients ready to leave",
           "es": "Costo de los días cama usados por pacientes listos para irse"
         }
+      },
+      {
+        "who": { "en": "Ambulance crews and emergency services", "es": "Equipos de ambulancia y de emergencias" },
+        "cost": {
+          "en": "Crews held at the hospital door while no bed is free",
+          "es": "Equipos retenidos en la puerta del hospital mientras no hay cama libre"
+        },
+        "measure": {
+          "en": "Minutes an ambulance waits to hand over a patient",
+          "es": "Minutos que una ambulancia espera para entregar a un paciente"
+        }
       }
     ],
     "figures": [
