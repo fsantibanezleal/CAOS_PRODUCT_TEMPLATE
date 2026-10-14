@@ -5,6 +5,13 @@ Benchmark. This guide says what each must contain. It is transcribed from ADR-00
 (`conventions/architecture/1-frontend/ADR-0017-rotorvitals-frontend-bar.md`, amended 2026-10-12), which is the binding
 text; if the two differ, the ADR wins and this guide is wrong.
 
+Two rules hold for the header and the layout, whatever a product adds (Felipe, 2026-10-13, shell 0.13.1). The header
+order is always App, Introduction, Methodology, Implementation, Experiments, Benchmark: the App is the leftmost tab, and
+the product lands on the Introduction's executive view without moving any tab (the shell's `STANDARD_ROUTES` carries the
+order; a product never reorders it). Every documentation route, the Introduction included, takes the full width of the
+page: the shell's `DocPage` always renders the wide document layout (its `wide` prop is kept and changes nothing), so a
+page never sets a centred reading column of its own.
+
 Status: the checks below run in the shell's gate (`caos-shell-gate`, check `ADR-0017.2`) from shell 0.11.0, which ships
 the page components, and the template's example carries every area of the five pages from release 0.06.000 (shell
 0.12.0): Methodology has six topics (four classical, two learned), Implementation nine topics in four groups, Experiments
