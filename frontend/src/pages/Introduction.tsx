@@ -157,7 +157,7 @@ function TechnicalView() {
       <DocSection title={{ en: 'The six pages', es: 'Las seis páginas' }} noRefsReason={{ en: 'Describes this site.', es: 'Describe este sitio.' }}>
         <L
           items={[
-            { en: 'App: the workbench, the landing page.', es: 'App: el banco de trabajo, la página de inicio.' },
+            { en: 'App: the workbench, the leftmost tab; the product opens on the Introduction.', es: 'App: el banco de trabajo, la primera pestaña; el producto abre en la Introducción.' },
             { en: 'Introduction: what the product is and how to read it (this page).', es: 'Introducción: qué es el producto y cómo leerlo (esta página).' },
             { en: 'Methodology: the model, its threshold, its final size and the numerical scheme, with their sources.', es: 'Metodología: el modelo, su umbral, su tamaño final y el esquema numérico, con sus fuentes.' },
             { en: 'Implementation: the pipeline, the contracts, the lanes, the web and the deploy.', es: 'Implementación: el pipeline, los contratos, los carriles, la web y el despliegue.' },

@@ -44,7 +44,8 @@ The map is [`docs/design/README.md`](../design/README.md). In this order, each s
    proposal). Point the SDD's `Executive brief` section at the file with `Data file: content/executive.json` (it restates
    nothing). It is the core of the product ("anyone can write code and release an app, but tailored on a real problem
    context is the expected core"), `scripts/check_sdd.py` fails without a valid file, and the product lands on it: the
-   root opens the Introduction's executive view and the App is at `/app`. How to write it: [guide 06](06_executive-brief.md);
+   root opens the Introduction's executive view, the App is at `/app` and stays the leftmost tab (the header order is always
+   App, Introduction, Methodology, Implementation, Experiments, Benchmark; every documentation route takes the full width). How to write it: [guide 06](06_executive-brief.md);
    the technical view and the other pages: [guide 07](07_documentation-pages.md).
 3. **Sizing.** Contract-first parallel delivery (ADR-0080): size the product (repositories, components, modules with
    their owner units, every boundary, the machine limits, the parallel units with disjoint write scopes) in the
