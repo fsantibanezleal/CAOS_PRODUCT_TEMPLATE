@@ -2,6 +2,23 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.07.001], 2026-10-13
+
+The template adopts shell 0.13.1 and states the two rules Felipe decided on 2026-10-13: the header order is always App,
+Introduction, Methodology, Implementation, Experiments, Benchmark (the App is the leftmost tab; the product still lands
+on the Introduction's executive view), and every documentation route, the Introduction included, takes the full width of
+the page.
+
+- Shell 0.13.1 (pinned exactly): `STANDARD_ROUTES` is App first again (0.13.0 had put the Introduction first) and `DocPage`
+  always renders the full-width document layout. No code change was needed beyond the pin: the header reads the order from
+  `STANDARD_ROUTES`, and the landing, the `/app` route and the forwarding of an old `/?case=` link are unchanged.
+- Tests: `frontend/src/App.test.tsx` asserts the order of `STANDARD_ROUTES` (App first) and the order of the six links in
+  the rendered header; `frontend/src/content/executive.test.ts` asserts the pin at 0.13.1.
+- Docs: guide 07 states the header order and the full width; guides 00 and 06, the SDD (executive brief section, stack row,
+  ADR-0078 row), the web feature requirements and validation (WB-010 the order, WB-011 the full width) follow; the
+  Introduction's page list no longer calls the App "the landing page" and says it is the leftmost tab.
+- The example is re-stamped (`data/derived/readiness.json` and the manifests carry 0.07.001).
+
 ## [0.07.000], 2026-10-13
 
 The template adopts shell 0.13.0 and the executive view standard decided on 2026-10-13 (CAOS_MANAGE `conventions/problem-context-first.md`): a product lands on its Introduction's executive view, an executive frame of the problem space (a landing block with the key statement and headline figures, then five sub-tabs: the pain, the context, the current situation, the trends, the proposal with the 4 C's), never the app, never a client, never a pitch. The example frames hospital capacity in respiratory seasons, every figure and claim linked to its source; `check_sdd.py` validates it against the shell's schema 2.0.0.
