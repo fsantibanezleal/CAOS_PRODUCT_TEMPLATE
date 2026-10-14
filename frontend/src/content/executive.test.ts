@@ -80,8 +80,8 @@ function citations(): Array<{ source: string; tab: number }> {
 }
 
 describe('the example executive view', () => {
-  it('the shell is pinned exactly at 0.13.0, the release that carries schema 2.0.0 and the landing', () => {
-    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.13.0');
+  it('the shell is pinned exactly at 0.13.1, the release that carries schema 2.0.0, the landing and the App-first order', () => {
+    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.13.1');
     expect(EXECUTIVE_SCHEMA_VERSION).toBe('2.0.0');
   });
 

@@ -1,12 +1,14 @@
 // The Introduction's two views (problem-context-first.md): the shell's ExecutiveView first and open, with its landing block and
 // its five sub-tabs, and the technical view second (WB-006).
 import { CitationsProvider } from '@fasl-work/caos-app-shell';
+import { readFileSync } from 'node:fs';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import executive from '../../../content/executive.json';
 import { CITATIONS } from '../content/citations';
 import { Introduction, IntroductionPage } from './Introduction';
+import { Methodology } from './Methodology';
 
 const page = (node: React.ReactNode) =>
   renderToString(
@@ -53,5 +55,14 @@ describe('the Introduction', () => {
   it('adversarial: a file in the old format (schema 1.0.0) is refused with the state of the 0.12.0 fields', () => {
     const html = page(<IntroductionPage data={{ executive: { en: 'Chief Operating Officer', es: 'Director de Operaciones' }, initiative: executive.title }} />);
     expect(html).toContain('data-executive-valid="false"');
+  });
+
+  it('adversarial: the Introduction takes the same full-width document layout as Methodology, and sets no reading column of its own', () => {
+    // the shell's DocPage renders `page-body wide` (shell 0.13.1; 0.13.0 left the Introduction without `wide`) (WB-011)
+    const layout = (html: string) => html.match(/<div class="(page-body[^"]*)" data-doc-page/)?.[1];
+    expect(layout(page(<Introduction />))).toContain('wide');
+    expect(layout(page(<Introduction />))).toBe(layout(page(<Methodology />)));
+    const source = readFileSync(new URL('./Introduction.tsx', import.meta.url), 'utf8');
+    expect(source).not.toMatch(/max-width|maxWidth|reading-column/);
   });
 });
