@@ -2,6 +2,7 @@
 // problem space, general, never a client and never a pitch, valid against the shell's schema 2.0.0, with three illustrations
 // that meet the standard the shell's gate measures in the page (WB-007).
 import { readFileSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { EXECUTIVE_SCHEMA_VERSION, FOUR_CS, validateExecutive } from '@fasl-work/caos-app-shell';
 import { describe, expect, it } from 'vitest';
 import executive from '../../../content/executive.json';
@@ -36,6 +37,55 @@ export function svgProblems(svg: string): string[] {
 
 /** The geometry of every rectangle, so two scenes can be compared for the setting they share. */
 const rects = (svg: string) => new Set([...svg.matchAll(/<rect x="([\d.-]+)" y="([\d.-]+)" width="([\d.-]+)" height="([\d.-]+)"/g)].map((m) => m.slice(1, 5).join(',')));
+
+// The shell's own analysis of an animated SVG (gate/areas.mjs, the module the gate and the template's guard script share); the
+// path is a variable so the type checker does not read the untyped module.
+const AREAS = fileURLToPath(new URL('../../node_modules/@fasl-work/caos-app-shell/gate/areas.mjs', import.meta.url));
+const { analyseSvgAnimation, animationFailures, FLIP_LIMITS } = (await import(/* @vite-ignore */ pathToFileURL(AREAS).href)) as {
+  analyseSvgAnimation: (svg: string) => { animated: boolean; reducedBlock: boolean; neutralises: boolean; seconds: number };
+  animationFailures: (a: unknown, name: string) => string[];
+  FLIP_LIMITS: { title: Record<'en' | 'es', number>; back: Record<'en' | 'es', number> };
+};
+
+const words = (t: string) => t.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+type Bi = { en: string; es: string };
+/** The labels the shell prints on the back of a card (ExecutiveView.tsx UI table), so a back is counted as the gate counts it. */
+const LABELS = {
+  cost: { en: 'Cost', es: 'Costo' },
+  measure: { en: 'Measured by', es: 'Se mide por' },
+  decides: { en: 'Decides', es: 'Decide' },
+  needs: { en: 'Needs', es: 'Necesita' },
+  achieves: { en: 'Achieves', es: 'Logra' },
+  fallsShort: { en: 'Falls short', es: 'Se queda corto' },
+} satisfies Record<string, Bi>;
+/** The four flip groups: the title field and the fields (with their label) that make the back. A source mark adds one more token. */
+const FLIP_GROUPS: Record<string, { rows: any[]; title: (r: any) => Bi; back: (r: any) => Array<[Bi | null, Bi]>; extra: number }> = {
+  'pain.bearers': { rows: executive.pain.bearers, title: (r) => r.who, back: (r) => [[LABELS.cost, r.cost], [LABELS.measure, r.measure]], extra: 0 },
+  'situation.roles': { rows: executive.situation.roles, title: (r) => r.role, back: (r) => [[LABELS.decides, r.decides], [LABELS.needs, r.needs]], extra: 0 },
+  'situation.state_of_the_art': {
+    rows: executive.situation.state_of_the_art,
+    title: (r) => r.approach,
+    back: (r) => [[LABELS.achieves, r.achieves], [LABELS.fallsShort, r.falls_short]],
+    extra: 1,
+  },
+  'proposal.four_cs': { rows: executive.proposal.four_cs, title: (r) => r.c, back: (r) => [[null, r.applies]], extra: 0 },
+};
+
+/** The cards of the flip groups that break the shell's limits, one line each (the gate's G16 reads the rendered cards; this reads the data). */
+function flipProblems(groups: typeof FLIP_GROUPS): string[] {
+  const out: string[] = [];
+  for (const lang of ['en', 'es'] as const) {
+    for (const [path, g] of Object.entries(groups)) {
+      for (const [i, row] of g.rows.entries()) {
+        const title = words(g.title(row)[lang]);
+        if (title > FLIP_LIMITS.title[lang]) out.push(`${path}[${i}] title ${lang}: ${title} words, the limit is ${FLIP_LIMITS.title[lang]}`);
+        const back = g.back(row).reduce((n, [label, text]) => n + (label ? words(label[lang]) : 0) + words(text[lang]), 0) + g.extra;
+        if (back > FLIP_LIMITS.back[lang]) out.push(`${path}[${i}] back ${lang}: ${back} words, the limit is ${FLIP_LIMITS.back[lang]}`);
+      }
+    }
+  }
+  return out;
+}
 
 const clone = () => JSON.parse(JSON.stringify(executive));
 
@@ -80,8 +130,8 @@ function citations(): Array<{ source: string; tab: number }> {
 }
 
 describe('the example executive view', () => {
-  it('the shell is pinned exactly at 0.13.1, the release that carries schema 2.0.0, the landing and the App-first order', () => {
-    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.13.1');
+  it('the shell is pinned exactly at 0.14.0, the release that carries the flip cards, the carousel, the animated illustrations and Focus mode', () => {
+    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.14.0');
     expect(EXECUTIVE_SCHEMA_VERSION).toBe('2.0.0');
   });
 
@@ -121,6 +171,56 @@ describe('the example executive view', () => {
     expect(text).not.toMatch(/\b(NHS|Kaiser|Mayo|Clinic|Inc\.|Ltd|GmbH)\b/);
     expect(text).not.toMatch(/\b(our client|nuestro cliente|workbench|banco de trabajo|this product|este producto|the app|la app)\b/i);
     expect(text).not.toMatch(/\bSIR\b/);
+  });
+
+  it('every flip card of the four flip groups is small: a title and a back within the limits of the shell, in both languages (WB-012)', () => {
+    expect(flipProblems(FLIP_GROUPS)).toEqual([]);
+  });
+
+  it('adversarial: a flip card with a title or a back over the limits is named, and a group of four cards is not a carousel (WB-012)', () => {
+    const bearers = clone().pain.bearers;
+    bearers[1].who.en = 'Patients on planned care lists who wait for a bed that is never free';
+    bearers[2].cost.es = Array.from({ length: 48 }, () => 'palabra').join(' ');
+    const planted = { ...FLIP_GROUPS, 'pain.bearers': { ...FLIP_GROUPS['pain.bearers'], rows: bearers } };
+    const found = flipProblems(planted).join(' | ');
+    expect(found).toContain('pain.bearers[1] title en');
+    expect(found).toContain('pain.bearers[2] back es');
+    const four = Object.entries(FLIP_GROUPS).filter(([, g]) => g.rows.length >= 5).length;
+    const without = Object.values({ ...FLIP_GROUPS, 'pain.bearers': { ...FLIP_GROUPS['pain.bearers'], rows: bearers.slice(0, 4) } }).filter((g) => g.rows.length >= 5).length;
+    expect(without).toBe(four - 1);
+  });
+
+  it('the example holds a carousel: a flip group of five or more cards, each with real content (WB-012)', () => {
+    const long = Object.entries(FLIP_GROUPS).filter(([, g]) => g.rows.length >= 5);
+    expect(long.length).toBeGreaterThanOrEqual(1);
+    for (const [path, g] of long) {
+      const titles = g.rows.map((r) => g.title(r).en);
+      expect(new Set(titles).size, `${path} distinct titles`).toBe(titles.length);
+      for (const r of g.rows) for (const [, text] of g.back(r)) expect(words(text.en), path).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it('the example has an animated illustration that explains a change, with its reduced-motion final frame, ten seconds at most (WB-013)', () => {
+    const animated = NAMES.filter((n) => analyseSvgAnimation(read(n)).animated);
+    expect(animated.length).toBeGreaterThanOrEqual(1);
+    for (const name of animated) {
+      const a = analyseSvgAnimation(read(name));
+      expect(a.reducedBlock, `${name} reduced-motion block`).toBe(true);
+      expect(a.neutralises, `${name} stops its animation`).toBe(true);
+      expect(a.seconds, `${name} seconds`).toBeGreaterThan(0);
+      expect(a.seconds, `${name} seconds`).toBeLessThanOrEqual(10);
+      expect(animationFailures(a, name), name).toEqual([]);
+      expect(svgProblems(read(name)), name).toEqual([]);
+    }
+  });
+
+  it('adversarial: an animated illustration without its reduced-motion block, or over ten seconds, is refused by the shell analysis (WB-013)', () => {
+    const svg = read('pain');
+    const noBlock = svg.replace(/@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?\}\s*\}/, '');
+    expect(noBlock).not.toBe(svg);
+    expect(animationFailures(analyseSvgAnimation(noBlock), 'pain').join()).toMatch(/reduced-motion/);
+    const slow = svg.replace(/(\d+(?:\.\d+)?)s ease/, '14s ease');
+    expect(animationFailures(analyseSvgAnimation(slow), 'pain').join()).toMatch(/limit is 10 s/);
   });
 
   it('the example illustrations use only theme tokens and carry both languages', () => {
