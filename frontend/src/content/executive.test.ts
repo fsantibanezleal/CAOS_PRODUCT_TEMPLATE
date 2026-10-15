@@ -130,8 +130,8 @@ function citations(): Array<{ source: string; tab: number }> {
 }
 
 describe('the example executive view', () => {
-  it('the shell is pinned exactly at 0.14.1 (0.14.0 brought the flip cards, the carousel, the animated illustrations and Focus mode; 0.14.1 put the Focus control on the case select row)', () => {
-    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.14.1');
+  it('the shell is pinned exactly at 0.14.2 (0.14.0 brought the flip cards, the carousel, the animated illustrations and Focus mode; 0.14.1 put the Focus control on the case select row; 0.14.2 keeps the cause shares whole at phone width)', () => {
+    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.14.2');
     expect(EXECUTIVE_SCHEMA_VERSION).toBe('2.0.0');
   });
 
