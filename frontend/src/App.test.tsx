@@ -58,6 +58,12 @@ describe('the landing', () => {
     expect(STANDARD_ROUTES.map((r) => r.path).indexOf(LANDING_ROUTE)).toBe(1);
   });
 
+  it('the App route opens Focus mode: the workbench sets focus, and the rail head carries the Focus control (WB-014)', () => {
+    const workbench = readFileSync(new URL('./workbench/Workbench.tsx', import.meta.url), 'utf8');
+    expect(workbench).toMatch(/<CaseWorkbench[\s\S]*?\bfocus\b/);
+    expect(html('/app')).toContain('data-focus-enter');
+  });
+
   it('adversarial: the root alone does not render the workbench', () => {
     expect(html('/')).not.toContain('data-workbench');
     expect(html('/nowhere')).not.toContain('data-workbench');

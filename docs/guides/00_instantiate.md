@@ -45,7 +45,9 @@ The map is [`docs/design/README.md`](../design/README.md). In this order, each s
    nothing). It is the core of the product ("anyone can write code and release an app, but tailored on a real problem
    context is the expected core"), `scripts/check_sdd.py` fails without a valid file, and the product lands on it: the
    root opens the Introduction's executive view, the App is at `/app` and stays the leftmost tab (the header order is always
-   App, Introduction, Methodology, Implementation, Experiments, Benchmark; every documentation route takes the full width). How to write it: [guide 06](06_executive-brief.md);
+   App, Introduction, Methodology, Implementation, Experiments, Benchmark; every documentation route takes the full width). The bearers, roles, approaches and 4 C's are small flip cards (a title of
+   at most 8 words and a back of at most 40, in Spanish 10 and 50; a group of five is a carousel), and an illustration that
+   explains a change is animated with a `prefers-reduced-motion` block that shows its final frame. How to write it: [guide 06](06_executive-brief.md);
    the technical view and the other pages: [guide 07](07_documentation-pages.md).
 3. **Sizing.** Contract-first parallel delivery (ADR-0080): size the product (repositories, components, modules with
    their owner units, every boundary, the machine limits, the parallel units with disjoint write scopes) in the
@@ -107,7 +109,11 @@ before the next starts; units whose write scopes are disjoint are built at once,
    kit (`fitLabel`, `niceTicks`); a table sits above the drawing of the same numbers. A product that is not about
    cases (a hub, an explorer, a console) replaces the workbench with the shell's `SurfacePage` and runs the gate with
    `--workbench ''`. The structure, tokens, icons and numbers are the shell's (its `docs/`); write CSS only for the
-   product's own widgets, never for a shell class (`check_web_baseline.py`).
+   product's own widgets, never for a shell class (`check_web_baseline.py`). **The App opens Focus mode for every case** (shell
+   0.14.0, ADR-0070): `CaseWorkbench` takes `focus`, which puts a Focus button in the rail head that opens the open group in
+   the full viewport (`?focus=1` beside `?case=` and `?view=`; Escape or the exit button returns to the same case, group
+   and sub-view). `npm run gate` always passes `--require-focus`, so a workbench without `focus` fails the gate (G18). A
+   surface product that has no workbench runs the gate with `--workbench ''` and has no Focus control to require.
 7. **The pages and the diagrams.** Rewrite `frontend/src/pages/` from the product's dossiers (equations with
    captions, references with DOIs that resolve) and the five diagrams in `frontend/src/architecture/` (bilingual,
    shell tokens only).

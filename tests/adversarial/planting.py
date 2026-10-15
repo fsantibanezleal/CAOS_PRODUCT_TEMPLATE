@@ -87,3 +87,16 @@ def git_commit(repo: Path) -> str:
     subprocess.run(["git", "add", "-A"], cwd=repo, check=True, capture_output=True)
     subprocess.run(["git", *env, "commit", "-q", "-m", "base"], cwd=repo, check=True, capture_output=True)
     return subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True).stdout.strip()
+
+
+GATE_MODULE_REL = "frontend/node_modules/@fasl-work/caos-app-shell/gate/areas.mjs"
+
+
+def add_gate_module(dest: Path) -> Path:
+    """Copy the shell's gate analysis module (``gate/areas.mjs``, which holds ``analyseSvgAnimation`` and ``animationFailures``),
+    as ``npm ci`` installs it, into a copy: ``check_svg_animation.py`` reuses it and fails without it."""
+    src = ROOT / GATE_MODULE_REL
+    assert src.is_file(), f"{GATE_MODULE_REL} is absent: run npm ci in frontend/ (the shell's animation analysis is what the guard reuses)"
+    (dest / GATE_MODULE_REL).parent.mkdir(parents=True, exist_ok=True)
+    (dest / GATE_MODULE_REL).write_bytes(src.read_bytes())
+    return dest
