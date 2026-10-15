@@ -2,6 +2,21 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.08.001], 2026-10-15
+
+The template adopts shell 0.14.3 and fixes its CI base-integrity guard. No field of any data contract changes.
+
+- Shell 0.14.3 (pinned exactly, lock file included). In Focus mode the stage label no longer covers the open group's
+  controls when the title wraps: the shell measures its overlay chrome instead of clearing a fixed 4.6rem. The rail inside
+  Focus no longer shows the Focus button. Gate G18 fails both defects.
+- The CI base-integrity guard reads `git ls-files` once and runs every test on a here-string. Under the workflow's `bash -eo
+  pipefail`, `git ls-files | grep -q` let grep exit on its first match; git ls-files then died of SIGPIPE and the pipeline
+  reported 141, so `! git ls-files | grep -qx .env.example` turned true at random and the guard reported a tracked `.env`.
+  Its .env test was also wrong both ways: a real `.env` passed whenever a root `.env.example` was tracked, and a product
+  whose only example file is `frontend/.env.example` failed. Any `.env` other than an `.example` file fails now.
+  `tests/test_guards.py` runs the step itself on planted trees (red on the old step for the three .env cases) and 16 times
+  on a clean tree of 6,001 files.
+- The example re-baked on 0.08.001: every manifest, the index and the readiness differ from 0.08.000 only in the version.
 ## [0.08.000], 2026-10-15
 
 The template adopts shell 0.14.0: flip cards, the card carousel, animated illustrations and Focus mode for the App (Felipe,
