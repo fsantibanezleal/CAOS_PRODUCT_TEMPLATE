@@ -102,7 +102,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
 | API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
 | API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
-| shell | @fasl-work/caos-app-shell | 0.14.2 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| shell | @fasl-work/caos-app-shell | 0.14.3 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
 | web | react | 19.3.0 | the UI | none: the shell requires it |
 | web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
 | web | react-router | 8.4.0 | the routes | none: the shell requires it |
@@ -206,5 +206,5 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0071 | the page is the viewport; one tab row; drawing at least half the viewport | the shell's `CaseWorkbench`; the gate (G5, G6) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
-| ADR-0078 | rules live in the base | shell 0.14.2 (pinned exactly) and this template; no product re-implements them |
+| ADR-0078 | rules live in the base | shell 0.14.3 (pinned exactly) and this template; no product re-implements them |
 | ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |
