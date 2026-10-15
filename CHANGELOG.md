@@ -9,8 +9,8 @@ The template adopts shell 0.14.0: flip cards, the card carousel, animated illust
 contract changes (schema 2.0.0), and the header order, the landing and the full width of every documentation route are
 unchanged.
 
-- Shell 0.14.1 (pinned exactly, lock file included; 0.14.1 puts the Focus control on the case select's row, so no rail head grows
-  with it). The executive view now shows the bearers, the roles, the approaches of
+- Shell 0.14.2 (pinned exactly, lock file included; 0.14.1 puts the Focus control on the case select's row, so no rail head grows
+  with it; 0.14.2 keeps the cause shares of the executive view whole at phone width). The executive view now shows the bearers, the roles, the approaches of
   the state of the art and the 4 C's as small cards that flip, and a group of five or more cards as a carousel.
 - The rule of use of flip cards, in guide 06 (section 2.1): small cards only, a title of at most 8 words in English and 10 in
   Spanish and a back of at most 40 and 50. The example's four groups fit the limits (`executive.test.ts`, WB-012; the shell
@@ -28,7 +28,7 @@ unchanged.
   `?case=` and `?view=`, Escape or the exit button returns to the same case, group and sub-view), and `frontend/scripts/gate.mjs`
   always passes `--require-focus` to the shell gate, so an App built from the template cannot pass the gate without it
   (WB-014; a surface product with `--workbench ''` has no Focus control to require).
-- Tests: `executive.test.ts` (the pin at 0.14.1, the flip limits, the carousel, the animated illustration and the refusals of
+- Tests: `executive.test.ts` (the pin at 0.14.2, the flip limits, the carousel, the animated illustration and the refusals of
   the shell analysis), `App.test.tsx` (Focus mode on the App route), `gate-script.test.ts` (the flag), and
   `tests/adversarial/test_animation_and_focus.py` (the guard against planted SVGs, the runner against a stub gate).
 - Docs: guides 00, 06 and 07, the README, the SDD (stack row, ADR-0070 and ADR-0078 rows), the web requirements and
