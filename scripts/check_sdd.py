@@ -80,7 +80,7 @@ BRIEF = "Executive brief"
 GUIDE = "see docs/guides/06_executive-brief.md"
 EXEC_FILE = "content/executive.json"
 EXEC_SCHEMA = "frontend/node_modules/@fasl-work/caos-app-shell/src/content/executive.schema.json"
-EXEC_SCHEMA_VERSION = "2.0.0"  # the contract: the schema of shell 0.13.x; an older installed schema is refused
+EXEC_SCHEMA_VERSION = "2.0.0"  # the contract: the schema of shell 0.13.x and 0.14.x; an older installed schema is refused
 # The 4 C's of the proposal, in order (Felipe, 2026-10-13): the shell's FOUR_CS names, English and Spanish.
 FOUR_CS = (("Choice", "Elección"), ("Context", "Contexto"), ("Cost", "Costo"), ("Control", "Control"))
 MAX_WORDS = 30
@@ -336,7 +336,7 @@ def schema_findings(data: dict) -> list[str]:
         return [f"{EXEC_SCHEMA} cannot be read as a JSON Schema: {e}"]
     if f"version {EXEC_SCHEMA_VERSION}" not in str(schema.get("title", "")):
         return [f"{EXEC_SCHEMA} is not version {EXEC_SCHEMA_VERSION} (its title says {schema.get('title')!r}): the executive view is written to "
-                f"schema {EXEC_SCHEMA_VERSION} of shell 0.13.x; run 'npm ci' in frontend/ with the pinned shell"]
+                f"schema {EXEC_SCHEMA_VERSION} of shell 0.13.x and 0.14.x; run 'npm ci' in frontend/ with the pinned shell"]
     out: list[str] = []
     for err in sorted(validator.iter_errors(data), key=lambda e: [str(p) for p in e.absolute_path]):
         where = field_path(err.absolute_path)
