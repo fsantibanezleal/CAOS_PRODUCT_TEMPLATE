@@ -22,6 +22,7 @@ standard library only).
 | `check_template_residue.py` | an instantiated product carries none of the example |
 | `check_doc_paths.py` | every repository path a document names exists |
 | `check_web_baseline.py` | the web's tokens, classes, numbers, images and animation loops |
+| `check_svg_animation.py` | an animated SVG carries its reduced-motion block and plays ten seconds at most (the shell's own analysis; needs `npm ci`) |
 | `check_deploy_place.py` | one deploy place, and only its files |
 | `check_live.py` | after a deploy, the live site is this build (run by the deploy workflow) |
 | `check_content_standards.py` | no em-dash and no emoji in tracked content (ADR-0067) |

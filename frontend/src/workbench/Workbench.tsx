@@ -1,6 +1,9 @@
 // The App route (ADR-0016 s9, ADR-0071): one CaseWorkbench. The rail holds the case picker, the variants, the two
 // parameters of the live engine and its live values; the instrument holds the question groups. The replay lane is
 // the committed trace of the case; the live lane is the TypeScript engine re-run with the rail's values.
+// Focus mode (ADR-0070, shell 0.14.0) is on for every case: the `focus` prop puts a Focus button in the rail head that
+// opens the open group in the full viewport (?focus=1 beside ?case= and ?view=); Escape or the exit button returns to the
+// same case, group and sub-view. The template's gate runs with --require-focus, so an App built from it must set `focus`.
 import { CaseWorkbench, Knob, Readout, useShellLang, useWorkbenchState, type CaseDef } from '@fasl-work/caos-app-shell';
 import { useEffect, useMemo, useState } from 'react';
 import { loadCase, loadIndex, useArtifact, type CaseData } from '../api/artifacts';
@@ -123,6 +126,7 @@ export function Workbench() {
       controls={knobs ? { beta: knobs.beta, gamma: knobs.gamma } : {}}
       variants={{ variants: COVERAGE.map((v) => ({ id: v.id, label: v.label, note: v.note, lane: 'live' })), activeId: variant, onSelect: setVariant, title: { en: 'Immunisation', es: 'Inmunización' } }}
       rail={rail}
+      focus
       groups={[
         { id: 'dynamics', label: { en: 'Dynamics', es: 'Dinámica' }, lane: 'live', provenance: 'synthetic', content: <DynamicsView sel={sel} /> },
         { id: 'validation', label: { en: 'Validation', es: 'Validación' }, lane: 'live', provenance: 'synthetic', content: <ValidationView sel={sel} /> },

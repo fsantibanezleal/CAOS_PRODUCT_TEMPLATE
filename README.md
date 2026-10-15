@@ -22,7 +22,7 @@ is replaced.
 | Contract 2, artifacts: index, manifests and traces, bilingual, versioned | `data/derived/` | `scripts/check_artifacts.py`, `tests/contracts/test_documents.py`, `frontend/src/lib/contract.test.ts` (both directions, types generated from the schemas) |
 | Missing data and untrained models as declared states: what is real in this build, shown on every view | `data/derived/readiness.json` | `scripts/check_readiness.py`, `tests/contracts/test_readiness.py`, `frontend/src/readiness/readiness.test.ts` |
 | The live engine, a TypeScript port of the Python one | `frontend/src/engine/` | `frontend/src/engine/sir.parity.test.ts` (every baked trace, first-order convergence) |
-| The web: the workbench and five documentation routes on the shared shell | `frontend/src/` | `npm run gate` (`caos-shell-gate`: every route, tab and case, five sizes, both themes, both languages) |
+| The web: the workbench (with Focus mode for every case) and five documentation routes on the shared shell; an executive view with flip cards, a card carousel and an animated illustration | `frontend/src/` | `npm run gate` (`caos-shell-gate` with `--require-focus`: every route, tab and case, five sizes, both themes, both languages), `scripts/check_svg_animation.py` |
 | The design, every requirement with the gate that fails it | `docs/design/` | `scripts/check_sdd.py` |
 | One version, one deploy place, no example left behind | `VERSION`, `deploy/TARGET` | `scripts/check_version_coherence.py`, `scripts/check_deploy_place.py`, `scripts/check_template_residue.py` |
 
@@ -62,7 +62,12 @@ product replaces next, is [docs/guides/00_instantiate.md](docs/guides/00_instant
 - Canonical science is offline. CI runs cheap checks; the bake and the pipeline tests run on a workstation; a deploy
   publishes the committed artifacts and never recomputes them (ADR-0069, ADR-0074).
 - The web is built on the shared shell and measured before it ships; the base carries the rules, so a product does
-  not re-implement them (ADR-0078).
+  not re-implement them (ADR-0078). Three rules of use come with shell 0.14.0, each in
+  [guide 06](docs/guides/06_executive-brief.md): the executive view's small cards flip (a title on the face, the content
+  on the back, 8 words and 40 at most in English), a group of five or more becomes a carousel, and an illustration that
+  explains a change, a flow or a sequence is animated, with a `prefers-reduced-motion` block that shows its final frame.
+  The App opens Focus mode for every case, and the gate runs with `--require-focus`, so a product built from the
+  template cannot ship an App without it.
 - English in the repository; every reader-facing string in English and Spanish (ADR-0011, ADR-0066).
 
 Licensed under the MIT License (see [LICENSE](LICENSE)).
