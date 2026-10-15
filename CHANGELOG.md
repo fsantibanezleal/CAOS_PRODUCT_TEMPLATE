@@ -2,6 +2,15 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.08.002], 2026-10-15
+
+The template adopts shell 0.15.0. No data contract changes.
+
+- Shell 0.15.0 (pinned exactly, lock file included). Its gate gains G19: in every measured state, a short value (a number,
+  a percentage, an amount or a figure with its unit) must not break inside a segment; a break right after a hyphen, a dash
+  or a slash is a normal line break. The template's full gate passes on it with no G19 failure.
+- The example re-baked on 0.08.002 (only the version differs).
+
 ## [0.08.001], 2026-10-15
 
 The template adopts shell 0.14.3 and fixes its CI base-integrity guard. No field of any data contract changes.
