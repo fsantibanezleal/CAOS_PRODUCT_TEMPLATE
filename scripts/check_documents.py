@@ -1,15 +1,25 @@
 #!/usr/bin/env python3
 """Every committed document against its schema file (docs/contracts/schemas/), with jsonschema alone.
 
-Validates the documents of the bake (``data/derived``: the index, every manifest, the traces the manifests name, the
-readiness), of the provider tree (``docs/contracts/fixtures/data/derived``), the contract examples
-(``docs/contracts/examples``) and the released model bundle (``models/surrogate.json``). The generated TypeScript types
-do not encode a ``pattern`` or a ``minItems``; this check does, so a schema change the committed documents violate
-fails CI (review finding F5). It uses the registry of ``tests/contracts/contract_schemas.py`` (one place resolves a
-schema reference), so it needs only ``jsonschema`` (4.26.0) and its ``referencing``, no pipeline and no numpy.
+The guard names no document: it reads the contract catalog (``docs/contracts/catalog.md``), whose ``documents`` column says,
+per row, which committed files that row's schema governs. A product takes this file verbatim; its catalog is what differs.
 
-An absent manifest or artifact is not reported here: scripts/check_artifacts.py tells a declared-partial bake from an
-undeclared absence. An absent index is an error (no inventory, nothing to validate).
+A ``documents`` cell is ``-`` (no committed document) or globs relative to the repository root, separated by ``, ``
+(``pathlib`` glob semantics: ``*`` within one path segment, ``**`` for any depth, so use it only where a depth varies). A
+glob starting with ``!`` excludes what the row's other globs match. On an OpenAPI row (a schema file that is the OpenAPI
+document) each glob is written ``path#ComponentName`` and the files validate against that component. Every glob under
+``data/`` or ``models/`` is applied twice: at the repository root and at the provider tree ``docs/contracts/fixtures/``.
+A row's ``example`` cell is validated too when it is a file under ``docs/contracts/examples/``. A file counts once for its
+row, however many of its globs and its example name it.
+
+Errors: a file matched by two rows (one committed document has one contract); a file under ``data/derived`` or ``models``
+(root or provider tree) that is JSON and that no row covers (it would pass unvalidated); a document that is not JSON or
+departs from its schema (the path and the schema are named); an absent document of a row whose ``missing-data behavior``
+begins ``missing:`` and whose ``documents`` cell is one fixed path (for the template, the index: no inventory, nothing to
+validate). A glob that matches nothing is not reported: scripts/check_artifacts.py and scripts/check_readiness.py judge
+absence. The generated TypeScript types do not encode a ``pattern`` or a ``minItems``; this check does (review finding F5).
+It uses the registry of ``tests/contracts/contract_schemas.py`` (one place resolves a schema reference), so it needs only
+``jsonschema`` (4.26.0) and its ``referencing``, no pipeline and no numpy.
 
 Exit 0 and ``documents: N valid``; exit 1 listing each error. Usage: python scripts/check_documents.py [repo_root]
 """
@@ -21,18 +31,16 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HERE / "tests" / "contracts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import contract_schemas as cs  # noqa: E402  (the schema registry, shared with the contract tests)
+from check_contracts import RELEASE_COLUMNS, parse_catalog, parse_document_glob, split_documents  # noqa: E402
 
-EXAMPLES = {"params-record.json": "params-record", "surrogate-model.json": "surrogate-model"}
-
-
-def artifact_paths(manifest: dict) -> list[str]:
-    """The artifact paths a manifest names, in either form of contract 2."""
-    if isinstance(manifest.get("artifacts"), list):
-        return [a["path"] for a in manifest["artifacts"] if isinstance(a, dict) and isinstance(a.get("path"), str)]
-    single = manifest.get("artifact")
-    return [single["path"]] if isinstance(single, dict) and isinstance(single.get("path"), str) else []
+CATALOG_REL = "docs/contracts/catalog.md"
+FIXTURES_REL = "docs/contracts/fixtures"
+EXAMPLES_REL = "docs/contracts/examples/"
+ROOTED = ("data/", "models/")  # globs under these also apply in the provider tree
+HOLE_DIRS = ("data/derived", "models")  # a JSON file here must be covered by a row
 
 
 class Report:
@@ -47,58 +55,80 @@ class Report:
         except ValueError:
             return path.as_posix()
 
-    def check(self, path: Path, schema: str, component: bool = False) -> dict | None:
-        """Validate the document at ``path``; return it when it is JSON (valid or not), None when it is not."""
+    def check(self, path: Path, schema: str, component: bool = False) -> None:
+        """Validate the document at ``path`` against ``schema`` (a schema file name, or an OpenAPI component)."""
         try:
             doc = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
             self.errors.append(f"{self.label(path)}: not readable as JSON ({exc})")
-            return None
-        found = cs.component_errors(schema, doc) if component else cs.errors(schema, doc)
+            return
+        try:
+            found = cs.component_errors(schema, doc) if component else cs.errors(schema, doc)
+        except OSError as exc:
+            self.errors.append(f"{self.label(path)}: schema [{schema}] cannot be loaded ({exc})")
+            return
         if found:
             self.errors += [f"{self.label(path)}: [{schema}] {e}" for e in found]
         else:
             self.valid += 1
-        return doc if isinstance(doc, dict) else None
 
 
-def check_tree(rep: Report, derived: Path) -> None:
-    """The index, the manifests it lists, the artifacts they name and the readiness of one data/derived layout."""
-    index_path = derived / "manifests" / "index.json"
-    if not index_path.is_file():
-        rep.errors.append(f"{rep.label(index_path)}: absent (no inventory to validate)")
-        return
-    index = rep.check(index_path, "case-index")
-    for entry in (index or {}).get("cases", []):
-        manifest_path = derived / str(entry.get("manifest_path", ""))
-        if not manifest_path.is_file():
-            continue
-        manifest = rep.check(manifest_path, "case-manifest")
-        for rel in artifact_paths(manifest or {}):
-            artifact = derived / rel
-            if artifact.is_file():
-                rep.check(artifact, "trace")
-    readiness = derived / "readiness.json"
-    if readiness.is_file():
-        rep.check(readiness, "readiness")
+def schema_name(schema_file: str) -> str:
+    """``docs/contracts/schemas/<name>.schema.json`` to ``<name>`` (the key of the registry)."""
+    name = Path(schema_file.strip().strip("`")).name
+    return name[: -len(".schema.json")] if name.endswith(".schema.json") else name
+
+
+def matches(root: Path, glob: str) -> set[Path]:
+    """The files under ``root`` that ``glob`` names (``pathlib`` glob; ``**`` for any depth)."""
+    return {p for p in root.glob(glob) if p.is_file()}
+
+
+def row_files(root: Path, entries: list[str]) -> dict[Path, str]:
+    """The files a row's globs govern, each with the OpenAPI component (``""`` for none), in the repository and in the
+    provider tree; exclusions removed."""
+    include: list[tuple[str, str]] = []
+    exclude: list[str] = []
+    for entry in entries:
+        out, glob, component = parse_document_glob(entry)
+        for g in [glob] + ([f"{FIXTURES_REL}/{glob}"] if glob.startswith(ROOTED) else []):
+            (exclude.append(g) if out else include.append((g, component)))
+    drop = {p for g in exclude for p in matches(root, g)}
+    found: dict[Path, str] = {}
+    for glob, component in include:
+        for path in matches(root, glob):
+            if path not in drop:
+                found[path] = component
+    return found
+
+
+def hole_files(root: Path) -> list[Path]:
+    """The JSON files of the bake, the released models and their provider-tree twins."""
+    out: list[Path] = []
+    for base in HOLE_DIRS:
+        for top in (root / base, root / FIXTURES_REL / base):
+            out += sorted(top.glob("**/*.json")) if top.is_dir() else []
+    return out
 
 
 def main() -> int:
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else HERE
     rep = Report(root)
-    check_tree(rep, root / "data" / "derived")
-    fixtures = root / "docs" / "contracts" / "fixtures" / "data" / "derived"
-    if fixtures.is_dir():
-        check_tree(rep, fixtures)
-    examples = root / "docs" / "contracts" / "examples"
-    for name, schema in EXAMPLES.items():
-        if (examples / name).is_file():
-            rep.check(examples / name, schema)
-    if (examples / "api-unavailable.json").is_file():
-        rep.check(examples / "api-unavailable.json", "UnavailableBody", component=True)
-    bundle = root / "models" / "surrogate.json"
-    if bundle.is_file():
-        rep.check(bundle, "surrogate-model")
+    catalog = root / CATALOG_REL
+    try:
+        parsed = parse_catalog(catalog.read_text(encoding="utf-8"))
+    except OSError as exc:
+        parsed = None
+        rep.errors.append(f"{CATALOG_REL}: cannot be read ({exc})")
+    if parsed is not None:
+        header, rows = parsed
+        late = [f"{c} (added in template {rel})" for c, rel in RELEASE_COLUMNS.items() if c not in header]
+        if late or "schema file" not in header or "id" not in header:
+            rep.errors.append(f"{CATALOG_REL}: lacks the column {', '.join(late) or 'id or schema file'}: add it, one cell per row")
+        else:
+            validate_rows(rep, root, rows)
+    elif not rep.errors:
+        rep.errors.append(f"{CATALOG_REL}: no contract catalog table found")
     if rep.errors:
         print("documents: INVALID")
         for e in rep.errors:
@@ -106,6 +136,41 @@ def main() -> int:
         return 1
     print(f"documents: {rep.valid} valid")
     return 0
+
+
+def validate_rows(rep: Report, root: Path, rows: list[dict[str, str]]) -> None:
+    claims: dict[Path, list[tuple[str, str, str]]] = {}  # file -> [(row id, schema name, component)]
+    for row in rows:
+        rid, schema_file = row.get("id", ""), row.get("schema file", "")
+        entries = split_documents(row.get("documents", ""))
+        files = row_files(root, entries)
+        example = row.get("example", "").strip().strip("`")
+        if example.startswith(EXAMPLES_REL) and (root / example).is_file():
+            # an OpenAPI row validates its example against the component its documents cell names for the same file
+            files.setdefault(root / example, "")
+        openapi = schema_file.strip().strip("`").endswith("openapi.json")
+        for path, component in files.items():
+            if openapi and not component:
+                continue  # an example of an OpenAPI row with no component named is not validated here
+            claims.setdefault(path, []).append((rid, component or schema_name(schema_file), "component" if component else ""))
+        fixed = [e for e in entries if not e.startswith("!") and not any(c in e for c in "*?[")]
+        if len(entries) == 1 and len(fixed) == 1 and row.get("missing-data behavior", "").strip().lower().startswith("missing:"):
+            glob = parse_document_glob(fixed[0])[1]
+            if not (root / glob).is_file():
+                rep.errors.append(f"{glob}: absent (the catalog row {rid} says missing: nothing to validate without it)")
+    for path in sorted(claims):
+        by_row = {}
+        for rid, schema, component in claims[path]:
+            by_row.setdefault(rid, (schema, component))
+        if len(by_row) > 1:
+            rep.errors.append(f"{rep.label(path)}: claimed by more than one row ({', '.join(sorted(by_row))}): one committed "
+                              "document has one contract")
+            continue
+        (rid, (schema, component)), = by_row.items()
+        rep.check(path, schema, component=bool(component))
+    for path in hole_files(root):
+        if path not in claims:
+            rep.errors.append(f"{rep.label(path)}: covered by no row of {CATALOG_REL} (documents column): it is not validated")
 
 
 if __name__ == "__main__":
