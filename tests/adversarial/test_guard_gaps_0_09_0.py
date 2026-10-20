@@ -117,7 +117,7 @@ def test_a_json_file_with_a_json_suffix_that_is_not_json_still_fails(docs: Path)
 
 # ---------------------------------------------------------------- npm aliases in the technology matrix (WB-018)
 
-TECH_INPUTS = ("scripts/check_tech_matrix.py", "docs/design/SDD.md", "requirements*.txt", "data-pipeline/requirements.txt",
+TECH_INPUTS = ("scripts/check_tech_matrix.py", "docs/design/SDD.md", "requirements*.txt", "data-pipeline/requirements.txt", "notebooks/requirements.txt",
                "pyproject.toml", "frontend/package.json", "frontend/package-lock.json")
 ALIAS = "zz-typescript5"
 SPEC = "npm:typescript@5.9.3"
