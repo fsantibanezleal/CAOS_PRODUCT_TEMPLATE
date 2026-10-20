@@ -12,6 +12,11 @@ document) each glob is written ``path#ComponentName`` and the files validate aga
 A row's ``example`` cell is validated too when it is a file under ``docs/contracts/examples/``. A file counts once for its
 row, however many of its globs and its example name it.
 
+A committed document that is not JSON (a file whose suffix is not ``.json``: a model file such as ``.onnx`` or ``.pt``, a CSV
+table) has no schema to validate against; its contract is its row's ``model io`` or table description, tested by the row's own
+contract test. The guard leaves it to that test and requires the row to name one: the ``producer test`` or the ``consumer test``
+column must be filled (not empty and not ``-``). It lists these files after the count and does not parse them.
+
 Errors: a file matched by two rows (one committed document has one contract); a file under ``data/derived`` or ``models``
 (root or provider tree) that is JSON and that no row covers (it would pass unvalidated); a document that is not JSON or
 departs from its schema (the path and the schema are named); an absent document of a row whose ``missing-data behavior``
@@ -48,6 +53,7 @@ class Report:
         self.root = root
         self.valid = 0
         self.errors: list[str] = []
+        self.unparsed: list[str] = []  # non-JSON documents left to their row's contract test
 
     def label(self, path: Path) -> str:
         try:
@@ -71,6 +77,11 @@ class Report:
             self.errors += [f"{self.label(path)}: [{schema}] {e}" for e in found]
         else:
             self.valid += 1
+
+
+def names_a_test(row: dict[str, str]) -> bool:
+    """Whether the row's producer test or consumer test cell is filled (not empty, not ``-``)."""
+    return any(row.get(column, "").strip().strip("`").strip() not in ("", "-") for column in ("producer test", "consumer test"))
 
 
 def schema_name(schema_file: str) -> str:
@@ -135,11 +146,14 @@ def main() -> int:
             print(f"  - {e}")
         return 1
     print(f"documents: {rep.valid} valid")
+    if rep.unparsed:
+        print(f"documents: {len(rep.unparsed)} not JSON, left to the contract test of their row: {', '.join(rep.unparsed)}")
     return 0
 
 
 def validate_rows(rep: Report, root: Path, rows: list[dict[str, str]]) -> None:
     claims: dict[Path, list[tuple[str, str, str]]] = {}  # file -> [(row id, schema name, component)]
+    by_id = {row.get("id", ""): row for row in rows}
     for row in rows:
         rid, schema_file = row.get("id", ""), row.get("schema file", "")
         entries = split_documents(row.get("documents", ""))
@@ -167,6 +181,13 @@ def validate_rows(rep: Report, root: Path, rows: list[dict[str, str]]) -> None:
                               "document has one contract")
             continue
         (rid, (schema, component)), = by_row.items()
+        if path.suffix.lower() != ".json":
+            if names_a_test(by_id[rid]):
+                rep.unparsed.append(rep.label(path))
+            else:
+                rep.errors.append(f"{rep.label(path)}: a document that is not JSON is left to the contract test of its row, and the row {rid} "
+                                  f"names none: fill its producer test or consumer test column in {CATALOG_REL}")
+            continue
         rep.check(path, schema, component=bool(component))
     for path in hole_files(root):
         if path not in claims:
