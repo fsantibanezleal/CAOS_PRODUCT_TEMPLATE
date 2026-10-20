@@ -2,6 +2,29 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [Unreleased]
+
+### Changed
+
+- `scripts/check_documents.py` names no document: it reads the new `documents` column of `docs/contracts/catalog.md` and
+  validates every committed file each row governs against that row's schema (`-` for a row with none; globs relative to the
+  root, `!` excludes, `path#Component` on an OpenAPI row; the same globs apply in the provider tree). A file two rows govern,
+  and a JSON file under `data/derived` or `models` that no row covers, now fail (a hole used to pass unvalidated). The report
+  and the exit codes are unchanged, and the template's own tree is validated as before (20 documents).
+- `scripts/check_contracts.py` requires the `documents` column and validates its cells; a catalog without it fails naming the
+  column and this release. `data/derived/readiness.json` is recomputed (the catalog changed).
+- Requirements CT-030 (changed), CT-032 to CT-034 (new) with adversarial rows; the catalog and guide 00 document the column.
+
+### Migration
+
+A product instantiated from an earlier release:
+
+1. adds the `documents` column to its catalog after `example`, one cell per row (`-` where a row has no committed document);
+2. takes `scripts/check_documents.py` verbatim from this release, replacing its port (and the `check_contracts.py` that
+   validates the column);
+3. runs `python scripts/check_contracts.py docs/contracts/catalog.md --repo-root .`, `python scripts/check_documents.py` and
+   `python data-pipeline/run.py readiness` (the catalog changed), and fixes what they report.
+
 ## [0.08.002], 2026-10-15
 
 The template adopts shell 0.15.0. No data contract changes.
