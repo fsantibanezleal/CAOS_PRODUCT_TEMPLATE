@@ -71,7 +71,8 @@ def test_a_declared_small_pt_is_still_admitted(tree: Path) -> None:
 # ---------------------------------------------------------------- M1: a machine path inside a binary
 
 def test_a_machine_path_inside_a_tracked_binary_fails(tree: Path) -> None:
-    plant(tree, "assets/blob.bin", b"\x00\x01\x02 D:/_Repos/secret/thing \x00\xff")
+    # built in two pieces: the guard reads this very file, and a machine path in a test source would fail it
+    plant(tree, "assets/blob.bin", b"\x00\x01\x02 " + b"D:" + b"/_Repos/secret/thing \x00\xff")
     track(tree)
     r = guard(tree, "check_base_integrity.py")
     assert r.returncode == 1 and "machine path" in r.stdout and "blob.bin" in r.stdout, r.stdout
