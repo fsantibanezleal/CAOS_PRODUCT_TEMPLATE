@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import importlib.util
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -270,6 +271,13 @@ def test_a_missing_artifact_stops_the_run_naming_its_path(repo: Path) -> None:
 def with_dirs(repo: Path) -> Path:
     for folder in FOLDERS:
         (repo / folder).mkdir(parents=True, exist_ok=True)
+    readme = repo / "README.md"
+    if readme.is_file():  # the documents the README rows point to exist in the real repository; here one empty file each
+        for target in re.findall(r"\[[^\]]*\]\(([^)\s]+)\)", readme.read_text(encoding="utf-8")):
+            rel = target.split("#")[0]
+            if rel and not re.match(r"^[a-z]+:", rel) and not (repo / rel).exists():
+                (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+                (repo / rel).write_text("x", encoding="utf-8")
     return repo
 
 
@@ -335,3 +343,165 @@ def test_the_example_notebooks_left_in_a_product_are_listed(repo: Path, tmp_path
     subprocess.run(["git", "init", "-q"], cwd=product, check=True)
     r = subprocess.run([sys.executable, str(product / "scripts" / "check_template_residue.py"), str(product)], capture_output=True, text=True, cwd=product)
     assert r.returncode == 1 and "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb" in r.stdout, r.stdout
+
+
+# ---------------------------------------------------------------- the review fixes (F3, F4, F5, F6, F9)
+
+def test_a_notebook_that_runs_pip_is_found(repo: Path) -> None:
+    jedit(repo, "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb", lambda d: first_code(d).update(
+        source="# install here\n%pip install numpy==2.4.6"))
+    fails(repo, "a notebook never runs pip itself (convention section 4)")
+
+
+def test_a_drive_path_written_as_a_python_literal_is_found(repo: Path) -> None:
+    jedit(repo, "notebooks/es/02-threshold-and-final-size/01-the-threshold.ipynb", lambda d: first_code(d).update(
+        source="# a literal\nroot = 'D:\\\\_Datos\\\\sir'"))
+    fails(repo, "holds a machine path")
+
+
+def test_a_package_installed_from_its_release_tag_is_held_to_its_exact_form(repo: Path) -> None:
+    req = repo / "notebooks" / "requirements.txt"
+    saved = req.read_text(encoding="utf-8")
+    good = "riskvalidation @ git+https://github.com/fsantibanezleal/CAOS_RiskValidation.git@v0.8.0"
+    req.write_text(saved + good + "\n", encoding="utf-8")
+    r = guard(repo, "check_notebooks.py")
+    assert r.returncode == 0, r.stdout  # the form is accepted as a requirement line (no notebook uses it yet)
+    req.write_text(saved + "riskvalidation @ git+https://github.com/fsantibanezleal/CAOS_RiskValidation.git@main\n", encoding="utf-8")
+    fails(repo, "is not an exact pin")
+
+
+def test_a_notebook_outside_the_layout_is_found_and_not_run(repo: Path) -> None:
+    src = repo / "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb"
+    shutil.copy2(src, repo / "notebooks/en/99-loose.ipynb")
+    fails(repo, "notebooks/en/99-loose.ipynb", "notebooks/<language>/<topic>/<notebook>.ipynb")
+
+
+def test_an_ipynb_with_an_em_dash_or_an_emoji_is_found_by_the_content_standards(tmp_path: Path) -> None:
+    """F4: the guard read .md and .json but skipped .ipynb, where the runner writes raw characters."""
+    repo = tmp_path / "r"
+    (repo / "scripts").mkdir(parents=True)
+    (repo / "notebooks" / "en" / "01-x").mkdir(parents=True)
+    shutil.copy2(ROOT / "scripts" / "check_content_standards.py", repo / "scripts" / "check_content_standards.py")
+    nb = repo / "notebooks" / "en" / "01-x" / "01-y.ipynb"
+    nb.write_text(json.dumps({"cells": [{"cell_type": "markdown", "metadata": {}, "source": ["# A title \u2014 with a dash \U0001F600\n"]}],
+                              "metadata": {}, "nbformat": 4, "nbformat_minor": 5}, ensure_ascii=False), encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    r = subprocess.run([sys.executable, "-X", "utf8", "scripts/check_content_standards.py"], capture_output=True, encoding="utf-8", errors="replace", cwd=repo)
+    assert r.returncode == 1 and "01-y.ipynb" in r.stdout and "em-dash" in r.stdout and "emoji" in r.stdout, r.stdout + r.stderr
+
+
+def test_a_printed_traceback_is_found(repo: Path) -> None:
+    jedit(repo, "notebooks/en/02-threshold-and-final-size/02-the-final-size.ipynb", lambda d: first_code(d)["outputs"].append(
+        {"output_type": "stream", "name": "stdout", "text": "Traceback (most recent call last):\n  File \"x.py\", line 1\nKeyError: 'a'\n"}))
+    fails(repo, "prints a traceback")
+
+
+def test_a_source_missing_from_the_references_and_a_missing_install_line_are_found(repo: Path) -> None:
+    rel = "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb"
+
+    def drop_references(doc: dict) -> None:
+        cell = next(c for c in doc["cells"] if "".join(c["source"]).startswith("## References"))
+        cell["source"] = ["## References\n", "\n", "- A work cited without its link.\n"]
+    jedit(repo, rel, drop_references)
+    fails(repo, "the References section does not list")
+
+    def drop_install(doc: dict) -> None:
+        cell = next(c for c in doc["cells"] if "".join(c["source"]).startswith("## Setup"))
+        cell["source"] = ["## Setup\n", "\n", "numpy==2.4.6 and matplotlib==3.11.2 are installed somehow.\n"]
+    jedit(repo, rel, drop_install)
+    fails(repo, "shows no `pip install` line")
+
+
+def test_a_notebook_that_defines_the_final_size_oracle_is_found(repo: Path) -> None:
+    jedit(repo, "notebooks/en/02-threshold-and-final-size/02-the-final-size.ipynb", lambda d: first_code(d).update(
+        source=["# a private copy of the oracle\n", "def final_size(r0):\n", "    return r0\n"]))
+    fails(repo, "defines 'final_size'", "import it instead")
+
+
+def test_the_runner_coalesces_split_streams() -> None:
+    spec = importlib.util.spec_from_file_location("run_notebooks_coalesce", ROOT / "scripts" / "run_notebooks.py")
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    nb = {"cells": [{"cell_type": "code", "id": "a", "source": "1", "execution_count": 1, "metadata": {}, "outputs": [
+        {"output_type": "stream", "name": "stdout", "text": ["R0 = ", "beta / gamma ="]},
+        {"output_type": "stream", "name": "stdout", "text": " 2.75\n"}]}], "metadata": {}, "nbformat": 4, "nbformat_minor": 5}
+    outputs = runner.strip_volatile(nb)["cells"][0]["outputs"]
+    assert len(outputs) == 1 and outputs[0]["text"] == ["R0 = beta / gamma = 2.75\n"]
+
+
+@pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
+def test_a_hand_edited_output_fails_the_release_gate(repo: Path) -> None:
+    only = "notebooks/en/02-threshold-and-final-size/01-the-threshold.ipynb"
+    path = repo / only
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace("herd threshold: 0.636", "herd threshold: 0.999", 1), encoding="utf-8")
+    assert path.read_text(encoding="utf-8") != text, "the plant must change an output"
+    r = run_release_gate(repo, "--check", "--only", only)
+    assert r.returncode == 1 and "stale" in r.stdout and "01-the-threshold.ipynb" in r.stdout, r.stdout
+
+
+@pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
+def test_a_loose_notebook_stops_the_release_gate(repo: Path) -> None:
+    shutil.copy2(repo / "notebooks/en/02-threshold-and-final-size/01-the-threshold.ipynb", repo / "notebooks/en/99-loose.ipynb")
+    r = run_release_gate(repo, "--check")
+    assert r.returncode == 1 and "99-loose.ipynb" in r.stdout and "ran   " not in r.stdout, r.stdout
+
+
+def readme_areas(repo: Path) -> tuple[str, str, str]:
+    text = (repo / "README.md").read_text(encoding="utf-8")
+    start = text.index("## Areas")
+    end = text.index("\n## ", start + 5)
+    return text[:start], text[start:end], text[end:]
+
+
+def test_the_areas_section_before_the_purpose_is_found(repo: Path) -> None:
+    pre, areas, rest = readme_areas(repo)
+    title, _, body = pre.partition("\n")
+    (repo / "README.md").write_text(f"{title}\n\n{areas}\n{body}{rest}", encoding="utf-8")
+    fails(with_dirs(repo), "comes after the purpose and the live URLs", script="check_readme_areas.py")
+
+
+def test_a_row_that_holds_a_dash_is_found(repo: Path) -> None:
+    pre, areas, rest = readme_areas(repo)
+    rows = [ln for ln in areas.splitlines() if ln.startswith("| Data |")]
+    assert rows
+    cells = rows[0].split("|")
+    cells[4] = " - "
+    (repo / "README.md").write_text(pre + areas.replace(rows[0], "|".join(cells)) + rest, encoding="utf-8")
+    fails(with_dirs(repo), "'Data'", "'What it holds'", script="check_readme_areas.py")
+
+
+def test_a_dead_document_link_in_a_row_is_found(repo: Path) -> None:
+    readme_edit(with_dirs(repo), "[guide 08](docs/guides/08_notebooks.md)", "[guide 08](docs/guides/08_absent.md)")
+    fails(repo, "links 'docs/guides/08_absent.md', which does not exist", script="check_readme_areas.py")
+
+
+def test_a_wrong_final_size_oracle_fails_the_relation(repo: Path) -> None:
+    """NB-037: the relation the oracle must solve is the check; an oracle with a perturbed exponent breaks it."""
+    path = repo / "data-pipeline" / "pipeline" / "oracles.py"
+    text = path.read_text(encoding="utf-8")
+    assert "math.exp(-r0 * z)" in text
+    path.write_text(text.replace("math.exp(-r0 * z)", "math.exp(-0.9 * r0 * z)"), encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("oracles_planted", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    z = module.final_size(2.75)
+    import math
+    assert abs(z - (1.0 - math.exp(-2.75 * z))) > 1e-3, "the planted oracle must violate z = 1 - exp(-R0 z)"
+
+
+@pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
+def test_a_convergence_cell_that_loses_its_case_is_stale(repo: Path) -> None:
+    """NB-040, local-only: the figure says EX02_epidemic, so a cell that runs the last loop case writes other numbers and the
+    release gate finds the committed outputs stale."""
+    only = "notebooks/en/01-getting-started/02-the-method-step-by-step.ipynb"
+
+    def lose_case(doc: dict) -> None:
+        cell = next(c for c in doc["cells"] if c["cell_type"] == "code" and "steps = [1.0, 0.5" in "".join(c["source"]))
+        cell["source"] = [ln for ln in cell["source"] if "params_of(\"EX02_epidemic\")" not in ln]
+        assert not any("EX02_epidemic\")" in ln for ln in cell["source"])
+    assert run_release_gate(repo, "--check", "--only", only).returncode == 0
+    jedit(repo, only, lose_case)
+    r = run_release_gate(repo, "--check", "--only", only)
+    assert r.returncode == 1 and "stale" in r.stdout, r.stdout

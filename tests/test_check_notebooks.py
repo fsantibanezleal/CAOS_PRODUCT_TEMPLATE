@@ -38,6 +38,7 @@ LOW = [1, 1, 1, 1, 3, 4, 1, 1, 1]
 NO_L3 = {"en": "No level 3:", "es": "Sin nivel 3:"}
 PIN = "numpy==2.4.6"
 DATA = "data/derived/x.json"
+SOURCE = "https://doi.org/10.1098/rspa.1927.0118"
 
 
 def write_json(path: Path, doc: dict) -> None:
@@ -61,14 +62,18 @@ def make_notebook(lang: str, topic: str, level: int, beyond: tuple[str, ...] = (
     for heading, low in zip(HEADINGS[lang], LOW):
         if level < low or (low == 4 and level != 4):
             continue
-        md(f"## {heading}\n\nWhat the next cell does, and why. Install with `pip install {PIN}`." if heading in ("Setup", "Preparación")
-           else f"## {heading}\n\nText.")
+        if heading in ("Setup", "Preparación"):
+            md(f"## {heading}\n\nWhat the next cell does, and why. Install with `pip install {PIN}`.")
+        elif heading in ("References", "Referencias"):
+            md(f"## {heading}\n\n- Kermack and McKendrick (1927). {SOURCE}")
+        else:
+            md(f"## {heading}\n\nText.")
         if heading in ("Setup", "Preparación", "Method", "Método"):
             code("# print a number\nprint(1)")
     return {"cells": cells, "nbformat": 4, "nbformat_minor": 5, "metadata": {
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}, "language_info": {"name": "python"},
         "caos": {"language": lang, "topic": topic, "level": level, "title": f"{topic} {level}", "packages": [PIN], "data": [DATA],
-                 "sources": ["https://doi.org/10.1098/rspa.1927.0118"], "beyond": list(beyond)}}}
+                 "sources": [SOURCE], "beyond": list(beyond)}}}
 
 
 TOPICS = {"01-basics": [1, 2], "02-advanced": [1, 2, 3]}
@@ -422,10 +427,11 @@ def test_the_runner_executes_in_place_and_check_writes_nothing(tmp_path: Path) -
     base, path = runner_repo(tmp_path, "# a first cell\nprint(6 * 7)")
     before = path.read_bytes()
     checked = run_runner(base, "--check", "--only", "notebooks/en/01-basics/01-note.ipynb")
-    assert checked.returncode == 0, checked.stdout + checked.stderr
+    assert checked.returncode == 1 and "stale" in checked.stdout, "a notebook never run has no fresh outputs: " + checked.stdout
     assert path.read_bytes() == before, "--check must write nothing"
     ran = run_runner(base, "--only", "notebooks/en/01-basics/01-note.ipynb")
     assert ran.returncode == 0, ran.stdout + ran.stderr
+    assert path.read_bytes() != before
     doc = json.loads(path.read_text(encoding="utf-8"))
     code = [c for c in doc["cells"] if c["cell_type"] == "code"]
     assert [c["execution_count"] for c in code] == list(range(1, len(code) + 1))
@@ -485,3 +491,246 @@ def test_the_residue_guard_lists_the_example_notebooks(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=product, check=True)
     r = subprocess.run([sys.executable, str(product / "scripts" / "check_template_residue.py"), str(product)], capture_output=True, text=True, cwd=product)
     assert r.returncode == 1 and "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb" in r.stdout, r.stdout
+
+
+# ---------------------------------------------------------------- the review fixes (template 0.10.000, findings F1 to F15)
+
+GIT_URL = "git+https://github.com/fsantibanezleal/CAOS_RiskValidation.git@v0.8.0"
+GIT_LINE = f"riskvalidation @ {GIT_URL}"
+TAG_SENTENCE = {"en": "not yet published on PyPI; installed from its release tag",
+                "es": "todavía no publicado en PyPI; instalado desde su etiqueta de versión"}
+
+
+def use_git_pin(repo: Path, *, sentence: bool = True, install: bool = True, entry: str = GIT_LINE, line: str = GIT_LINE) -> None:
+    """F3: the product consumes a package of its own not yet on PyPI, installed from its release tag, in both trees."""
+    req = repo / "notebooks" / "requirements.txt"
+    req.write_text(req.read_text(encoding="utf-8") + line + "\n", encoding="utf-8")
+    for lang in ("en", "es"):
+        for topic, levels in TOPICS.items():
+            for n in range(1, len(levels) + 1):
+                def change(doc: dict, lang: str = lang) -> None:
+                    doc["metadata"]["caos"]["packages"] = [PIN, entry]
+                    setup = next(c for c in doc["cells"] if c["source"].startswith(("## Setup", "## Preparación")))
+                    if install:
+                        setup["source"] += f'\n\n```\npip install "{GIT_URL}"\n```'
+                    if sentence:
+                        setup["source"] += f"\n\n{TAG_SENTENCE[lang]}."
+                edit(repo, lang, f"{topic}/{n:02d}-note.ipynb", change)
+
+
+def test_a_package_installed_from_its_release_tag_passes_in_its_exact_form(repo: Path) -> None:
+    use_git_pin(repo)
+    assert CHECK.findings_of(repo) == []
+
+
+def test_a_release_tag_package_needs_its_sentence(repo: Path) -> None:
+    use_git_pin(repo, sentence=False)
+    assert found(repo, "riskvalidation @ git+", "not yet published on PyPI; installed from its release tag")
+
+
+def test_a_release_tag_package_needs_the_install_line(repo: Path) -> None:
+    use_git_pin(repo, install=False)
+    assert found(repo, "pip install", GIT_URL)
+
+
+@pytest.mark.parametrize("line", [
+    "riskvalidation @ https://example.org/riskvalidation-0.8.0.zip",
+    "riskvalidation @ git+https://gitlab.com/o/riskvalidation.git@v0.8.0",
+    "riskvalidation @ git+https://github.com/o/riskvalidation.git@main",
+    "riskvalidation @ git+https://github.com/o/riskvalidation.git",
+    "riskvalidation>=0.8.0",
+    "riskvalidation==v0.8.0 extra",
+])
+def test_any_other_requirement_form_is_refused(repo: Path, line: str) -> None:
+    req = repo / "notebooks" / "requirements.txt"
+    req.write_text(req.read_text(encoding="utf-8") + line + "\n", encoding="utf-8")
+    assert found(repo, "notebooks/requirements.txt", "pins", repr(line))
+
+
+@pytest.mark.parametrize("entry", ["riskvalidation==v0.8.0", "riskvalidation @ git+https://github.com/fsantibanezleal/CAOS_RiskValidation.git@v0.9.0",
+                                   "riskvalidation"])
+def test_a_package_entry_that_is_not_an_exact_requirements_line_is_refused(repo: Path, entry: str) -> None:
+    use_git_pin(repo, entry=entry)
+    assert found(repo, "metadata", repr(entry))
+
+
+@pytest.mark.parametrize("code", [
+    "%pip install numpy==2.4.6", "!pip install numpy", "%conda install numpy", "!conda install numpy", "  %pip install numpy",
+    "import subprocess, sys\nsubprocess.run([sys.executable, '-m', 'pip', 'install', 'numpy'])",
+    "import os\nos.system('python -m pip install numpy')", "import os\nos.system(\"pip install numpy\")",
+])
+def test_a_notebook_never_runs_pip(repo: Path, code: str) -> None:
+    edit(repo, "en", "01-basics/01-note.ipynb", lambda d: next(c for c in d["cells"] if c["cell_type"] == "code").update(source=f"# install\n{code}"))
+    assert found(repo, "01-basics/01-note.ipynb", "anatomy", "a notebook never runs pip itself (convention section 4)")
+
+
+def test_a_comment_that_names_pip_is_not_running_it(repo: Path) -> None:
+    edit(repo, "en", "01-basics/01-note.ipynb", lambda d: next(c for c in d["cells"] if c["cell_type"] == "code").update(
+        source="# pip install numpy is done in the Setup text, never here\nprint(1)"))
+    assert CHECK.findings_of(repo) == []
+
+
+@pytest.mark.parametrize("text", ["p = 'D:\\\\_Datos\\\\sir'", "WindowsPath('D:\\\\_Temp\\\\x')", "c:\\\\Users\\\\someone", "E:/_Datos/sir",
+                                  "/opt/runner/work/repo/x", "/tmp/x.json", "/root/.cache/x", "/var/log/x", "/srv/data/x"])
+def test_a_drive_path_literal_and_the_posix_roots_are_found(repo: Path, text: str) -> None:
+    edit(repo, "en", "01-basics/01-note.ipynb", lambda d: next(c for c in d["cells"] if c["cell_type"] == "code").update(source=f"# a path\n{text}"))
+    assert found(repo, "01-basics/01-note.ipynb", ": path:")
+
+    def out(doc: dict) -> None:
+        next(c for c in doc["cells"] if c["cell_type"] == "code")["outputs"] = [{"output_type": "stream", "name": "stdout", "text": text + "\n"}]
+    edit(repo, "en", "01-basics/02-note.ipynb", out)
+    assert found(repo, "01-basics/02-note.ipynb", ": path:")
+
+
+def test_prose_that_only_looks_like_a_path_is_not_one(repo: Path) -> None:
+    text = "Ratio a:b, https://doi.org/10.1/x, https://example.org/opt/y, the path data/tmp/x, ../tmp/z, Note: and 5:1."
+    edit(repo, "en", "01-basics/01-note.ipynb", lambda d: d["cells"][1].update(source=f"## Objectives\n\n{text}"))
+    assert CHECK.findings_of(repo) == []
+
+
+def test_a_traceback_printed_to_stdout_is_found(repo: Path) -> None:
+    def tb(doc: dict) -> None:
+        next(c for c in doc["cells"] if c["cell_type"] == "code")["outputs"] = [
+            {"output_type": "stream", "name": "stdout", "text": "Traceback (most recent call last):\n  File \"x\", line 1\nKeyError: 'a'\n"}]
+    edit(repo, "en", "01-basics/01-note.ipynb", tb)
+    assert found(repo, "01-basics/01-note.ipynb", "output", "prints a traceback")
+
+
+@pytest.mark.parametrize("rel", ["notebooks/en/00-loose.ipynb", "notebooks/00-loose.ipynb", "notebooks/en/01-basics/extra/01-deep.ipynb",
+                                 "notebooks/fr/01-basics/01-note.ipynb"])
+def test_a_notebook_outside_the_layout_is_found(repo: Path, rel: str) -> None:
+    target = repo / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(repo / "notebooks" / "en" / "01-basics" / "01-note.ipynb", target)
+    assert found(repo, rel, "layout", "notebooks/<language>/<topic>/<notebook>.ipynb")
+
+
+def test_the_install_line_and_the_references_are_enforced(repo: Path) -> None:
+    def no_install(doc: dict) -> None:
+        setup = next(c for c in doc["cells"] if c["source"].startswith("## Setup"))
+        setup["source"] = f"## Setup\n\nThe pin is {PIN} but no command is shown."
+    edit(repo, "en", "01-basics/01-note.ipynb", no_install)
+    assert found(repo, "en/01-basics/01-note.ipynb", "anatomy", "pip install", PIN)
+
+    def two_pins_one_line(doc: dict) -> None:
+        setup = next(c for c in doc["cells"] if c["source"].startswith("## Preparación"))
+        setup["source"] = f"## Preparación\n\n```\npip install matplotlib==3.11.2 \\\n  {PIN}\n```"
+    edit(repo, "es", "01-basics/01-note.ipynb", two_pins_one_line)
+    assert not found(repo, "es/01-basics/01-note.ipynb", "pip install")
+
+    def no_reference(doc: dict) -> None:
+        refs = next(c for c in doc["cells"] if c["source"].startswith("## References"))
+        refs["source"] = "## References\n\n- Kermack and McKendrick (1927), without a link."
+    edit(repo, "en", "01-basics/02-note.ipynb", no_reference)
+    assert found(repo, "en/01-basics/02-note.ipynb", "sources", "References", SOURCE)
+
+
+# ---- the runner: coalesced streams (F2), the fresh-versus-committed comparison (F10), the layout (F9)
+
+def test_consecutive_streams_of_one_name_are_coalesced() -> None:
+    nb = {"cells": [{"cell_type": "code", "id": "a", "source": "x", "execution_count": 1, "metadata": {}, "outputs": [
+        {"output_type": "stream", "name": "stdout", "text": ["R0 = ", "beta / gamma ="]},
+        {"output_type": "stream", "name": "stdout", "text": " 2.75\n"},
+        {"output_type": "stream", "name": "stderr", "text": "warn\n"},
+        {"output_type": "stream", "name": "stdout", "text": "after\n"},
+        {"output_type": "display_data", "data": {"text/plain": "x"}, "metadata": {}},
+        {"output_type": "stream", "name": "stdout", "text": "tail "},
+        {"output_type": "stream", "name": "stdout", "text": "end\n"}]}], "metadata": {}, "nbformat": 4, "nbformat_minor": 5}
+    outs = RUNNER.strip_volatile(nb)["cells"][0]["outputs"]
+    assert [(o["output_type"], o.get("name")) for o in outs] == [("stream", "stdout"), ("stream", "stderr"), ("stream", "stdout"),
+                                                                 ("display_data", None), ("stream", "stdout")]
+    assert outs[0]["text"] == ["R0 = beta / gamma = 2.75\n"]
+    assert "".join(outs[4]["text"]) == "tail end\n"
+    assert len(nb["cells"][0]["outputs"]) == 7, "the input is not mutated"
+
+
+@needs_env
+def test_a_print_in_two_chunks_writes_one_stream_byte_identical_across_runs(tmp_path: Path) -> None:
+    base, path = runner_repo(tmp_path, "# print in two chunks\nimport time\nprint('a', end='', flush=True)\ntime.sleep(0.3)\nprint('b')")
+    args = ("--only", "notebooks/en/01-basics/01-note.ipynb")
+    assert run_runner(base, *args).returncode == 0
+    first = path.read_bytes()
+    doc = json.loads(first.decode("utf-8"))
+    outputs = next(c for c in doc["cells"] if c["cell_type"] == "code")["outputs"]
+    assert len(outputs) == 1 and "".join(outputs[0]["text"]) == "ab\n", outputs
+    assert run_runner(base, *args).returncode == 0
+    assert path.read_bytes() == first
+
+
+@needs_env
+def test_check_fails_a_notebook_whose_committed_outputs_are_stale(tmp_path: Path) -> None:
+    base, path = runner_repo(tmp_path, "# a first cell\nprint(6 * 7)")
+    args = ("--only", "notebooks/en/01-basics/01-note.ipynb")
+    assert run_runner(base, *args).returncode == 0
+    assert run_runner(base, "--check", *args).returncode == 0, "a fresh in-place run passes the comparison"
+    path.write_text(path.read_text(encoding="utf-8").replace('"42\\n"', '"43\\n"'), encoding="utf-8")
+    stale = run_runner(base, "--check", *args)
+    assert stale.returncode == 1 and "stale" in stale.stdout and "01-note.ipynb" in stale.stdout, stale.stdout
+
+
+@needs_env
+def test_the_runner_refuses_a_notebook_outside_the_layout_and_runs_none(tmp_path: Path) -> None:
+    base, path = runner_repo(tmp_path, "# a first cell\nprint(6 * 7)")
+    loose = base / "notebooks" / "en" / "00-loose.ipynb"
+    shutil.copy2(path, loose)
+    before = path.read_bytes()
+    r = run_runner(base)
+    assert r.returncode == 1 and "00-loose.ipynb" in r.stdout and "notebooks/<language>/<topic>/<notebook>.ipynb" in r.stdout, r.stdout
+    assert path.read_bytes() == before, "nothing ran, nothing was written"
+
+
+# ---- the example set after the fixes (F1, F12, F13, F14)
+
+def cells_of(lang: str, rel: str) -> list[dict]:
+    return json.loads((ROOT / "notebooks" / lang / rel).read_text(encoding="utf-8"))["cells"]
+
+
+@pytest.mark.parametrize("lang", ["en", "es"])
+def test_the_convergence_cell_names_the_case_it_runs(lang: str) -> None:
+    """F1: the figure is titled EX02_epidemic, so the cell binds that case itself instead of reusing the last loop variable."""
+    cells = cells_of(lang, "01-getting-started/02-the-method-step-by-step.ipynb")
+    cell = next(c for c in cells if c["cell_type"] == "code" and "steps = [1.0, 0.5" in CHECK.text_of(c["source"]))
+    code = CHECK.text_of(cell["source"])
+    body = [ln for ln in code.splitlines() if ln.strip() and not ln.lstrip().startswith("#")]
+    assert body[0] == 'p = params_of("EX02_epidemic")', body[0]
+    printed = "".join(CHECK.text_of(o.get("text", "")) for o in cell["outputs"])
+    assert "0.933717" in printed and "0.300894" not in printed, printed  # EX02's first attack rate, not EX04's
+
+
+@pytest.mark.parametrize("lang,fixed,stale", [("en", "0.000002", "about 0.00005 for the cases that ended"),
+                                              ("es", "0,000002", "cerca de 0,00005 en los casos que terminaron")])
+def test_the_fast_burn_difference_is_stated_for_both_cases(lang: str, fixed: str, stale: str) -> None:
+    """F12: the derived relation differs from level 2 by 0.00005 for the epidemic case and 0.000002 for the fast burn."""
+    text = "\n".join(CHECK.text_of(c["source"]) for c in cells_of(lang, "02-threshold-and-final-size/03-next-generation-matrix-and-final-size-derivation.ipynb"))
+    assert fixed in text and stale not in text
+
+
+def test_the_spanish_final_size_notebook_uses_one_decimal_separator() -> None:
+    """F13: the Spanish prose writes its decimals with a comma, every number of the notebook's prose, in the same cell too."""
+    import re
+    for c in cells_of("es", "02-threshold-and-final-size/02-the-final-size.ipynb"):
+        if c["cell_type"] == "markdown":
+            prose = re.sub(r"`[^`]*`|https?://\S+|10\.\d{4,9}/\S+", "", CHECK.text_of(c["source"]))
+            assert not re.search(r"\d\.\d", prose), prose[:200]
+
+
+def test_the_final_size_solver_is_imported_by_the_notebooks_and_defined_in_none() -> None:
+    """F14: a method is imported, never defined in a notebook; the solver lives in data-pipeline/pipeline/oracles.py."""
+    assert "final_size" in CHECK.engine_names(ROOT)
+    users = 0
+    for path in (ROOT / "notebooks").rglob("*.ipynb"):
+        code = "\n".join(CHECK.text_of(c["source"]) for c in json.loads(path.read_text(encoding="utf-8"))["cells"] if c["cell_type"] == "code")
+        assert "final_size" not in CHECK.defined_names(code), path.name
+        if "final_size(" in code:
+            users += 1
+            assert "from pipeline.oracles import final_size" in code, path.name
+    assert users == 6
+
+
+def test_a_notebook_that_redefines_the_oracle_is_found(repo: Path) -> None:
+    oracles = repo / "data-pipeline" / "pipeline"
+    oracles.mkdir(parents=True)
+    (oracles / "oracles.py").write_text("def final_size(r0):\n    return r0\n", encoding="utf-8")
+    edit(repo, "en", "01-basics/01-note.ipynb", lambda d: next(c for c in d["cells"] if c["cell_type"] == "code").update(
+        source="# a copy of the oracle\ndef final_size(r0):\n    return r0"))
+    assert found(repo, "01-basics/01-note.ipynb", "defines 'final_size'", "import it instead")
