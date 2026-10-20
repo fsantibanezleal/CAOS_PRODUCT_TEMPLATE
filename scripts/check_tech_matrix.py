@@ -3,7 +3,7 @@
 
 The SDD section ``Technology and versions`` holds one table ``| component | package | version | use | alternative
 considered |``. This guard reads every pin of the Python requirements (every ``requirements*.txt`` at the root,
-``data-pipeline/requirements*.txt``, each ``-r`` include followed, and ``[project].dependencies`` of ``pyproject.toml``
+``data-pipeline/requirements*.txt``, ``notebooks/requirements*.txt``, each ``-r`` include followed, and ``[project].dependencies`` of ``pyproject.toml``
 when present) and of ``frontend/package.json`` (``dependencies``, ``devDependencies``, ``optionalDependencies``,
 ``peerDependencies`` and ``overrides``) and fails, naming each one, when
 
@@ -85,7 +85,8 @@ def add_pin(pins: dict[str, tuple[str, str]], name: str, version: str, source: s
 
 
 def python_files() -> list[Path]:
-    found = sorted(ROOT.glob("requirements*.txt")) + sorted((ROOT / "data-pipeline").glob("requirements*.txt"))
+    found = (sorted(ROOT.glob("requirements*.txt")) + sorted((ROOT / "data-pipeline").glob("requirements*.txt"))
+             + sorted((ROOT / "notebooks").glob("requirements*.txt")))  # the notebook environment (template 0.10.000)
     return [p.resolve() for p in found]
 
 
