@@ -18,8 +18,8 @@ contract test. The guard leaves it to that test and requires the row to name one
 column must be filled (not empty and not ``-``). It lists these files after the count and does not parse them.
 
 Errors: a file matched by two rows (one committed document has one contract); a file under ``data/derived`` or ``models``
-(root or provider tree) that is JSON and that no row covers (it would pass unvalidated); a document that is not JSON or
-departs from its schema (the path and the schema are named); an absent document of a row whose ``missing-data behavior``
+(root or provider tree) that is JSON and that no row covers (it would pass unvalidated); a ``.json`` file that is not JSON or
+departs from its schema (the path and the schema are named); a non-JSON document whose row names no test; an absent document of a row whose ``missing-data behavior``
 begins ``missing:`` and whose ``documents`` cell is one fixed path (for the template, the index: no inventory, nothing to
 validate). A glob that matches nothing is not reported: scripts/check_artifacts.py and scripts/check_readiness.py judge
 absence. The generated TypeScript types do not encode a ``pattern`` or a ``minItems``; this check does (review finding F5).
