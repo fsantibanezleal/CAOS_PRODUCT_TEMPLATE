@@ -21,8 +21,8 @@ Usage (from the CAOS_MANAGE root, with the repo .venv)::
 
     python tools/agents/contracts_check.py <catalog.md> [--repo-root <dir>]
 """
-# Vendored from fsantibanezleal/CAOS_MANAGE tools/agents/contracts_check.py at bd0251f2; update from the source, never edit here. Template 0.09.000 added the `documents` column check (RELEASE_COLUMNS, split_documents,
-# parse_document_glob, document_problems); check_documents.py imports the parser, so the source is to receive it.
+# Vendored from fsantibanezleal/CAOS_MANAGE tools/agents/contracts_check.py at bd0251f2; update from the source, never edit here. The source carries the `documents` column check (RELEASE_COLUMNS, split_documents,
+# parse_document_glob, document_problems) since template 0.09.000; check_documents.py imports the parser.
 
 from __future__ import annotations
 

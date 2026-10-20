@@ -73,7 +73,7 @@ sets `"app": "surface"`, `"focus": false` and a `focus_reason`, and writes the s
 `not applicable: <reason>`. `scripts/check_sdd.py` fails a waiver on a workbench, without a reason (or with fewer than 8 words or a
 placeholder), without the row or with a row that gives another reason, and a row that says `not applicable` while `product.json`
 records no waiver. `npm run gate` reads the same two places and refuses to run when they disagree; it never drops
-`--require-focus` otherwise, whatever extra arguments a run passes. When `deploy/TARGET` is `vps`, the runner also passes
+`--require-focus` otherwise, whatever extra arguments a run passes. While Focus is required it also refuses an argument that would make the check measure nothing: `--workbench`, `--app-route` on a workbench, or a `--routes` list that leaves out the App route. When `deploy/TARGET` is `vps`, the runner also passes
 `--spa-fallback`, so the build is served as nginx serves it (`try_files $uri $uri/ /index.html`).
 
 ## 2. Write the specification area, then fix the contracts
@@ -188,7 +188,7 @@ Two guards take what a product commits by design, declared and never exempted in
 both scripts verbatim and keeps no variant):
 
 - **Model files.** `scripts/check_base_integrity.py` still fails on a tracked real `.env`, a venv, a native or heavy binary,
-  raw or heavy data and a local machine path. A small model file (`.pt`, `.pth`, `.onnx`, `.npy`) passes only when a catalog
+  raw or heavy data and a local machine path. A small model file (`.pt`, `.pth`, `.onnx`) passes only when a catalog
   row's `documents` cell names it (`data/models/*.pt`) and it is at most 5 MB, all such files together at most 50 MB. A
   product with no catalog admits none. Anything bigger lives in the models root, not in the repository.
 - **Third-party notices.** A notice file copied unmodified from upstream (an ONNX Runtime or licence text with em-dashes) is
@@ -204,8 +204,8 @@ others to the row's own contract test (its `model io` column describes the contr
 
 ### Files a product takes verbatim
 
-A product takes these scripts from the template as they are and keeps no variant; they hold nothing that names a person or a
-product, and `tests/adversarial/test_guard_gaps_0_09_0.py` fails when one of them names the owner:
+A product takes these scripts from the template as they are and keeps no variant; they hold nothing that names a person (the GitHub
+handle `fsantibanezleal`, the repositories' owner identifier, may stand in a source URL) or a product, and `tests/adversarial/test_guard_gaps_0_09_0.py` fails when one of them names the owner:
 
 - `scripts/check_sdd.py`
 - `scripts/check_tech_matrix.py`
@@ -213,6 +213,7 @@ product, and `tests/adversarial/test_guard_gaps_0_09_0.py` fails when one of the
 - `scripts/check_contracts.py`
 - `scripts/check_base_integrity.py`
 - `scripts/check_content_standards.py`
+- `frontend/scripts/gate.mjs`
 
 A release bumps `VERSION`, `frontend/package.json` and the top of `CHANGELOG.md` together, merges `develop` into
 `main` through a pull request, and tags `vX.XX.XXX`. The deploy runs after CI succeeds on `main` and checks the live

@@ -192,7 +192,7 @@ def test_a_surface_app_without_focus_keeps_the_requirement_for_every_extra_argum
     """A surface with no waiver is measured with --require-focus however the run is started: an App with no focusable view
     cannot pass the shell gate, and nothing a run adds can lift the requirement."""
     set_product(app_repo, app="surface")
-    for extra in ([], ["--url", "https://example.org"], ["--sizes", "1280x800"], ["--workbench", "/app"]):
+    for extra in ([], ["--url", "https://example.org"], ["--sizes", "1280x800"]):
         r, args = runner(app_repo, *extra)
         assert r.returncode == 0 and "--require-focus" in args, (extra, r.stderr, args)
 
