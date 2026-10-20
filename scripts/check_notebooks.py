@@ -6,7 +6,8 @@ Static, standard library only (CI installs nothing). It never executes a noteboo
 as a local release gate (ADR-0074). It fails, naming the file and the rule, on
 
 - **layout**: a missing ``notebooks/README.md``, ``notebooks/requirements.txt``, ``notebooks/en/README.md`` or
-  ``notebooks/es/README.md``; a stray file in a topic folder (only ``*.ipynb``);
+  ``notebooks/es/README.md``; a stray file in a topic folder (only ``*.ipynb``); a notebook anywhere but
+  ``notebooks/<language>/<topic>/<notebook>.ipynb`` (loose at a root or nested deeper: it would be neither checked nor run);
 - **mirror**: a path of one language tree absent from the other; counterparts that differ in level, packages, data, beyond
   claims or number of cells;
 - **numbering**: topics and notebooks are ``NN-slug``, two digits, contiguous from 01;
@@ -18,14 +19,22 @@ as a local release gate (ADR-0074). It fails, naming the file and the rule, on
 - **anatomy**: the second-level sections of the tree's language, in order, as the level requires; a first cell that is not
   markdown; a code cell not directly preceded by a markdown cell, or without a comment;
 - **metadata**: the ``caos`` block (language, topic, level, title, packages, data, sources, beyond) must agree with the
-  tree, the folder, ``notebooks/requirements.txt`` (exact pins, also written in the notebook's text) and the repository
-  (every data path exists); notebook metadata beyond kernelspec, language_info and caos, and cell metadata beyond tags;
+  tree, the folder, ``notebooks/requirements.txt`` (each package an exact line of it, ``name==version`` or
+  ``name @ git+https://github.com/<owner>/<repo>.git@<tag>``, shown in the Setup text as its ``pip install`` line; the second
+  form also with the sentence "not yet published on PyPI; installed from its release tag") and the repository (every data
+  path exists); notebook metadata beyond kernelspec, language_info and caos, and cell metadata beyond tags;
+- **references**: every link of ``caos.sources`` appears in the notebook's References section;
 - **sources**: every link of ``caos.sources`` must be a source the SDD lists (its research basis summarises the persisted
   research claim by claim, each with its source; a notebook cites nothing else);
 - **no re-implementation**: a code cell that defines a function or a class the pipeline's engine modules
-  (``data-pipeline/**/model/*.py``) already define (a notebook imports a method, never copies it);
-- **clean**: execution counts that are not 1, 2, 3 in order; an error output or a stderr stream; an absolute or machine
-  path or a token pattern in any cell or output; a notebook or an image above the limits;
+  (``data-pipeline/**/model/*.py``) or oracles (``data-pipeline/**/oracles.py``) already define (a notebook imports a method,
+  never copies it); a code cell that runs ``pip`` or ``conda`` (the Setup text shows the install command, a notebook never
+  runs it);
+- **clean**: execution counts that are not 1, 2, 3 in order; an error output, a traceback printed to stdout or a stderr
+  stream; an absolute or machine path (a drive letter in any literal form, a home folder, the POSIX roots ``/opt/``,
+  ``/tmp/``, ``/root/``, ``/var/``, ``/srv/``) or a token pattern in any cell or output; a notebook or an image above the
+  limits. A user name is not statically decidable (the template holds no deny-list of names): a product reviews it itself
+  (guide 08, section 5);
 - **CI**: ``.github/workflows/ci.yml`` runs this check and ``check_readme_areas.py``, and no workflow executes the notebooks.
 
 Usage: ``python scripts/check_notebooks.py [repo_root]``. Exit 0 clean, 1 on any finding.
@@ -67,8 +76,17 @@ SLUG = re.compile(r"^(\d{2})-([a-z0-9]+(?:-[a-z0-9]+)*)$")
 NOTEBOOK = re.compile(r"^(\d{2})-([a-z0-9]+(?:-[a-z0-9]+)*)\.ipynb$")
 BS_ID = re.compile(r"\bBS-\d+\b")
 PIN = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==(\d[0-9A-Za-z.+!_-]*)$")
-# a drive letter, a home folder: a machine path never belongs in a committed notebook (convention section 6)
-MACHINE_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/](?![\\/])|/home/|/Users/|\\Users\\|/mnt/[a-z]/")
+# a package installed from its release tag (convention section 5, decided 2026-10-20): name @ git+https://github.com/<owner>/<repo>.git@<tag>
+GIT_PIN = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*) @ (git\+https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+\.git)@(v?\d[0-9A-Za-z.+_-]*)$")
+TAG_SENTENCE = {"en": "not yet published on PyPI; installed from its release tag",
+                "es": "todavía no publicado en PyPI; instalado desde su etiqueta de versión"}
+# a drive letter (one or two backslashes, as a Python literal or a repr, or a slash), a home folder, an absolute POSIX root:
+# a machine path never belongs in a committed notebook (convention section 6)
+MACHINE_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:(?:\\{1,2}|/(?!/))|/home/|/Users/|\\Users\\|/mnt/[a-z]/|(?<![\w.~-])/(?:opt|tmp|root|var|srv)/")
+# a notebook that installs: a pip or conda magic or shell line, `-m pip`, or a `pip install`, outside a comment
+RUNS_PIP = re.compile(r"^\s*[%!]\s*(?:pip|conda|mamba)\b|-m['\"]?\s*,?\s*['\"]?pip\b|\bpip\s+install\b", re.M)
+TRACEBACK = "Traceback (most recent call last)"
+NOTEBOOK_PATH = "notebooks/<language>/<topic>/<notebook>.ipynb"
 TOKENS = (
     re.compile(r"\bghp_[A-Za-z0-9]{20,}"), re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}"),
     re.compile(r"\bsk-[A-Za-z0-9_-]{20,}"), re.compile(r"\bAKIA[0-9A-Z]{16}\b"), re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}"),
@@ -129,9 +147,11 @@ def image_sizes(cell: dict) -> list[tuple[str, int]]:
 
 
 def engine_names(root: Path) -> set[str]:
-    """The public functions and classes the pipeline's engine modules define (``data-pipeline/**/model/*.py``)."""
+    """The public functions and classes the pipeline's methods define: the engine (``data-pipeline/**/model/*.py``) and the
+    oracles (``data-pipeline/**/oracles.py``); a notebook imports them and never defines its own."""
     names: set[str] = set()
-    for path in sorted((root / "data-pipeline").glob("**/model/*.py")) if (root / "data-pipeline").is_dir() else []:
+    pipeline = root / "data-pipeline"
+    for path in sorted([*pipeline.glob("**/model/*.py"), *pipeline.glob("**/oracles.py")]) if pipeline.is_dir() else []:
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"))
         except (OSError, SyntaxError):
@@ -165,27 +185,82 @@ def sdd_sources(root: Path) -> set[str]:
     return {canonical(m[0]) for m in DOI.finditer(text)} | {canonical(m[0]) for m in LINK.finditer(text)}
 
 
-def read_pins(root: Path) -> dict[str, str]:
-    """name (lower case, ``-``) -> version of ``notebooks/requirements.txt``."""
-    pins: dict[str, str] = {}
+def requirement_lines(root: Path) -> list[str]:
+    """The requirement lines of ``notebooks/requirements.txt``, without comments and blank lines."""
     path = root / "notebooks" / "requirements.txt"
+    lines: list[str] = []
     if path.is_file():
         for raw in path.read_text(encoding="utf-8").splitlines():
             line = raw.split(" #")[0].strip()
-            if line and not line.startswith("#") and (m := PIN.match(line)):
-                pins[re.sub(r"[-_.]+", "-", m[1].lower())] = m[2]
-    return pins
+            if line and not line.startswith("#"):
+                lines.append(line)
+    return lines
+
+
+def is_exact(line: str) -> bool:
+    """An exact requirement line: ``name==version`` (PyPI) or ``name @ git+https://github.com/<owner>/<repo>.git@<tag>``."""
+    return bool(PIN.match(line) or GIT_PIN.match(line))
+
+
+def read_pins(root: Path) -> set[str]:
+    """The exact requirement lines of ``notebooks/requirements.txt``: what a notebook's ``caos.packages`` may hold."""
+    return {line for line in requirement_lines(root) if is_exact(line)}
 
 
 def unpinned_lines(root: Path) -> list[str]:
-    path = root / "notebooks" / "requirements.txt"
+    return [line for line in requirement_lines(root) if not is_exact(line)]
+
+
+def install_spec(package: str) -> str:
+    """What the Setup install line shows for a package: ``name==version``, or the ``git+https://...@<tag>`` part."""
+    m = GIT_PIN.match(package)
+    return f"{m[2]}@{m[3]}" if m else package
+
+
+def sections_of(cells: list[dict]) -> dict[str, str]:
+    """The markdown text of each second-level section (keyed by its heading), code fences respected."""
+    out: dict[str, list[str]] = {}
+    current: str | None = None
+    fenced = False
+    for c in cells:
+        if c["cell_type"] != "markdown":
+            continue
+        for line in text_of(c["source"]).splitlines():
+            if FENCE.match(line):
+                fenced = not fenced
+            elif not fenced and (m := HEADING2.match(line)):
+                current = m[1].strip()
+                out.setdefault(current, [])
+                continue
+            if current is not None:
+                out[current].append(line)
+        fenced = False
+    return {k: "\n".join(v) for k, v in out.items()}
+
+
+def install_lines(text: str) -> list[str]:
+    """The ``pip install`` commands of a text, a trailing backslash joining the next line to its command."""
+    lines = text.splitlines()
     out: list[str] = []
-    if path.is_file():
-        for raw in path.read_text(encoding="utf-8").splitlines():
-            line = raw.split(" #")[0].strip()
-            if line and not line.startswith("#") and not PIN.match(line):
-                out.append(line)
+    n = 0
+    while n < len(lines):
+        command = lines[n]
+        while command.rstrip().endswith("\\") and n + 1 < len(lines):
+            n += 1
+            command = command.rstrip()[:-1] + " " + lines[n].strip()
+        if re.search(r"\bpip\s+install\b", command):
+            out.append(command)
+        n += 1
     return out
+
+
+def without_comments(code: str) -> str:
+    """A code cell without its comment tokens (a ``#`` inside a string stays); an unparsable cell loses its ``#`` lines."""
+    try:
+        keep = [t for t in tokenize.generate_tokens(io.StringIO(code).readline) if t.type != tokenize.COMMENT]
+        return tokenize.untokenize(keep)
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return "\n".join(ln for ln in code.splitlines() if not ln.strip().startswith("#"))
 
 
 def sdd_claims(root: Path) -> tuple[set[str] | None, str | None]:
@@ -262,7 +337,7 @@ def check_numbering(names: list[str], pattern: re.Pattern[str], rel: str, kind: 
         findings.append(f"{rel}: numbering: the {kind}s are numbered {nums}, not 01 up to {len(nums):02d} with no gap or repeat")
 
 
-def check_notebook(root: Path, lang: str, topic: str, name: str, nb: dict, pins: dict[str, str], claims: set[str],
+def check_notebook(root: Path, lang: str, topic: str, name: str, nb: dict, pins: set[str], claims: set[str],
                    engine: set[str], listed: set[str], findings: list[str]) -> None:
     rel = f"notebooks/{lang}/{topic}/{name}"
     path = root / rel
@@ -300,16 +375,27 @@ def check_notebook(root: Path, lang: str, topic: str, name: str, nb: dict, pins:
         markdown_all = "\n".join(text_of(c["source"]) for c in cells if c["cell_type"] == "markdown")
         packages = caos.get("packages")
         if "packages" in caos and not (isinstance(packages, list) and all(isinstance(p, str) for p in packages)):
-            findings.append(f"{rel}: metadata: caos.packages is not a list of name==version strings")
+            findings.append(f"{rel}: metadata: caos.packages is not a list of exact requirement lines of notebooks/requirements.txt")
         else:
+            sections = sections_of(cells)
+            setup = sections.get("Setup" if lang == "en" else "Preparación", "")
+            commands = install_lines(setup)
             for p in packages or []:
-                m = PIN.match(p)
-                if not m:
-                    findings.append(f"{rel}: metadata: package {p!r} is not an exact pin name==version")
-                elif pins.get(re.sub(r"[-_.]+", "-", m[1].lower())) != m[2]:
-                    findings.append(f"{rel}: metadata: package {p!r} is not a pin of notebooks/requirements.txt")
-                elif p not in markdown_all:
-                    findings.append(f"{rel}: metadata: package {p!r} is not written in the notebook's text (the Setup install line)")
+                if not is_exact(p):
+                    findings.append(f"{rel}: metadata: package {p!r} is not an exact requirement line "
+                                    "(name==version, or name @ git+https://github.com/<owner>/<repo>.git@<tag>)")
+                elif p not in pins:
+                    findings.append(f"{rel}: metadata: package {p!r} is not a pin of notebooks/requirements.txt (an exact line of it)")
+                else:
+                    spec = install_spec(p)
+                    if spec not in markdown_all:
+                        findings.append(f"{rel}: metadata: package {p!r} is not written in the notebook's text (the Setup `pip install` line)")
+                    elif not any(spec in c for c in commands):
+                        findings.append(f"{rel}: anatomy: the Setup section shows no `pip install` line with {spec!r} "
+                                        "(the familiar install command, in a markdown code block)")
+                    if GIT_PIN.match(p) and TAG_SENTENCE[lang] not in setup:
+                        findings.append(f"{rel}: anatomy: {p!r} is installed from its release tag, so the Setup section says "
+                                        f"\"{TAG_SENTENCE[lang]}\"")
         data = caos.get("data")
         if "data" in caos and not (isinstance(data, list) and all(isinstance(d, str) for d in data)):
             findings.append(f"{rel}: metadata: caos.data is not a list of repository paths")
@@ -321,9 +407,13 @@ def check_notebook(root: Path, lang: str, topic: str, name: str, nb: dict, pins:
         if "sources" in caos and not (isinstance(sources, list) and sources and all(isinstance(s, str) and s.startswith("http") for s in sources)):
             findings.append(f"{rel}: metadata: caos.sources is not a non-empty list of https links")
         else:
+            references = sections_of(cells).get("References" if lang == "en" else "Referencias", "").lower()
             for src in sources or []:
                 if canonical(src) not in listed:
                     findings.append(f"{rel}: sources: {src!r} is not a source the SDD lists (add it to the SDD's research basis, or cite another)")
+                key = canonical(src)
+                if (key[4:] if key.startswith("doi:") else key) not in references:
+                    findings.append(f"{rel}: sources: the References section does not list {src!r} (it lists every source cited)")
         beyond = caos.get("beyond")
         if "beyond" in caos and not (isinstance(beyond, list) and all(isinstance(b, str) for b in beyond)):
             findings.append(f"{rel}: metadata: caos.beyond is not a list of BS- identifiers")
@@ -365,8 +455,11 @@ def check_notebook(root: Path, lang: str, topic: str, name: str, nb: dict, pins:
                 findings.append(f"{rel}: anatomy: code cell {i} is not preceded by a markdown cell that says what it does and why")
             if not has_comment(code):
                 findings.append(f"{rel}: anatomy: code cell {i} carries no comment line")
+            if RUNS_PIP.search(without_comments(code)):
+                findings.append(f"{rel}: anatomy: code cell {i} runs pip or conda: a notebook never runs pip itself (convention section 4); "
+                                "the Setup text shows the install command")
             for copied in sorted(defined_names(code) & engine):
-                findings.append(f"{rel}: engine: code cell {i} defines {copied!r}, which the pipeline's engine modules already define; "
+                findings.append(f"{rel}: engine: code cell {i} defines {copied!r}, which the pipeline's engine or oracle modules already define; "
                                 "import it instead of re-implementing it")
         previous = c["cell_type"]
     # ---- cell metadata and clean
@@ -387,6 +480,8 @@ def check_notebook(root: Path, lang: str, topic: str, name: str, nb: dict, pins:
                     findings.append(f"{rel}: output: code cell {i} holds an error output ({o.get('ename')})")
                 if o.get("output_type") == "stream" and o.get("name") == "stderr":
                     findings.append(f"{rel}: output: code cell {i} holds a stderr stream")
+                if o.get("output_type") != "error" and TRACEBACK in text_of(o.get("text", "")):
+                    findings.append(f"{rel}: output: code cell {i} prints a traceback ({TRACEBACK!r}) to its output")
             texts += output_texts(c)
             for mime, n in image_sizes(c):
                 if n > MAX_IMAGE_BYTES:
@@ -461,7 +556,13 @@ def findings_of(root: Path) -> list[str]:
         if not (nb / rel).is_file() or not (nb / rel).read_text(encoding="utf-8").strip():
             findings.append(f"notebooks/{rel}: layout: missing or empty")
     for line in unpinned_lines(root):
-        findings.append(f"notebooks/requirements.txt: pins: {line!r} is not an exact pin name==version")
+        findings.append(f"notebooks/requirements.txt: pins: {line!r} is not an exact pin "
+                        "(name==version, or name @ git+https://github.com/<owner>/<repo>.git@<tag>)")
+    for found_at in sorted(nb.rglob("*.ipynb")) if nb.is_dir() else []:
+        rel = found_at.relative_to(nb).parts
+        if not (len(rel) == 3 and rel[0] in LANGS):
+            findings.append(f"notebooks/{'/'.join(rel)}: layout: a notebook lives at {NOTEBOOK_PATH} "
+                            "(a notebook elsewhere is neither checked nor run)")
     claims, problem = sdd_claims(root)
     if problem:
         findings.append(f"docs/design/SDD.md: beyond: {problem}")

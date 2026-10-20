@@ -5,8 +5,10 @@ The README has a section ``## Areas`` with a table ``| Area | Folder | Status | 
 convention: Web, API, Core pipelines, Packages, Notebooks, Data, Contracts, Documentation, Tests and gates, Deploy. The check
 fails, naming the area, on
 
-- a README without the section or without the table;
+- a README without the section or without the table, or with the section before the one-paragraph purpose and the live URLs
+  (convention section 8: the section comes after them);
 - an area without its row, or a row twice;
+- a row whose 'What it holds' is shorter than three words, or links (in any cell) a path that does not exist;
 - a row whose Status does not start with ``active`` or ``dormant``, or a dormant one with no reason
   (``dormant: <why, three words or more>``);
 - a row that does not link its folder (the convention's folder, as a relative markdown link), or links a folder that does not
@@ -35,11 +37,15 @@ AREAS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 HEAD = ["area", "folder", "status", "what it holds"]
 MIN_REASON_WORDS = 3
+MIN_HOLDS_WORDS = 3
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+LINK_TEXT = re.compile(r"\[[^\]]*\]\([^)]*\)")
 FENCE = re.compile(r"^\s*(```+|~~~+)")
 
 
-def section(text: str) -> list[str] | None:
+def section(text: str) -> tuple[list[str], list[str]] | None:
+    """(the lines before the section, the lines of ``## Areas``), or None without the section."""
+    before: list[str] = []
     body: list[str] | None = None
     fenced = False
     for line in text.splitlines():
@@ -53,16 +59,30 @@ def section(text: str) -> list[str] | None:
             continue
         if body is not None:
             body.append(line)
-    return body
+        else:
+            before.append(line)
+    return None if body is None else (before, body)
+
+
+def preamble_findings(before: list[str]) -> list[str]:
+    """The purpose (a prose line that is not a heading, a badge or a table row) and a live URL come before the section."""
+    prose = [ln for ln in before if ln.strip() and not ln.lstrip().startswith(("#", "[![", "|", "<", "```", "~~~"))]
+    urls = [ln for ln in before if re.search(r"https?://", ln)]
+    if prose and urls:
+        return []
+    missing = " and ".join(w for w, ok in (("the one-paragraph purpose", bool(prose)), ("the live URLs", bool(urls))) if not ok)
+    return [f"README.md: the section '## Areas' comes after the purpose and the live URLs (convention section 8), and {missing} "
+            "is missing before it"]
 
 
 def findings_of(root: Path) -> list[str]:
     readme = root / "README.md"
     if not readme.is_file():
         return ["README.md: missing"]
-    body = section(readme.read_text(encoding="utf-8"))
-    if body is None:
+    parts = section(readme.read_text(encoding="utf-8"))
+    if parts is None:
         return ["README.md: no section '## Areas' (the repository stated by areas, after the purpose and the live URLs)"]
+    before, body = parts
     rows: dict[str, list[list[str]]] = {}
     header = False
     for line in body:
@@ -76,7 +96,7 @@ def findings_of(root: Path) -> list[str]:
             rows.setdefault(cells[0], []).append(cells)
     if not header:
         return [f"README.md: the section '## Areas' has no table with the columns {' | '.join(HEAD)}"]
-    out: list[str] = []
+    out: list[str] = preamble_findings(before)
     for area, folders in AREAS:
         found = rows.get(area, [])
         if not found:
@@ -88,6 +108,9 @@ def findings_of(root: Path) -> list[str]:
         if len(cells) < 4 or not cells[3]:
             out.append(f"README.md: the area {area!r} row has no 'What it holds' cell (four cells: {' | '.join(HEAD)})")
             continue
+        holds = re.sub(r"[^A-Za-z ]", " ", LINK_TEXT.sub(" ", cells[3]))
+        if len([w for w in holds.split() if len(w) > 1]) < MIN_HOLDS_WORDS:
+            out.append(f"README.md: the area {area!r} says too little in 'What it holds' (three words or more: what the area contains)")
         status = cells[2]
         word = status.split(":", 1)[0].strip().lower()
         if word not in {"active", "dormant"}:
@@ -96,7 +119,9 @@ def findings_of(root: Path) -> list[str]:
             out.append(f"README.md: the area {area!r} is dormant with no reason ('dormant: <why, {MIN_REASON_WORDS} words or more>')")
         links = LINK.findall(cells[1])
         local = [t.split("#")[0] for t in links if not re.match(r"^[a-z]+:", t)]
-        for t in local:
+        # a link of the other cells (the area's own README or doc) must resolve too
+        extra = [t.split("#")[0] for t in LINK.findall(cells[2] + " " + cells[3]) if not re.match(r"^[a-z]+:", t) and t.split("#")[0]]
+        for t in [*local, *extra]:
             if not (root / t).exists():
                 out.append(f"README.md: the area {area!r} links {t!r}, which does not exist")
         for f in folders:

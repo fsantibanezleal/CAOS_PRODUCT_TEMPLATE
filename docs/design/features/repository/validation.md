@@ -14,3 +14,6 @@ test that does not exist.
 | RP-005 | the PyPI and repository links are removed from the Packages row: the check fails | `tests/adversarial/test_notebooks_refuted.py::test_a_packages_row_without_pypi_is_found` |
 | RP-006 | the instantiate script is planted to omit the areas, and the README it writes is checked: the check fails | `tests/adversarial/test_notebooks_refuted.py::test_an_instantiate_that_drops_the_areas_writes_a_failing_readme` |
 | RP-007 | the Areas heading of the template README is renamed in a copy and the check run on that copy: it fails, so a template without the section cannot pass | `tests/adversarial/test_notebooks_refuted.py::test_a_readme_without_areas_is_found` |
+| RP-008 | the Areas section of the template README is moved to just under the title, before the purpose and the live URLs: the check fails | `tests/adversarial/test_notebooks_refuted.py::test_the_areas_section_before_the_purpose_is_found` |
+| RP-009 | the What it holds cell of the Data row is replaced by a dash: the check names the area | `tests/adversarial/test_notebooks_refuted.py::test_a_row_that_holds_a_dash_is_found` |
+| RP-010 | the guide link of the Notebooks row is pointed at a document that does not exist: the check names the link | `tests/adversarial/test_notebooks_refuted.py::test_a_dead_document_link_in_a_row_is_found` |

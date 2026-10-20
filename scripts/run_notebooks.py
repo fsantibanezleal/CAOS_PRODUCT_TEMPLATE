@@ -3,15 +3,18 @@
 
 Executes each ``notebooks/<language>/<topic>/<notebook>.ipynb`` top to bottom in a fresh kernel (``nbclient``), with the
 notebook's own folder as the working directory and a timeout per notebook, then strips the volatile metadata and writes the
-notebook in place: the only writer of a notebook's outputs, so execution counts run 1, 2, 3 with no gap.
+notebook in place: the only writer of a notebook's outputs, so execution counts run 1, 2, 3 with no gap. Consecutive stream
+outputs of one name are coalesced into one (as nbconvert does), so the committed bytes do not depend on kernel flush timing.
 
     python scripts/run_notebooks.py                 # every notebook, in place
     python scripts/run_notebooks.py --only notebooks/en/01-getting-started/01-first-run.ipynb
     python scripts/run_notebooks.py --check         # executes copies under a temporary folder, writes nothing, fails on any error
+                                                    # and on committed bytes that differ from a fresh run (stale outputs)
 
 It runs in ``.venv-notebooks`` (``scripts/setup.sh --notebooks`` or ``scripts/setup.ps1 -Notebooks``, built from
 ``notebooks/requirements.txt``): started with another interpreter, it re-runs itself in that venv. A local release gate, never CI
 (ADR-0074). A missing artifact fails the notebook with its path in the error; nothing stands in for it.
+A notebook outside ``notebooks/<language>/<topic>/<notebook>.ipynb`` fails the run before any notebook executes.
 Exit 0 every notebook ran, 1 on any failure, 2 on a usage or environment problem.
 """
 from __future__ import annotations
@@ -34,6 +37,8 @@ TIMEOUT_SECONDS = 600
 KERNEL = "python3"
 KERNELSPEC = {"display_name": "Python 3", "language": "python", "name": "python3"}
 KEEP_NOTEBOOK_METADATA = ("kernelspec", "language_info", "caos")
+LANGS = ("en", "es")
+LAYOUT = "notebooks/<language>/<topic>/<notebook>.ipynb"
 
 
 def venv_python() -> Path | None:
@@ -43,9 +48,25 @@ def venv_python() -> Path | None:
     return None
 
 
+def coalesce_streams(outputs: list[dict]) -> list[dict]:
+    """Consecutive ``stream`` outputs of one name joined into one: nbclient keeps each iopub message as its own output, so
+    the split would follow the kernel's flush timing and rewrite a committed notebook from run to run."""
+    merged: list[dict] = []
+    for out in outputs:
+        last = merged[-1] if merged else {}
+        if out.get("output_type") == "stream" and last.get("output_type") == "stream" and last.get("name") == out.get("name"):
+            merged[-1]["text"] = "".join(merged[-1]["text"]) + "".join(out["text"])
+        else:
+            merged.append(dict(out))
+    for out in merged:
+        if out.get("output_type") == "stream":
+            out["text"] = "".join(out["text"]).splitlines(keepends=True)  # nbformat's own shape: a list of lines
+    return merged
+
+
 def strip_volatile(nb: dict) -> dict:
     """The notebook without what changes from run to run or machine to machine: timings, widget state, the kernel's Python
-    version and every cell metadata key but ``tags``. Cell ids stay (nbformat 4.5)."""
+    version and every cell metadata key but ``tags``, with consecutive streams coalesced. Cell ids stay (nbformat 4.5)."""
     nb = copy.deepcopy(nb)
     meta = nb.get("metadata", {})
     nb["metadata"] = {k: meta[k] for k in KEEP_NOTEBOOK_METADATA if k in meta}
@@ -54,6 +75,8 @@ def strip_volatile(nb: dict) -> dict:
     for cell in nb.get("cells", []):
         tags = cell.get("metadata", {}).get("tags")
         cell["metadata"] = {"tags": tags} if tags else {}
+        if cell.get("cell_type") == "code":
+            cell["outputs"] = coalesce_streams(cell.get("outputs", []))
     return nb
 
 
@@ -61,11 +84,22 @@ def dump(nb: dict, path: Path) -> None:
     path.write_text(json.dumps(nb, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
 
 
+def misplaced() -> list[str]:
+    """Notebooks anywhere but ``notebooks/<language>/<topic>/<notebook>.ipynb``: the layout the static check holds, and the
+    only one the runner executes."""
+    out: list[str] = []
+    for p in sorted(NOTEBOOKS.rglob("*.ipynb")) if NOTEBOOKS.is_dir() else []:
+        parts = p.relative_to(NOTEBOOKS).parts
+        if not (len(parts) == 3 and parts[0] in LANGS):
+            out.append(p.relative_to(ROOT).as_posix())
+    return out
+
+
 def discover(only: str | None) -> list[Path]:
     if only:
         p = (ROOT / only).resolve() if not Path(only).is_absolute() else Path(only).resolve()
         return [p] if p.is_file() else []
-    return sorted(NOTEBOOKS.glob("*/*/*.ipynb"))
+    return sorted(p for lang in LANGS for p in NOTEBOOKS.glob(f"{lang}/*/*.ipynb"))
 
 
 def warm_matplotlib() -> None:
@@ -102,6 +136,11 @@ def execute(src: Path, dest: Path) -> str | None:
     return None
 
 
+def same_bytes(a: Path, b: Path) -> bool:
+    """The two files hold the same bytes, line endings aside (a checkout may convert them)."""
+    return a.read_bytes().replace(b"\r\n", b"\n") == b.read_bytes().replace(b"\r\n", b"\n")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="run_notebooks", description=__doc__.split("\n")[0])
     ap.add_argument("--check", action="store_true", help="execute copies under a temporary folder; write nothing, fail on any error")
@@ -119,6 +158,10 @@ def main() -> int:
         print("run_notebooks: nbclient and nbformat are not installed; build the notebook environment with "
               "scripts/setup.sh --notebooks (scripts/setup.ps1 -Notebooks on Windows)")
         return 2
+    stray = misplaced()
+    if stray:
+        print(f"run_notebooks: no notebook ran; a notebook lives at {LAYOUT}: {', '.join(stray)}")
+        return 1
     books = discover(a.only)
     if not books:
         print(f"run_notebooks: no notebook to run ({a.only or 'notebooks/*/*/*.ipynb'})")
@@ -141,7 +184,11 @@ def main() -> int:
                 src = work / rel
             else:
                 src = book
-            why = execute(src, (tmp_root / "out.ipynb") if tmp_root else src)
+            fresh = (tmp_root / "out.ipynb") if tmp_root else src
+            why = execute(src, fresh)
+            if why is None and tmp_root is not None and not same_bytes(fresh, book):
+                why = ("stale: the committed outputs differ from a fresh run; run scripts/run_notebooks.py and commit the result "
+                       "(a notebook edited by hand keeps outputs it no longer produces)")
             if why is None:
                 print(f"  ran   {rel}")
             else:

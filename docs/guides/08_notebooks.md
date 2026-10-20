@@ -22,7 +22,8 @@ notebooks/
   Each notebook is written wholly in its tree's language: prose, comments, labels and printed text.
 - Topics and notebooks are numbered with two digits, contiguous from `01`. Topic `01` is the entry: install the package,
   load the product's data, get a first result. Each later topic says which earlier ones it needs.
-- A topic folder holds only notebooks.
+- A topic folder holds only notebooks, and a notebook lives only at `notebooks/<language>/<topic>/<notebook>.ipynb`: one
+  loose at a root or nested deeper is refused by the check and never run by the runner.
 
 ## 2. Choose the levels
 
@@ -70,17 +71,27 @@ sections, in this order, named in the tree's language:
 | References | Referencias | always |
 
 - **Setup:** the install line in a markdown code block with the exact pins of `notebooks/requirements.txt`
-  (`pip install <package>==<version>`), then a code cell that imports the packages and prints their versions. A product's
-  own package that is not yet on PyPI is installed from its release tag, saying so. A notebook never runs `pip`.
+  (`pip install <package>==<version>`), then a code cell that imports the packages and prints their versions
+  (`importlib.metadata.version`). A product's own package that is not yet on PyPI is installed from its release tag:
+  `notebooks/requirements.txt` holds the line `<name> @ git+https://github.com/<owner>/<repo>.git@<tag>`, the Setup block
+  `pip install "git+https://github.com/<owner>/<repo>.git@<tag>"`, and the Setup text the sentence "not yet published on PyPI;
+  installed from its release tag" (in Spanish "todavía no publicado en PyPI; instalado desde su etiqueta de versión"). A
+  notebook never runs `pip` or `conda`: the check refuses a `%pip` or `!pip` line, a `-m pip` call and a `pip install` in a code
+  cell outside a comment.
 - **Data:** the owner, the URL, the licence class and the file each source gives; read committed artifacts by a path
-  relative to the repository root. No machine path, ever.
+  relative to the repository root. No machine path, ever: the check refuses a drive letter in any form (followed by a slash, by one backslash, or by the
+  doubled backslashes of a Python literal or a `repr`), a home folder and the POSIX roots `/opt/`, `/tmp/`, `/root/`, `/var/`
+  and `/srv/`, in a cell or an output. It cannot know a user name or a host name: the template holds no list of them, so a
+  product reads its notebooks' outputs for them before a release.
 - **Method:** each equation in markdown with its source (DOI or URL), then run through the product's package, one step per
-  cell. The example imports the pipeline by path (`data-pipeline/`) because it publishes no package; a product imports its
+  cell. A method is imported and never defined in a notebook, an oracle included: the example's final-size solver is
+  `final_size` of `data-pipeline/pipeline/oracles.py`, which shares no code with the engine, and the check refuses a cell that
+  defines a name the engine (`model/`) or the oracles module already define. The example imports the pipeline by path (`data-pipeline/`) because it publishes no package; a product imports its
   own PyPI package.
 - **Step by step:** every code cell is directly preceded by a markdown cell that says what it does and why, and carries at
   least one comment line. One idea per cell.
 - **Results** interprets every figure and table: what it shows, what a validator concludes, what it does not show.
-- **References** lists every source cited with its DOI or URL. Content comes from the persisted research (the dossiers,
+- **References** lists every source cited with its DOI or URL, and every link of `caos.sources` appears in it (checked). Content comes from the persisted research (the dossiers,
   addenda and SDD), never from memory; each state-of-the-art claim carries its source line.
 - Every random draw is seeded.
 
@@ -101,8 +112,9 @@ The notebook metadata holds `kernelspec`, `language_info` and one `caos` block; 
 }
 ```
 
-`language` is the tree, `topic` the folder, every `packages` entry an exact pin of `notebooks/requirements.txt` and written
-in the notebook's text, every `data` path a file of the repository, `sources` a non-empty list of links, and `beyond` the
+`language` is the tree, `topic` the folder, every `packages` entry an exact line of `notebooks/requirements.txt` (`name==version`,
+or `name @ git+https://github.com/<owner>/<repo>.git@<tag>` for a package installed from its release tag) shown in the
+notebook's Setup text as its `pip install` line, every `data` path a file of the repository, `sources` a non-empty list of links, and `beyond` the
 SDD's `BS-` identifiers a level 4 notebook demonstrates (empty below level 4). A notebook and its counterpart in the other
 language carry the same level, packages, data, beyond claims and the same sequence of cell kinds.
 
@@ -118,18 +130,23 @@ python scripts/check_readme_areas.py       # the README by areas
 ```
 
 - Only the runner writes outputs, so execution counts run 1, 2, 3 with no gap and volatile metadata (timings, the kernel's
-  version, widget state) never reaches the commit. The outputs are committed: the notebooks read as finished material on
+  version, widget state) never reaches the commit. Consecutive stream outputs of one name are coalesced into one, so a second
+  run writes the same bytes whatever the kernel's flush timing. The outputs are committed: the notebooks read as finished material on
   GitHub. A missing artifact fails the run with its path; nothing stands in for it.
 - `scripts/check_notebooks.py` is static and runs in CI and locally: layout, mirror, numbering, levels and their coverage,
   anatomy, metadata, and cleanliness (no error output or stderr stream, no machine path, no token, a notebook up to 3 MB and
-  an image up to 400 KB, the limits in the script). It also fails a CI workflow that executes the notebooks.
-- `scripts/run_notebooks.py --check` is a local release gate: run it before every release. It never runs in CI (ADR-0074).
+  an image up to 400 KB, the limits in the script, no traceback printed to stdout, no `pip` in a code cell). It also fails a CI workflow that executes the notebooks.
+- `scripts/run_notebooks.py --check` is a local release gate: run it before every release. It never runs in CI (ADR-0074). It
+  executes each notebook in a copy and fails on an error and on committed bytes that differ from the fresh result ("stale": an
+  output edited by hand, or a notebook changed without a new run). Figures are compared as bytes, so run the gate on the
+  platform and with the pins that wrote the committed outputs.
 - The notebook environment `.venv-notebooks` is never committed; on a device with a venvs root it is a junction to it.
 
 ## 6. The README by areas
 
 The README's `## Areas` section has one row per area (Web, API, Core pipelines, Packages, Notebooks, Data, Contracts,
 Documentation, Tests and gates, Deploy) with its folder as a link, its status (`active`, or `dormant: <reason>`) and what
-it holds. `scripts/check_readme_areas.py` fails a missing section, area or status and a link to a folder that does not
-exist. The Packages row lists each package the product publishes or consumes for its methods with its version and its PyPI
+it holds (three words or more). `scripts/check_readme_areas.py` fails a missing section, area or status, a section placed
+before the one-paragraph purpose and the live URLs, a thin "what it holds" cell and a relative link, to a folder or to the
+area's own README or doc, that does not exist. The Packages row lists each package the product publishes or consumes for its methods with its version and its PyPI
 and repository links.
