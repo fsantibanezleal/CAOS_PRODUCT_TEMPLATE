@@ -106,7 +106,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
 | API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
 | API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
-| shell | @fasl-work/caos-app-shell | 0.15.0 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| shell | @fasl-work/caos-app-shell | 0.16.0 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
 | web | react | 19.3.0 | the UI | none: the shell requires it |
 | web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
 | web | react-router | 8.4.0 | the routes | none: the shell requires it |
@@ -214,9 +214,9 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0057 | two contracts, named stages, lanes | `data-pipeline/`, `docs/contracts/catalog.md` (the two contracts are its rows) |
 | ADR-0058 | architecture modal, five themed bilingual tabs | `frontend/src/architecture/`, validated by the shell on mount |
 | ADR-0069 | method vertical with its acceptance criterion | this SDD, the parity and convergence tests |
-| ADR-0070 | Focus mode for the App: the open group in the full viewport, `?focus=1`, Escape or the exit button returns to the same case, group and sub-view | `frontend/src/workbench/Workbench.tsx` (`focus`), `npm run gate` with `--require-focus` (G18) |
+| ADR-0070 | Focus mode for the App: a workbench opens the open group of a case in the full viewport, a surface opens each view with a stage; `?focus=1`, Escape or the exit button returns to the same case or view, group and sub-view | `frontend/src/workbench/Workbench.tsx` (`focus`), `npm run gate` with `--require-focus` (G18); the App's kind is `product.json` `app` (this example is a workbench), and only a surface App without simulation waives Focus, with its reason here as "not applicable: <reason>" |
 | ADR-0071 | the page is the viewport; one tab row; drawing at least half the viewport | the shell's `CaseWorkbench`; the gate (G5, G6) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
-| ADR-0078 | rules live in the base | shell 0.15.0 (pinned exactly) and this template; no product re-implements them |
+| ADR-0078 | rules live in the base | shell 0.16.0 (pinned exactly) and this template; no product re-implements them |
 | ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |
