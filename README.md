@@ -12,19 +12,24 @@ honest. The domain is a placeholder (the SIR epidemic model) so that every part 
 A product is made from it with one command, and from then on the guards list what of the example remains until it
 is replaced.
 
-## What is in it
+## Areas
 
-| Part | Where | What holds it |
-|---|---|---|
-| The pipeline: named stages, seeded, each case checked against its expected ranges | `data-pipeline/` | `tests/`, run in a sandbox that fails if a test writes a committed artifact |
-| The contract catalog: every boundary and the model slot, one schema file each, a provider and a swap test (ADR-0080) | `docs/contracts/` | `scripts/check_contracts.py`, `scripts/check_skeleton.py`, `tests/contracts/` |
-| Contract 1, ingestion: bad values rejected with a reason, unusual ones flagged | `data-pipeline/pipeline/io/contract.py` | `tests/test_contract.py`, `tests/contracts/test_params_record.py` |
-| Contract 2, artifacts: index, manifests and traces, bilingual, versioned | `data/derived/` | `scripts/check_artifacts.py`, `tests/contracts/test_documents.py`, `frontend/src/lib/contract.test.ts` (both directions, types generated from the schemas) |
-| Missing data and untrained models as declared states: what is real in this build, shown on every view | `data/derived/readiness.json` | `scripts/check_readiness.py`, `tests/contracts/test_readiness.py`, `frontend/src/readiness/readiness.test.ts` |
-| The live engine, a TypeScript port of the Python one | `frontend/src/engine/` | `frontend/src/engine/sir.parity.test.ts` (every baked trace, first-order convergence) |
-| The web: the workbench (with Focus mode for every case) and five documentation routes on the shared shell; an executive view with flip cards, a card carousel and an animated illustration | `frontend/src/` | `npm run gate` (`caos-shell-gate` with `--require-focus`: every route, tab and case, five sizes, both themes, both languages), `scripts/check_svg_animation.py` |
-| The design, every requirement with the gate that fails it | `docs/design/` | `scripts/check_sdd.py` |
-| One version, one deploy place, no example left behind | `VERSION`, `deploy/TARGET` | `scripts/check_version_coherence.py`, `scripts/check_deploy_place.py`, `scripts/check_template_residue.py` |
+The repository by area. Each row names its folder, says whether the area is active or dormant, and points to where the
+area is documented. `scripts/check_readme_areas.py` fails a README without this section, an area without its row and a
+link to a folder that does not exist.
+
+| Area | Folder | Status | What it holds |
+|---|---|---|---|
+| Web | [`frontend/`](frontend/) | active | The workbench (with Focus mode for every case) and five documentation routes on the shared shell (`@fasl-work/caos-app-shell`), an executive view with flip cards, a card carousel and an animated illustration, and the live engine, a TypeScript port of the Python one (`frontend/src/engine/`). Build and test: `cd frontend && npm ci && npm run build && npm test`; the measured gate is `npm run gate` (`caos-shell-gate` with `--require-focus`: every route, tab and case, five sizes, both themes, both languages). Held by `frontend/src/engine/sir.parity.test.ts`, `scripts/check_web_baseline.py` and `scripts/check_svg_animation.py`. |
+| API | [`app/`](app/) | dormant: this solution does not require it at the moment | The API ships dormant (GET only, 503 with a declared state when a document is absent) and is run only by its contract tests (`tests/contracts/test_api.py`). Activation: [guide 04](docs/guides/04_run-the-api.md). |
+| Core pipelines | [`data-pipeline/`](data-pipeline/) | active | The pipeline: named stages, seeded, each case checked against its expected ranges; the SIR engine in `data-pipeline/pipeline/model/sir.py`. Bake: `./scripts/precompute.sh` (a release operation, never CI). Tests run in a sandbox that fails if a test writes a committed artifact. See [data-pipeline/README.md](data-pipeline/README.md). |
+| Packages | (PyPI) [numpy 2.4.6](https://pypi.org/project/numpy/2.4.6/), [source](https://github.com/numpy/numpy) | active: the example publishes no package and consumes numpy | The engine is numpy only, so the template installs with no native build; a product publishes the packages of its methods as separate PyPI projects and lists each here with its version and its PyPI and repository links (no internal packages). |
+| Notebooks | [`notebooks/`](notebooks/) | active | The didactic layer: notebooks in English and Spanish, by topic and from simple to complex, on the example's own data (`notebooks/en/`, `notebooks/es/`). Run: `./scripts/setup.sh --notebooks`, then `python scripts/run_notebooks.py`; held by `scripts/check_notebooks.py` and `scripts/run_notebooks.py --check`. Guide: [guide 08](docs/guides/08_notebooks.md). |
+| Data | [`data/`](data/) | active | The committed derived artifacts (index, manifests and traces, bilingual, versioned, contract 2) and the readiness document (`data/derived/readiness.json`: what is real in this build, shown on every view). The data is synthetic (the model's own cases), so no third-party dataset licence applies. Held by `scripts/check_artifacts.py`, `scripts/check_readiness.py` and `frontend/src/lib/contract.test.ts` (both directions, types generated from the schemas). |
+| Contracts | [`docs/contracts/`](docs/contracts/) | active | The contract catalog: every boundary and the model slot, one schema file each, a provider and a swap test (ADR-0080); contract 1, ingestion (bad values rejected with a reason, unusual ones flagged: `data-pipeline/pipeline/io/contract.py`). Held by `scripts/check_contracts.py`, `scripts/check_skeleton.py` and `tests/contracts/`. |
+| Documentation | [`docs/`](docs/) | active | The design, every requirement with the gate that fails it ([`docs/design/SDD.md`](docs/design/SDD.md), `scripts/check_sdd.py`), the [guides](docs/guides.md), the case pages and the framework cards. |
+| Tests and gates | [`tests/`](tests/), [`scripts/`](scripts/) | active | The pipeline, contract, guard and adversarial tests (`python -m pytest`) and the checks CI runs (`scripts/check_*.py`, each also run locally). One version, one deploy place, no example left behind: `scripts/check_version_coherence.py`, `scripts/check_deploy_place.py`, `scripts/check_template_residue.py`. See [scripts/README.md](scripts/README.md). |
+| Deploy | [`deploy/`](deploy/) | active: one deploy place, named in `deploy/TARGET` | Where the product is deployed and how, never credentials (GitHub Pages by default, see [deploy/pages.md](deploy/pages.md)). |
 
 ## Run it
 
@@ -32,6 +37,8 @@ is replaced.
 ./scripts/setup.sh                       # .venv-pipeline with the pinned pipeline requirements (setup.ps1 on Windows)
 ./scripts/precompute.sh                  # the canonical bake into data/derived (a release operation, never CI)
 .venv-pipeline/bin/python -m pytest      # the pipeline tests, sandboxed (.venv-pipeline/Scripts/python.exe on Windows)
+./scripts/setup.sh --notebooks           # .venv-notebooks from notebooks/requirements.txt (setup.ps1 -Notebooks on Windows)
+python scripts/run_notebooks.py --check  # every notebook runs top to bottom (a local release gate, never CI)
 cd frontend
 npm ci
 npm run build                            # copies the declared artifacts, type-checks, bundles, materialises the routes

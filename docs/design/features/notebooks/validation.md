@@ -1,0 +1,36 @@
+# Adversarial validation: the product notebooks
+
+For each requirement of [`requirements.md`](requirements.md), the check that tries to break it: what was planted or
+refuted, and the test that plants it, on a copy of the committed example set with the real guard run as a subprocess (the
+unplanted copy is the control and passes). `scripts/check_sdd.py` fails when a requirement has no row here (or two), when a
+check is empty, and when a gate names a test that does not exist.
+
+| requirement | adversarial check | gate |
+|---|---|---|
+| NB-001 | the Spanish index is deleted from a copy of the set: the check fails naming the file and the layout rule | `tests/adversarial/test_notebooks_refuted.py::test_a_missing_spanish_index_is_found` |
+| NB-002 | a Spanish notebook is deleted from a copy: the check names the path absent from its tree | `tests/adversarial/test_notebooks_refuted.py::test_a_spanish_notebook_deleted_breaks_the_mirror` |
+| NB-003 | a notebook is renamed to leave a gap in both trees (the mirror stays intact): the check fails on the numbering | `tests/adversarial/test_notebooks_refuted.py::test_a_numbering_gap_in_both_trees_is_found` |
+| NB-004 | the first notebook of a topic is raised to level 3 in both languages, so the next one is lower: the check fails on the decrease | `tests/adversarial/test_notebooks_refuted.py::test_a_level_that_decreases_is_found` |
+| NB-005 | the level 2 notebook of a topic is lowered to level 1 in both languages: the check fails on the missing level 2 | `tests/adversarial/test_notebooks_refuted.py::test_a_topic_without_level_two_is_found` |
+| NB-006 | the reason for the missing level 3 is edited out of the English index row: the check fails naming the topic | `tests/adversarial/test_notebooks_refuted.py::test_a_missing_reason_for_level_three_is_found` |
+| NB-007 | a notebook's name is erased from the Spanish index: the check names the unlisted notebook | `tests/adversarial/test_notebooks_refuted.py::test_a_notebook_dropped_from_the_index_is_found` |
+| NB-008 | a claim BS-1 is added to the SDD section with no level 4 notebook, then a notebook claims BS-7, which the SDD does not list: both fail | `tests/adversarial/test_notebooks_refuted.py::test_an_sdd_claim_without_a_level_four_notebook_is_found` |
+| NB-009 | the Results heading of an English notebook is renamed Findings: the check names the missing and the unknown section | `tests/adversarial/test_notebooks_refuted.py::test_a_renamed_section_is_found` |
+| NB-010 | the title cell of a notebook is turned into a code cell: the check fails on the first cell | `tests/adversarial/test_notebooks_refuted.py::test_a_title_cell_turned_into_code_is_found` |
+| NB-011 | the comment lines are stripped from a code cell of a Spanish notebook: the check fails on the missing comment | `tests/adversarial/test_notebooks_refuted.py::test_a_code_cell_stripped_of_its_comment_is_found` |
+| NB-012 | a data path that is no file, and a package pin that is not in the requirements file, are planted in the metadata: each fails naming the value | `tests/adversarial/test_notebooks_refuted.py::test_a_data_path_that_does_not_exist_is_found` |
+| NB-013 | a widgets block in the notebook metadata and an execution timing in a cell's metadata are planted: both fail | `tests/adversarial/test_notebooks_refuted.py::test_widgets_metadata_is_found` |
+| NB-014 | the execution count of the third code cell is set to 9: the check names the expected 3 | `tests/adversarial/test_notebooks_refuted.py::test_an_execution_count_gap_is_found` |
+| NB-015 | an error output and a stderr stream are planted into two notebooks: each fails | `tests/adversarial/test_notebooks_refuted.py::test_a_planted_traceback_is_found` |
+| NB-016 | a Windows user path in an output, and a GitHub token pattern in a markdown cell, are planted: each fails | `tests/adversarial/test_notebooks_refuted.py::test_a_machine_path_and_a_token_in_an_output_are_found` |
+| NB-017 | a 500 KB image is planted into an output: the check names the image and its limit | `tests/adversarial/test_notebooks_refuted.py::test_an_image_above_the_limit_is_found` |
+| NB-018 | the last cell is deleted from a Spanish notebook, so it stays a mirrored path but is no counterpart: the check fails on it | `tests/adversarial/test_notebooks_refuted.py::test_a_cell_deleted_from_the_spanish_counterpart_is_found` |
+| NB-019 | a code cell defining its own `simulate` is planted into a notebook of the example: the check names it and says to import | `tests/adversarial/test_notebooks_refuted.py::test_a_copy_of_the_engine_in_a_cell_is_found` |
+| NB-020 | a workflow that runs the notebooks is planted, then the static step is removed from ci.yml: each fails | `tests/adversarial/test_notebooks_refuted.py::test_ci_executing_the_notebooks_is_found` |
+| NB-021 | an unpinned line is appended to `notebooks/requirements.txt`: both the notebooks check and the technology-matrix guard fail | `tests/adversarial/test_notebooks_refuted.py::test_an_unpinned_notebook_requirement_is_found` |
+| NB-022 | volatile keys (widgets, a kernel version, an execution timing, an editor block) are planted into a notebook: the runner's strip removes every one; the in-place and check runs of the runner itself are in its unit tests, which need the notebook environment | `tests/adversarial/test_notebooks_refuted.py::test_the_runner_strips_what_was_planted_in_the_metadata` |
+| NB-023 | local-only: the execution gate needs the notebook environment, which CI does not install. A cell that raises is planted into a copy: the release gate exits 1 naming the notebook | `tests/adversarial/test_notebooks_refuted.py::test_a_raising_notebook_fails_the_release_gate` |
+| NB-024 | local-only: the execution gate needs the notebook environment, which CI does not install. A manifest a notebook reads is deleted from a copy: the run fails naming it | `tests/adversarial/test_notebooks_refuted.py::test_a_missing_artifact_stops_the_run_naming_its_path` |
+| NB-025 | a DOI that the SDD's research basis does not list is planted into the sources of a notebook: the check names the source | `tests/adversarial/test_notebooks_refuted.py::test_a_source_missing_from_the_sdd_is_found` |
+| NB-026 | a Spanish notebook of the committed example is deleted from a copy, so the set is no longer mirrored: the check that holds the committed set fails | `tests/adversarial/test_notebooks_refuted.py::test_a_spanish_notebook_deleted_breaks_the_mirror` |
+| NB-027 | the example notebooks are copied into a tree with no sentinel, as a product keeps them after instantiation: the residue guard exits 1 and lists them | `tests/adversarial/test_notebooks_refuted.py::test_the_example_notebooks_left_in_a_product_are_listed` |
