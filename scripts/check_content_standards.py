@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Fail the build if tracked product content contains an EM-DASH or an EMOJI (ADR-0067).
 
-Felipe's standing rule for every product: no emojis and no em-dashes in repo content. Both read as
-an AI tell and are banned from product content (code, docs, UI strings, commit-tracked files alike), ADR-0067.
+The standing rule for every product (ADR-0067): no emojis and no em-dashes in repo content. Both read as
+an AI tell and are banned from product content (code, docs, UI strings, commit-tracked files alike).
 This guard enforces it structurally so no product, and the template itself, can drift.
 
 What it flags (precise, to avoid punishing legitimate glyphs):
@@ -10,12 +10,14 @@ What it flags (precise, to avoid punishing legitimate glyphs):
   - EMOJI: any codepoint in the Supplementary emoji/pictograph planes U+1F000..U+1FAFF, plus the
     emoji-presentation selector U+FE0F. This catches the pictographic emojis while intentionally
     NOT touching functional glyphs products do use: the info mark U+24D8 (the ADR-0058 modal button),
-    the middot U+00B7 (Felipe's preferred separator), arrows like U+2197, check/cross marks, stars.
+    the middot U+00B7 (the preferred separator), arrows like U+2197, check/cross marks, stars.
 
 Not flagged: the ASCII double hyphen "--" (ubiquitous and legitimate in CLI flags and code) and the
 en-dash U+2013. The rule as stated is em-dash + emoji; keep enforcement to exactly that.
 
-Scanned set = git-tracked text files only. Exit 1 on any hit, printing file:line:col.
+Scanned set = git-tracked text files only: a file with a text suffix, and a file with no suffix (``LICENSE``, ``VERSION``,
+``deploy/TARGET``, ``scripts/.template_residue_allow``) that decodes as UTF-8; a file that does not decode is binary and is not read.
+Exit 1 on any hit, printing file:line:col.
 
 Third-party text kept verbatim is not the product's content (an upstream licence notice has em-dashes). It is declared, never
 masked, in ``scripts/.content_standards_allow``, one entry per line: ``<path> <sha256> <source URL>`` (``#`` starts a comment).
@@ -100,8 +102,9 @@ def main() -> int:
                 allow_problems.append(f"  {rel}  changed since it was pinned in {ALLOW_REL} (its content no longer has the listed SHA-256: "
                                       "restore the upstream text, or pin the new text's digest from its source)")
             continue
-        if rel == SELF or Path(rel).suffix.lower() not in TEXT_SUFFIXES:
-            continue
+        suffix = Path(rel).suffix.lower()
+        if rel == SELF or (suffix != "" and suffix not in TEXT_SUFFIXES):
+            continue  # a file with no suffix is read when it decodes as UTF-8 text (below); any other suffix is skipped
         try:
             lines = (ROOT / rel).read_text(encoding="utf-8").splitlines()
         except (OSError, UnicodeDecodeError):
