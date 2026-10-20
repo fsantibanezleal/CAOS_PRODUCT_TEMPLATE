@@ -57,7 +57,9 @@ The map is [`docs/design/README.md`](../design/README.md). In this order, each s
    with one row each for the bake, the training (if any), the tests, the build and the deploy payload, memory, disk
    and time measured or bounded (no TBD, no placeholder cell).
 4. **Contracts.** Write them in [`docs/contracts/catalog.md`](../contracts/catalog.md): one row per boundary and per
-   model slot, each with its schema file, an example, the tests of both sides, its missing-data behavior and a
+   model slot, each with its schema file, an example, its `documents` (the globs of the committed files that schema
+   governs, `-` for none; `scripts/check_documents.py` reads them and is taken verbatim, never ported by hand; the cell
+   format is in the catalog), the tests of both sides, its missing-data behavior and a
    provider (a fixture, a simulator, a stub, or a baseline for a model slot). Replace the example's rows, schemas
    and provider tree with the product's, add a History row per contract, and run
    `python scripts/check_contract_versions.py --update` to create the lock. Regenerate the web's types
