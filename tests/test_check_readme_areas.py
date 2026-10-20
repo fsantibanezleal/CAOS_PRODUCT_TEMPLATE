@@ -180,3 +180,12 @@ def test_a_dead_link_in_what_it_holds_is_found(tmp_path: Path) -> None:
     (root / "docs" / "guides").mkdir(parents=True)
     (root / "docs" / "guides" / "absent.md").write_text("x", encoding="utf-8")
     assert not found(root, "'Web'", "does not exist")
+
+
+def test_the_packages_row_may_link_a_release_tag_instead_of_pypi(tmp_path: Path) -> None:
+    tag = "[riskvalidation v0.8.0](https://github.com/fsantibanezleal/CAOS_RiskValidation/releases/tag/v0.8.0)"
+    rows = dict(ROWS, Packages=f"| Packages | (GitHub) {tag} | active: consumes riskvalidation | not yet published on PyPI |")
+    assert CHECK.findings_of(make(tmp_path / "a", readme(rows))) == []
+    branch = "[riskvalidation](https://github.com/fsantibanezleal/CAOS_RiskValidation/tree/main)"
+    rows = dict(ROWS, Packages=f"| Packages | (GitHub) {branch} | active: consumes riskvalidation | not yet published on PyPI |")
+    assert found(make(tmp_path / "b", readme(rows)), "'Packages'", "links no package on PyPI")

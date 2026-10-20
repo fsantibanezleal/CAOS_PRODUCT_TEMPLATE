@@ -149,4 +149,4 @@ Documentation, Tests and gates, Deploy) with its folder as a link, its status (`
 it holds (three words or more). `scripts/check_readme_areas.py` fails a missing section, area or status, a section placed
 before the one-paragraph purpose and the live URLs, a thin "what it holds" cell and a relative link, to a folder or to the
 area's own README or doc, that does not exist. The Packages row lists each package the product publishes or consumes for its methods with its version and its PyPI
-and repository links.
+and repository links; a package installed from its release tag links that tag on GitHub (`https://github.com/<owner>/<repo>/releases/tag/<tag>`) instead of PyPI.
