@@ -129,6 +129,18 @@ In separate steps: the sandboxed tests, the canonical bake (`scripts/precompute.
 captures yourself (`frontend/gate-output/index.html` shows every capture by route, the failures first): the gate
 measures, it does not judge content.
 
+Two guards take what a product commits by design, declared and never exempted in the product's own CI (a product takes
+both scripts verbatim and keeps no variant):
+
+- **Model files.** `scripts/check_base_integrity.py` still fails on a tracked real `.env`, a venv, a native or heavy binary,
+  raw or heavy data and a local machine path. A small model file (`.pt`, `.pth`, `.onnx`, `.npy`) passes only when a catalog
+  row's `documents` cell names it (`data/models/*.pt`) and it is at most 5 MB, all such files together at most 50 MB. A
+  product with no catalog admits none. Anything bigger lives in the models root, not in the repository.
+- **Third-party notices.** A notice file copied unmodified from upstream (an ONNX Runtime or licence text with em-dashes) is
+  listed in `scripts/.content_standards_allow` as `<path> <sha256> <source URL>`; `scripts/check_content_standards.py` skips
+  it only while the digest of its content (line endings normalised to LF) matches, so an edited notice fails. The product's
+  own text is never listed.
+
 A release bumps `VERSION`, `frontend/package.json` and the top of `CHANGELOG.md` together, merges `develop` into
 `main` through a pull request, and tags `vX.XX.XXX`. The deploy runs after CI succeeds on `main` and checks the live
 site; after it, run the gate against the deployed origin: `npm run gate -- --url https://<domain>`.
