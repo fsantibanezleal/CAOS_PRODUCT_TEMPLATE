@@ -4,7 +4,43 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
 
 ## [Unreleased]
 
+### Added
+
+- **The App's kind** (requirement WB-015). `product.json` gains `app` (`"workbench"`, the default, or `"surface"`), `focus` (default
+  `true`) and `focus_reason`. A surface is an App that is not one case's: a hub, an explorer or a console (`SurfacePage`).
+  `frontend/scripts/gate.mjs` tells the shell gate with `--workbench ''` and keeps `--require-focus`, so a surface App must have a
+  view that opens in Focus mode (`TabDef.focus`, shell 0.16.0). A product without these fields is a workbench with Focus, exactly as in
+  0.08.002.
+- **The one waiver.** A surface App without any simulation (a hub that only links studies, which ADR-0070 does not bind) sets
+  `"focus": false` and a `focus_reason` of at least eight words, and writes the same reason on the SDD's ADR-0070 row as
+  `not applicable: <reason>`. `scripts/check_sdd.py` and the gate runner both read the two places; a waiver on a workbench, without a
+  reason or a row, or with a different reason, an unknown `app`, and a `not applicable` row with no waiver fail, and the runner
+  refuses to run the shell gate naming the field. No extra argument of a run removes `--require-focus` when it applies.
+- When `deploy/TARGET` is `vps`, the runner passes the shell gate's `--spa-fallback`, so the build is served as nginx serves it
+  (`try_files $uri $uri/ /index.html`, no `404.html`); `pages` keeps the Pages behaviour.
+- Requirements WB-015 (the App's kind) and WB-016 to WB-019 (the guard fixes below) with adversarial rows
+  (`tests/adversarial/test_app_kind.py`, `tests/adversarial/test_guard_gaps_0_09_0.py`, `frontend/src/gate-script.test.ts`). Guide 00
+  says how to choose the App's kind, shows the surface with a focusable view and a rail, lists the files a product takes verbatim and
+  documents the technology-table alias and the non-JSON documents.
+
 ### Changed
+
+- Shell 0.16.0 (pinned exactly, lock file included): `SurfacePage` gets a Focus mode and the gate's G18 measures it on a surface App.
+  The template's example stays a workbench and its gate run is unchanged.
+- WB-014 now reads for both kinds of App: Focus mode for every case of a workbench or every view with a stage of a surface, unless a
+  surface without simulation records its reason; the ADR-0070 row of the SDD says so.
+- `scripts/check_content_standards.py` also reads a tracked file with no suffix (`LICENSE`, `VERSION`, `deploy/TARGET`, a dotfile)
+  that decodes as UTF-8; it had skipped them, and an em-dash in the comment of `scripts/.template_residue_allow` and in three
+  comments of `.gitignore` had passed. Both are fixed (WB-016).
+- `scripts/check_documents.py` validates JSON documents against their schema as before and leaves a committed document that is not
+  JSON (a `.onnx` or `.pt` model file, a CSV table) to its row's own contract test; the row must fill its `producer test` or
+  `consumer test` column, and the guard lists such files (WB-017).
+- `scripts/check_tech_matrix.py` reads an npm alias `npm:<package>@<version>` (for example `"zz-typescript5": "npm:typescript@5.9.3"`,
+  the TypeScript 5 compiler API that `openapi-typescript` needs beside a newer TypeScript): the version must be exact, the lock must
+  record it, and the SDD technology table lists the alias under its own name with that version (WB-018).
+- Three comments of the files a product takes verbatim (`scripts/check_sdd.py`, `scripts/check_content_standards.py`) named the owner;
+  they now name the rule by its record (ADR-0067, `conventions/problem-context-first.md`), with no change of behaviour. A template test
+  fails when a file listed in guide 00 under "Files a product takes verbatim" names the owner (WB-019).
 
 - `scripts/check_documents.py` names no document: it reads the new `documents` column of `docs/contracts/catalog.md` and
   validates every committed file each row governs against that row's schema (`-` for a row with none; globs relative to the
@@ -38,6 +74,16 @@ A product instantiated from an earlier release:
    guard and the inline base-integrity step of its `ci.yml` (that step becomes `python scripts/check_base_integrity.py`);
    moves the model files it commits by design into a catalog row's `documents` cell; and lists its third-party notice files
    (copied unmodified from upstream) in `scripts/.content_standards_allow` with their digests and source URLs. The base-integrity script imports `scripts/check_contracts.py` (the one parser of the `documents` column).
+5. adopts shell 0.16.0 (`npm install --save-exact @fasl-work/caos-app-shell@0.16.0`) and takes `frontend/scripts/gate.mjs`,
+   `scripts/check_sdd.py`, `scripts/check_documents.py`, `scripts/check_tech_matrix.py` and `scripts/check_content_standards.py`
+   verbatim, with the tests of `tests/adversarial/test_app_kind.py` and `test_guard_gaps_0_09_0.py`. A workbench product needs no
+   other change: with no `app` field it is a workbench with Focus, as before.
+6. a product with a surface App sets `"app": "surface"` in `product.json` and gives its stage views `focus` (`TabDef.focus`, and
+   `focus` on the `SurfacePage`); a hub without any simulation also sets `"focus": false` and a `focus_reason`, and writes the same
+   reason on the SDD's ADR-0070 row as `not applicable: <reason>` (see guide 00). A product that kept an npm alias or a model file
+   as a variant of a guard drops the variant: the guards now read both.
+7. changes any comment of a verbatim script only upstream, never in the product: a product's public-safety guard may refuse the
+   owner's name, and these files no longer carry it.
 
 ## [0.08.002], 2026-10-15
 

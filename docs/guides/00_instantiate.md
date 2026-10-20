@@ -25,6 +25,57 @@ The script writes `product.json`, the frontend package name, `VERSION` (0.01.000
 then it bakes, tests and builds once and runs `scripts/check_template_residue.py`. That list is the work that
 follows.
 
+### `product.json` and the App's kind
+
+`product.json` holds the product's identity (`name`, `slug`, `tagline`, `repo`, `visibility`, `license`, `holder`, `year`) and, since
+0.09.000, what its App is. `instantiate.py` writes a workbench; to change it, edit the file and keep the three fields below.
+
+| Field | Values | Meaning |
+|---|---|---|
+| `app` | `"workbench"` (the default when absent) or `"surface"` | `workbench`: the App is one case's instrument (`CaseWorkbench`, the template's example). `surface`: the App is not one case's, it is a hub, an explorer or a console (`SurfacePage`). Any other value fails `scripts/check_sdd.py` and the gate runner. |
+| `focus` | `true` (the default when absent) or `false` | `false` waives Focus mode and is valid only on a surface App without any simulation. |
+| `focus_reason` | text, at least 8 words, no placeholder | Required with `"focus": false`: why ADR-0070 does not apply. The same text stands on the SDD's ADR-0070 row as `not applicable: <reason>`. |
+
+Choosing the kind: if the App is the instrument for one case at a time (pick a case, read its views, change its parameters),
+it is a workbench and `product.json` needs no field. If it lists studies, explores a catalogue or drives a console of several
+views, it is a surface: set `"app": "surface"`. The gate runner then passes `--workbench ''` to the shell gate, which measures the
+App route as a surface (`/app`, or the route you pass with `--app-route`).
+
+Focus mode (ADR-0070) stays required for every App. A surface gives each view that has a stage (a simulation, a drawing, a live
+run) `focus` on its `TabDef`, and the surface takes `focus`; a list or a form sets nothing. The shell's own example, transcribed
+from the views chapter of its documentation:
+
+```tsx
+<SurfacePage
+  title={{ en: 'Console', es: 'Consola' }}
+  tabs={[
+    { id: 'tasks', label: 'Tasks', content: <TaskList /> },                      // no stage: no Focus control
+    {
+      id: 'engine',
+      label: 'Engine',
+      focus: {
+        title: { en: 'Engine run', es: 'Corrida del motor' },                   // default: the view's label
+        hud: [{ label: { en: 'Peak', es: 'Pico' }, value: peak }],              // readouts over the stage
+        rail: <><Knob ... /><ChipGroup ... /></>,                              // the parameter column (ADR-0070 requirement 2)
+      },
+      content: <SubTabs ... />,                                                // the stage; its sub-tab is kept across Focus
+    },
+  ]}
+  focus={{ onChange: (on) => record(on) }}
+/>
+```
+
+The `rail` is the view's parameter column in Focus; without one the stage is the whole frame and the view keeps its controls in
+its body. A surface with no focusable view fails the gate (`--require-focus`, G18).
+
+The one waiver: a hub that only links studies has no simulation or dynamic synthetic scenario, so ADR-0070 does not bind it. It
+sets `"app": "surface"`, `"focus": false` and a `focus_reason`, and writes the same reason on the SDD's ADR-0070 row as
+`not applicable: <reason>`. `scripts/check_sdd.py` fails a waiver on a workbench, without a reason (or with fewer than 8 words or a
+placeholder), without the row or with a row that gives another reason, and a row that says `not applicable` while `product.json`
+records no waiver. `npm run gate` reads the same two places and refuses to run when they disagree; it never drops
+`--require-focus` otherwise, whatever extra arguments a run passes. When `deploy/TARGET` is `vps`, the runner also passes
+`--spa-fallback`, so the build is served as nginx serves it (`try_files $uri $uri/ /index.html`).
+
 ## 2. Write the specification area, then fix the contracts
 
 The map is [`docs/design/README.md`](../design/README.md). In this order, each step with its guard
@@ -53,7 +104,9 @@ The map is [`docs/design/README.md`](../design/README.md). In this order, each s
    their owner units, every boundary, the machine limits, the parallel units with disjoint write scopes) in the
    coordination records, and summarise it in `Sizing and contracts`. Fill `Technology and versions` with every pinned
    dependency (`| component | package | version | use | alternative considered |`; Python pins exact with `==`, a
-   package.json range only with a lock that records it, and the table holds the locked version) and `Resources`
+   package.json range only with a lock that records it, and the table holds the locked version; an npm alias such as
+   `"zz-typescript5": "npm:typescript@5.9.3"` pins an exact version and is listed under its own name, `zz-typescript5`, with that
+   version) and `Resources`
    with one row each for the bake, the training (if any), the tests, the build and the deploy payload, memory, disk
    and time measured or bounded (no TBD, no placeholder cell).
 4. **Contracts.** Write them in [`docs/contracts/catalog.md`](../contracts/catalog.md): one row per boundary and per
@@ -111,11 +164,13 @@ before the next starts; units whose write scopes are disjoint are built at once,
    kit (`fitLabel`, `niceTicks`); a table sits above the drawing of the same numbers. A product that is not about
    cases (a hub, an explorer, a console) replaces the workbench with the shell's `SurfacePage` and runs the gate with
    `--workbench ''`. The structure, tokens, icons and numbers are the shell's (its `docs/`); write CSS only for the
-   product's own widgets, never for a shell class (`check_web_baseline.py`). **The App opens Focus mode for every case** (shell
-   0.14.0, ADR-0070): `CaseWorkbench` takes `focus`, which puts a Focus button in the rail head that opens the open group in
-   the full viewport (`?focus=1` beside `?case=` and `?view=`; Escape or the exit button returns to the same case, group
-   and sub-view). `npm run gate` always passes `--require-focus`, so a workbench without `focus` fails the gate (G18). A
-   surface product that has no workbench runs the gate with `--workbench ''` and has no Focus control to require.
+   product's own widgets, never for a shell class (`check_web_baseline.py`). **The App opens Focus mode** (ADR-0070): for a
+   workbench, `CaseWorkbench` takes `focus`, which puts a Focus button in the rail head that opens the open group in the
+   full viewport (`?focus=1` beside `?case=` and `?view=`; Escape or the exit button returns to the same case, group and
+   sub-view); for a surface (`"app": "surface"` in `product.json`, shell 0.16.0), `SurfacePage` takes `focus` and each view
+   with a stage takes `TabDef.focus` (see "`product.json` and the App's kind" above). `npm run gate` always passes
+   `--require-focus`, so an App without Focus mode fails the gate (G18); only a surface without any simulation waives it, with
+   its reason recorded.
 7. **The pages and the diagrams.** Rewrite `frontend/src/pages/` from the product's dossiers (equations with
    captions, references with DOIs that resolve) and the five diagrams in `frontend/src/architecture/` (bilingual,
    shell tokens only).
@@ -140,6 +195,24 @@ both scripts verbatim and keeps no variant):
   listed in `scripts/.content_standards_allow` as `<path> <sha256> <source URL>`; `scripts/check_content_standards.py` skips
   it only while the digest of its content (line endings normalised to LF) matches, so an edited notice fails. The product's
   own text is never listed.
+
+A committed document that is not JSON (a model file such as `.onnx` or `.pt`, a CSV table) named by a catalog row's `documents`
+cell has no schema to validate: `scripts/check_documents.py` validates the JSON documents against their schemas and leaves the
+others to the row's own contract test (its `model io` column describes the contract), and requires the row's `producer test` or
+`consumer test` column to be filled. The content-standards guard reads every tracked text file, including one with no suffix
+(`LICENSE`, `VERSION`, `deploy/TARGET`, a dotfile) that decodes as UTF-8.
+
+### Files a product takes verbatim
+
+A product takes these scripts from the template as they are and keeps no variant; they hold nothing that names a person or a
+product, and `tests/adversarial/test_guard_gaps_0_09_0.py` fails when one of them names the owner:
+
+- `scripts/check_sdd.py`
+- `scripts/check_tech_matrix.py`
+- `scripts/check_documents.py`
+- `scripts/check_contracts.py`
+- `scripts/check_base_integrity.py`
+- `scripts/check_content_standards.py`
 
 A release bumps `VERSION`, `frontend/package.json` and the top of `CHANGELOG.md` together, merges `develop` into
 `main` through a pull request, and tags `vX.XX.XXX`. The deploy runs after CI succeeds on `main` and checks the live
