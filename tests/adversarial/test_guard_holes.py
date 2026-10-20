@@ -17,7 +17,7 @@ from planting import add_schema, drop_row, edit, git_commit, guard, make_tree, s
 SDD_INPUTS = ("scripts/*.py", "docs/design", "tests", "data", "frontend/src/**/*.test.ts", "frontend/src/**/*.test.tsx", "frontend/scripts",
               "requirements*.txt", "data-pipeline/requirements.txt", "content", "frontend/public/executive")
 TECH_INPUTS = ("scripts/check_tech_matrix.py", "docs/design/SDD.md", "requirements*.txt", "data-pipeline/requirements.txt",
-               "pyproject.toml", "frontend/package.json", "frontend/package-lock.json")
+               "notebooks/requirements.txt", "pyproject.toml", "frontend/package.json", "frontend/package-lock.json")
 VERSIONS_INPUTS = ("scripts/*.py", "docs/contracts")
 BUDGET_INPUTS = ("scripts/check_ci_budget.py", ".github", "requirements-precompute.txt")
 
