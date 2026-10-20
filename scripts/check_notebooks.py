@@ -378,6 +378,9 @@ def check_notebook(root: Path, lang: str, topic: str, name: str, nb: dict, pins:
             findings.append(f"{rel}: metadata: caos.packages is not a list of exact requirement lines of notebooks/requirements.txt")
         else:
             sections = sections_of(cells)
+            if packages and not any(c["cell_type"] == "code" and "importlib.metadata" in text_of(c["source"]) for c in cells):
+                findings.append(f"{rel}: anatomy: no code cell prints the versions of the packages (importlib.metadata.version), "
+                                "as the Setup section's last step")
             setup = sections.get("Setup" if lang == "en" else "Preparación", "")
             commands = install_lines(setup)
             for p in packages or []:

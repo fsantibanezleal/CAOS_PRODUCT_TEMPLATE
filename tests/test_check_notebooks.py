@@ -69,7 +69,8 @@ def make_notebook(lang: str, topic: str, level: int, beyond: tuple[str, ...] = (
         else:
             md(f"## {heading}\n\nText.")
         if heading in ("Setup", "Preparación", "Method", "Método"):
-            code("# print a number\nprint(1)")
+            versions = "# print the version of a package\nimport importlib.metadata as md\nprint(md.version('numpy'))"
+            code(versions if heading in ("Setup", "Preparación") else "# print a number\nprint(1)")
     return {"cells": cells, "nbformat": 4, "nbformat_minor": 5, "metadata": {
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}, "language_info": {"name": "python"},
         "caos": {"language": lang, "topic": topic, "level": level, "title": f"{topic} {level}", "packages": [PIN], "data": [DATA],
@@ -566,7 +567,7 @@ def test_a_notebook_never_runs_pip(repo: Path, code: str) -> None:
 
 def test_a_comment_that_names_pip_is_not_running_it(repo: Path) -> None:
     edit(repo, "en", "01-basics/01-note.ipynb", lambda d: next(c for c in d["cells"] if c["cell_type"] == "code").update(
-        source="# pip install numpy is done in the Setup text, never here\nprint(1)"))
+        source="# pip install numpy is done in the Setup text, never here\nimport importlib.metadata\nprint(1)"))
     assert CHECK.findings_of(repo) == []
 
 
@@ -734,3 +735,13 @@ def test_a_notebook_that_redefines_the_oracle_is_found(repo: Path) -> None:
     edit(repo, "en", "01-basics/01-note.ipynb", lambda d: next(c for c in d["cells"] if c["cell_type"] == "code").update(
         source="# a copy of the oracle\ndef final_size(r0):\n    return r0"))
     assert found(repo, "01-basics/01-note.ipynb", "defines 'final_size'", "import it instead")
+
+
+def test_a_notebook_with_packages_prints_their_versions(repo: Path) -> None:
+    """F11: the Setup section is followed by a code cell that prints the versions (importlib.metadata)."""
+    def drop(doc: dict) -> None:
+        for c in doc["cells"]:
+            if c["cell_type"] == "code" and "importlib.metadata" in c["source"]:
+                c["source"] = "# print a number\nprint(1)"
+    edit(repo, "en", "01-basics/01-note.ipynb", drop)
+    assert found(repo, "en/01-basics/01-note.ipynb", "anatomy", "importlib.metadata")
