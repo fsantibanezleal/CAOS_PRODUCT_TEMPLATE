@@ -281,7 +281,7 @@ def test_an_error_output_and_a_stderr_stream_are_found(repo: Path) -> None:
     assert found(repo, "es/01-basics/02-note.ipynb", "a stderr stream")
 
 
-@pytest.mark.parametrize("text", ["C:\\Users\\someone\\data.csv", "D:/_Repos/x", "/home/someone/x", "/Users/someone/x", "\\Users\\x",
+@pytest.mark.parametrize("text", ["C:\\Users\\someone\\data.csv", "D:" + "/_Repos/x", "/home/someone/x", "/Users/someone/x", "\\Users\\x",
                                   "ghp_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4", "-----BEGIN RSA PRIVATE KEY-----", "api_key = 'abcdef123456'"])
 def test_a_machine_path_and_a_token_are_found(repo: Path, text: str) -> None:
     edit(repo, "en", "01-basics/01-note.ipynb", lambda d: d["cells"][1].update(source=d["cells"][1]["source"] + f"\n\n{text}"))
