@@ -111,7 +111,7 @@ describe('the gate runner by the App kind (WB-014, WB-015)', () => {
 
   it('adversarial: no extra argument removes --require-focus when it applies', () => {
     for (const product of [{}, { app: 'surface' }]) {
-      for (const extra of [[], ['--url', 'https://example.org'], ['--sizes', '1280x800', '--themes', 'light'], ['--workbench', '/app']]) {
+      for (const extra of [[], ['--url', 'https://example.org'], ['--sizes', '1280x800', '--themes', 'light']]) {
         expect(run({ product, extra }).args, JSON.stringify([product, extra])).toContain('--require-focus');
       }
     }
@@ -154,6 +154,26 @@ describe('the gate runner by the App kind (WB-014, WB-015)', () => {
 
   it('adversarial: an SDD row that says not applicable with no waiver in product.json is refused', () => {
     expect(run({ sdd: waivedSdd }).args).toBeNull();
+  });
+
+  it('adversarial: arguments that redirect what G18 measures are refused while Focus is required (the review plant, WB-014)', () => {
+    for (const extra of [['--workbench', '/app', '--routes', '/introduction'], ['--routes', '/introduction'], ['--routes', '/,/introduction'], ['--workbench', '/app']]) {
+      const r = run({ product: { app: 'surface' }, extra });
+      expect(r.status, JSON.stringify(extra)).not.toBe(0);
+      expect(r.args, JSON.stringify(extra)).toBeNull();
+      expect(r.stderr).toContain('--require-focus');
+    }
+    const workbench = run({ extra: ['--app-route', '/x'] });
+    expect(workbench.args).toBeNull();
+  });
+
+  it('accepts a route list that keeps the App route, and a surface that names its own App route', () => {
+    expect(run({ extra: ['--routes', '/,/app'] }).args).toContain('--require-focus');
+    expect(run({ product: { app: 'surface' }, extra: ['--app-route', '/console', '--routes', '/,/console'] }).args).toContain('--require-focus');
+  });
+
+  it('a confirmed waiver may redirect the routes, since nothing requires Focus', () => {
+    expect(run({ product: waiver, sdd: waivedSdd, extra: ['--routes', '/introduction'] }).status).toBe(0);
   });
 
   it('serves as nginx does when the deploy target is a VPS (--spa-fallback), and not on Pages or against a deployed URL', () => {

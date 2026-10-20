@@ -3,7 +3,8 @@
 - a tracked file with no suffix is scanned by the content-standards guard (an em-dash in `scripts/.template_residue_allow` passed);
 - a committed document that is not JSON (a model file, a table) is left to its row's contract test, which the row must name;
 - the technology-matrix guard reads an npm alias `npm:<package>@<version>`;
-- no file a product takes verbatim names the owner."""
+- no file a product takes verbatim names the owner. The personal name is refused; the GitHub handle `fsantibanezleal` is the
+  repositories' owner identifier (it stands in source URLs, for example `scripts/check_contracts.py`) and stays allowed."""
 from __future__ import annotations
 
 import json
@@ -14,7 +15,7 @@ from pathlib import Path
 import pytest
 from planting import ROOT, edit, git_commit, guard, make_tree, set_cell
 
-DASH = "—"
+DASH = "\u2014"
 
 # ---------------------------------------------------------------- content standards: files with no suffix (WB-016)
 
@@ -183,20 +184,21 @@ OWNER = re.compile(r"\b(?:Felipe|Santib[aá][nñ]ez)\b", re.I)
 
 
 def verbatim_files() -> list[str]:
-    """The scripts the guide lists under 'Files a product takes verbatim'."""
+    """The files the guide lists under 'Files a product takes verbatim'."""
     text = GUIDE.read_text(encoding="utf-8")
     start = re.search(r"^#+ Files a product takes verbatim\s*$", text, re.M)
     assert start, "docs/guides/00_instantiate.md has no section 'Files a product takes verbatim'"
     rest = text[start.end():]
     stop = re.search(r"^#+ ", rest, re.M)
     section = rest[: stop.start()] if stop else rest
-    return sorted(set(re.findall(r"`(scripts/[\w./-]+)`", section)))
+    return sorted(set(re.findall(r"`((?:frontend/)?scripts/[\w./-]+)`", section)))
 
 
 def test_the_guide_lists_the_files_a_product_takes_verbatim() -> None:
     files = verbatim_files()
     for name in ("check_sdd.py", "check_content_standards.py", "check_documents.py", "check_base_integrity.py", "check_tech_matrix.py"):
         assert f"scripts/{name}" in files, files
+    assert "frontend/scripts/gate.mjs" in files, files
     assert all((ROOT / f).is_file() for f in files), [f for f in files if not (ROOT / f).is_file()]
 
 
