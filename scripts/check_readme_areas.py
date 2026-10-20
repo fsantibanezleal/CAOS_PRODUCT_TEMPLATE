@@ -12,7 +12,8 @@ fails, naming the area, on
 - a row whose Status does not start with ``active`` or ``dormant``, or a dormant one with no reason
   (``dormant: <why, three words or more>``);
 - a row that does not link its folder (the convention's folder, as a relative markdown link), or links a folder that does not
-  exist; the Packages row has no folder and links the package on PyPI (``https://pypi.org/...``) instead.
+  exist; the Packages row has no folder and links the package on PyPI (``https://pypi.org/...``) instead, or, for a package installed from its release tag, that tag on
+  GitHub (``https://github.com/<owner>/<repo>/releases/tag/<tag>``).
 
 Standard library only. Usage: ``python scripts/check_readme_areas.py [repo_root]``. Exit 0 complete, 1 on any finding.
 """
@@ -40,6 +41,8 @@ MIN_REASON_WORDS = 3
 MIN_HOLDS_WORDS = 3
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 LINK_TEXT = re.compile(r"\[[^\]]*\]\([^)]*\)")
+# a package not yet on PyPI is linked by its release tag (convention section 5, decided 2026-10-20)
+RELEASE_TAG = re.compile(r"^https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/(?:releases/tag|tree)/v?[0-9][0-9A-Za-z.+_-]*/?$")
 FENCE = re.compile(r"^\s*(```+|~~~+)")
 
 
@@ -127,8 +130,9 @@ def findings_of(root: Path) -> list[str]:
         for f in folders:
             if f not in {t if t.endswith("/") else t + "/" for t in local}:
                 out.append(f"README.md: the area {area!r} does not link its folder {f} (a relative markdown link)")
-        if not folders and not any("pypi.org/" in t for t in links):
-            out.append(f"README.md: the area {area!r} links no package on PyPI (each package the product publishes or consumes)")
+        if not folders and not any("pypi.org/" in t or RELEASE_TAG.match(t) for t in links):
+            out.append(f"README.md: the area {area!r} links no package on PyPI (each package the product publishes or consumes), "
+                       "or, for one installed from its release tag, that release tag on GitHub")
     return out
 
 
