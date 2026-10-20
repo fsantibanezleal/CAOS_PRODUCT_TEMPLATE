@@ -7,7 +7,8 @@ standard library only).
 
 | Script | What it does |
 |---|---|
-| `setup.sh` / `setup.ps1` | creates `.venv-pipeline` and installs the pinned pipeline requirements |
+| `setup.sh` / `setup.ps1` | creates `.venv-pipeline` and installs the pinned pipeline requirements; `--notebooks` (`-Notebooks`) builds `.venv-notebooks` from `notebooks/requirements.txt` instead |
+| `run_notebooks.py` | executes the notebooks top to bottom in a fresh kernel and writes the outputs in place; `--check` runs copies and writes nothing; `--only <path>` runs one (a local release gate, never CI) |
 | `precompute.sh` / `precompute.ps1` | the canonical bake: `python data-pipeline/run.py` (a release operation, never CI) |
 | `dev.sh` / `dev.ps1`, `smoke.sh` / `smoke.ps1` | local development and a sandboxed smoke run |
 | `instantiate.py` | makes a product from the template (identity, licence, version, deploy place) |
@@ -18,6 +19,8 @@ standard library only).
 |---|---|
 | `check_artifacts.py` | contract 2: the index, manifests and artifacts agree; each lane matches its gate |
 | `check_version_coherence.py` | VERSION is the only source; the package, the changelog and the tags agree with it |
+| `check_notebooks.py` | the notebooks: layout, the English and Spanish mirror, levels and the SDD's `BS-` claims, anatomy, metadata, cleanliness, pins (static; the execution is `run_notebooks.py --check`) |
+| `check_readme_areas.py` | the README states the repository by areas, each active or dormant, every folder link present |
 | `check_sdd.py` | the SDD has its sections; every requirement names a gate that exists |
 | `check_template_residue.py` | an instantiated product carries none of the example |
 | `check_doc_paths.py` | every repository path a document names exists |

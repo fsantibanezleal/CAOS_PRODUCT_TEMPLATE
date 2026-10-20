@@ -95,7 +95,11 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 
 | component | package | version | use | alternative considered |
 |---|---|---|---|---|
-| engine | numpy | 2.4.6 | the SIR engine and the surrogate's least squares (numpy only, so the template installs with no native build) | scipy.integrate, rejected: a second heavy dependency for a one-line integrator |
+| engine | numpy | 2.4.6 | the SIR engine and the surrogate's least squares (numpy only, so the template installs with no native build); the same pin in `notebooks/requirements.txt` | scipy.integrate, rejected: a second heavy dependency for a one-line integrator |
+| notebooks | matplotlib | 3.11.2 | the figures of the notebooks (`notebooks/requirements.txt`); https://pypi.org/pypi/matplotlib/json read on 2026-10-19, released 2026-09-11 | none: the figures of the notebooks need a plotting library, and the web's uplot runs in the browser only |
+| notebooks | nbclient | 0.11.0 | executes a notebook top to bottom in a fresh kernel (`scripts/run_notebooks.py`); https://pypi.org/pypi/nbclient/json read on 2026-10-19, released 2026-06-05 | nbconvert --execute, rejected: a heavier install for the same execution |
+| notebooks | nbformat | 5.11.1 | reads and writes the notebook format (`scripts/run_notebooks.py`); https://pypi.org/pypi/nbformat/json read on 2026-10-19, released 2026-08-17 | none: the format's own library |
+| notebooks | ipykernel | 7.4.0 | the Python kernel the notebooks run in; https://pypi.org/pypi/ipykernel/json read on 2026-10-19, released 2026-09-29 | none: nbclient needs a kernel |
 | tests | pytest | 9.1.1 | the pipeline, contract, guard and adversarial tests | unittest, rejected: no parametrisation or fixtures |
 | lint | ruff | 0.15.18 | lint of data-pipeline, tests, scripts and app | flake8 plus isort, rejected: two tools for one |
 | contracts | jsonschema | 4.26.0 | validates every document against its schema file | fastjsonschema, rejected: no support for the draft the schemas declare |
@@ -174,6 +178,14 @@ start, computed live.
   must not grow, and an immunisation above the threshold must prevent the outbreak.
 - Parity: the Python engine is the reference for the live engine, to the trace rounding.
 None of these is a model judging a model.
+
+## Beyond the state of the art
+
+None claimed. The example is a teaching model: its engine is the textbook SIR system integrated by Forward Euler, and
+the state of the art it is compared with (the next-generation matrix and the derivation of the final size) is in the
+level 3 notebook of `notebooks/`. A product that goes further lists each component here under an identifier of the form
+BS-<n>, with its evidence and its source, and covers each with a level 4 notebook in each language
+([`docs/guides/08_notebooks.md`](../guides/08_notebooks.md)).
 
 ## Deploy driver
 
