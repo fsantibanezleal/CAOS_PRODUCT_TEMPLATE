@@ -15,6 +15,16 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
   column and this release. `data/derived/readiness.json` is recomputed (the catalog changed).
 - Requirements CT-030 (changed), CT-032 to CT-034 (new) with adversarial rows; the catalog and guide 00 document the column.
 
+- The base-integrity step of the `guards` job moves out of `ci.yml` into `scripts/check_base_integrity.py` (same rules, same
+  messages, read from `git ls-files` once, no pipe). It admits a tracked model file (`.pt`, `.pth`, `.onnx`, `.npy`) only when
+  a catalog row's `documents` cell names it, at most 5 MB each and 50 MB together; a product with no catalog admits none. An
+  undeclared `.onnx` file now fails too. The base rule stands: no heavy or native binary and no venv.
+- `scripts/check_content_standards.py` reads `scripts/.content_standards_allow` (`<path> <sha256> <source URL>`, the template's
+  has no entry): a listed file is skipped only while its digest, over LF-normalised content, matches; a changed or absent
+  listed file fails.
+- Requirements CT-035 to CT-038 with adversarial plants (`tests/adversarial/test_base_integrity_plants.py`) and unit tests
+  (`tests/test_base_integrity.py`, which replace the tests of the inline step in `tests/test_guards.py`). Guide 00 documents both.
+
 ### Migration
 
 A product instantiated from an earlier release:
@@ -23,7 +33,11 @@ A product instantiated from an earlier release:
 2. takes `scripts/check_documents.py` verbatim from this release, replacing its port (and the `check_contracts.py` that
    validates the column);
 3. runs `python scripts/check_contracts.py docs/contracts/catalog.md --repo-root .`, `python scripts/check_documents.py` and
-   `python data-pipeline/run.py readiness` (the catalog changed), and fixes what they report.
+   `python data-pipeline/run.py readiness` (the catalog changed), and fixes what they report;
+4. takes `scripts/check_base_integrity.py` and `scripts/check_content_standards.py` verbatim, replacing any variant of either
+   guard and the inline base-integrity step of its `ci.yml` (that step becomes `python scripts/check_base_integrity.py`);
+   moves the model files it commits by design into a catalog row's `documents` cell; and lists its third-party notice files
+   (copied unmodified from upstream) in `scripts/.content_standards_allow` with their digests and source URLs. The base-integrity script imports `scripts/check_contracts.py` (the one parser of the `documents` column).
 
 ## [0.08.002], 2026-10-15
 
