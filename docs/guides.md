@@ -8,3 +8,4 @@
 - [05, the in-app Architecture / "How it works" modal (ADR-0058)](guides/05_architecture-modal.md)
 - [06, write the executive brief (the problem in its real context)](guides/06_executive-brief.md)
 - [07, the five documentation pages and the areas each must cover](guides/07_documentation-pages.md)
+- [08, write the product's notebooks (English and Spanish, by topic and level) and keep the README by areas](guides/08_notebooks.md)

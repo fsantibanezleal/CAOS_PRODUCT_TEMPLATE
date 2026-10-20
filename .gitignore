@@ -4,6 +4,8 @@
 # --- Python virtualenvs (ANY name, ANY depth): NEVER committed; recreate via scripts/setup ---
 .venv/
 .venv*
+# the notebook environment (scripts/setup.sh --notebooks), never committed
+.venv-notebooks/
 **/.venv*
 venv/
 **/venv/
