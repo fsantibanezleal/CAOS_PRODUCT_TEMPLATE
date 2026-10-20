@@ -31,6 +31,7 @@ Exit 0 and ``documents: N valid``; exit 1 listing each error. Usage: python scri
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -95,6 +96,12 @@ def matches(root: Path, glob: str) -> set[Path]:
     return {p for p in root.glob(glob) if p.is_file()}
 
 
+def outside_repository(glob: str) -> bool:
+    """Whether a glob leaves the repository: absolute, a drive path, a backslash or a ``..`` segment."""
+    g = glob.replace("\\", "/")
+    return g.startswith("/") or bool(re.match(r"^[A-Za-z]:", g)) or "\\" in glob or ".." in g.split("/")
+
+
 def row_files(root: Path, entries: list[str]) -> dict[Path, str]:
     """The files a row's globs govern, each with the OpenAPI component (``""`` for none), in the repository and in the
     provider tree; exclusions removed."""
@@ -157,6 +164,10 @@ def validate_rows(rep: Report, root: Path, rows: list[dict[str, str]]) -> None:
     for row in rows:
         rid, schema_file = row.get("id", ""), row.get("schema file", "")
         entries = split_documents(row.get("documents", ""))
+        bad = [e for e in entries if outside_repository(parse_document_glob(e)[1])]
+        if bad:
+            rep.errors.append(f"{CATALOG_REL}: row {rid} names {', '.join(bad)}, outside the repository (a glob relative to the root, no '..')")
+            continue
         files = row_files(root, entries)
         example = row.get("example", "").strip().strip("`")
         if example.startswith(EXAMPLES_REL) and (root / example).is_file():

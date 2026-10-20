@@ -53,10 +53,9 @@ TEXT_SUFFIXES = {
 
 
 def tracked_files() -> list[str]:
-    out = subprocess.run(
-        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
-    )
-    return [ln.strip() for ln in out.stdout.splitlines() if ln.strip()]
+    # -z: a path with a non-ASCII character is listed verbatim (without it git quotes the path and the file is never read)
+    out = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True)
+    return [p for p in out.stdout.decode("utf-8", errors="replace").split("\0") if p]
 
 
 def digest(path: Path) -> str:

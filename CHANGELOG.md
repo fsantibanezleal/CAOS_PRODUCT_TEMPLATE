@@ -16,6 +16,7 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
   `not applicable: <reason>`. `scripts/check_sdd.py` and the gate runner both read the two places; a waiver on a workbench, without a
   reason or a row, or with a different reason, an unknown `app`, and a `not applicable` row with no waiver fail, and the runner
   refuses to run the shell gate naming the field. No extra argument of a run removes `--require-focus` when it applies.
+- While Focus is required the runner refuses the arguments that would make the Focus check measure nothing: `--workbench`, `--app-route` on a workbench, and a `--routes` list without the App route.
 - When `deploy/TARGET` is `vps`, the runner passes the shell gate's `--spa-fallback`, so the build is served as nginx serves it
   (`try_files $uri $uri/ /index.html`, no `404.html`); `pages` keeps the Pages behaviour.
 - Requirements WB-015 (the App's kind) and WB-016 to WB-019 (the guard fixes below) with adversarial rows
@@ -32,6 +33,7 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
 - `scripts/check_content_standards.py` also reads a tracked file with no suffix (`LICENSE`, `VERSION`, `deploy/TARGET`, a dotfile)
   that decodes as UTF-8; it had skipped them, and an em-dash in the comment of `scripts/.template_residue_allow` and in three
   comments of `.gitignore` had passed. Both are fixed (WB-016).
+- `scripts/check_documents.py` refuses a `documents` glob outside the repository (`..`, absolute) when run alone, and `scripts/check_content_standards.py` reads `git ls-files -z` so a non-ASCII path is scanned.
 - `scripts/check_documents.py` validates JSON documents against their schema as before and leaves a committed document that is not
   JSON (a `.onnx` or `.pt` model file, a CSV table) to its row's own contract test; the row must fill its `producer test` or
   `consumer test` column, and the guard lists such files (WB-017).
@@ -40,7 +42,7 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
   record it, and the SDD technology table lists the alias under its own name with that version (WB-018).
 - Three comments of the files a product takes verbatim (`scripts/check_sdd.py`, `scripts/check_content_standards.py`) named the owner;
   they now name the rule by its record (ADR-0067, `conventions/problem-context-first.md`), with no change of behaviour. A template test
-  fails when a file listed in guide 00 under "Files a product takes verbatim" names the owner (WB-019).
+  fails when a file listed in guide 00 under "Files a product takes verbatim" (now including `frontend/scripts/gate.mjs`) names the owner; the GitHub handle is the repositories' owner identifier and stays allowed (WB-019).
 
 - `scripts/check_documents.py` names no document: it reads the new `documents` column of `docs/contracts/catalog.md` and
   validates every committed file each row governs against that row's schema (`-` for a row with none; globs relative to the
@@ -52,9 +54,9 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
 - Requirements CT-030 (changed), CT-032 to CT-034 (new) with adversarial rows; the catalog and guide 00 document the column.
 
 - The base-integrity step of the `guards` job moves out of `ci.yml` into `scripts/check_base_integrity.py` (same rules, same
-  messages, read from `git ls-files` once, no pipe). It admits a tracked model file (`.pt`, `.pth`, `.onnx`, `.npy`) only when
+  messages, read from `git ls-files` once, no pipe). It admits a tracked model file (`.pt`, `.pth`, `.onnx`) only when
   a catalog row's `documents` cell names it, at most 5 MB each and 50 MB together; a product with no catalog admits none. An
-  undeclared `.onnx` file now fails too. The base rule stands: no heavy or native binary and no venv.
+  undeclared `.onnx` file now fails too. The base rule stands: no heavy or native binary and no venv, and a declaration exempts a file from the model-file rule only (a declared `.dll`, `.parquet` or venv file is refused; `.npy` is raw data, not a model file). A machine path inside a tracked binary file fails, as in the inline step.
 - `scripts/check_content_standards.py` reads `scripts/.content_standards_allow` (`<path> <sha256> <source URL>`, the template's
   has no entry): a listed file is skipped only while its digest, over LF-normalised content, matches; a changed or absent
   listed file fails.

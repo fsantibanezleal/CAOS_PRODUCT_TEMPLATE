@@ -9,7 +9,7 @@ It judges the tracked paths (``git ls-files``) and fails on:
 * a local machine path in a tracked source (the ``.github`` folder is exempt).
 
 The base rule stands: data and models live in the device's data and models roots. What a product commits BY DESIGN, its compact
-baked artifacts, is declared, never exempted: a tracked model file (``.pt``, ``.pth``, ``.onnx``, ``.npy``) passes only when
+baked artifacts, is declared, never exempted: a tracked model file (``.pt``, ``.pth``, ``.onnx``) passes only when
 
 1. a row of ``docs/contracts/catalog.md`` names it in its ``documents`` column (the globs of ``scripts/check_contracts.py``'s
    parser: relative to the root, ``!`` excludes, applied in the provider tree ``docs/contracts/fixtures/`` too under ``data/``
@@ -38,7 +38,7 @@ from check_contracts import RELEASE_COLUMNS, parse_catalog, parse_document_glob,
 CATALOG_REL = "docs/contracts/catalog.md"
 FIXTURES_REL = "docs/contracts/fixtures"
 ROOTED = ("data/", "models/")  # a glob under these also applies in the provider tree
-MODEL_SUFFIXES = (".pt", ".pth", ".onnx", ".npy")
+MODEL_SUFFIXES = (".pt", ".pth", ".onnx")
 MB = 1024 * 1024
 MAX_FILE = 5 * MB
 MAX_TOTAL = 50 * MB
@@ -103,12 +103,13 @@ def main(argv: list[str]) -> int:
     admitted = [f for f in models if f in names]
     refused = [f for f in models if f not in names]
 
-    # venvs, native binaries and heavy model blobs must never be tracked
-    binaries = [f for f in files if BINARY.search(f) and f not in names]
+    # venvs, native binaries and heavy model blobs must never be tracked; only an admitted model file (declared, small) is exempt,
+    # never a file a glob merely names (a declared .dll, .parquet or venv file is still refused)
+    binaries = [f for f in files if BINARY.search(f) and f not in admitted]
     if binaries:
         error("a venv or native/heavy binary is tracked", binaries)
     # raw or heavy data must never be tracked; commit only compact derived artifacts under data/derived/
-    heavy = [f for f in files if HEAVY_DATA.search(f) and f not in names]
+    heavy = [f for f in files if HEAVY_DATA.search(f) and f not in admitted]
     if heavy:
         error("raw or heavy data tracked; commit only compact derived artifacts (data/derived/)", heavy)
 
@@ -123,8 +124,8 @@ def main(argv: list[str]) -> int:
     if total > MAX_TOTAL:
         error(f"the declared model files total {total / MB:.2f} MB in {len(admitted)} model file(s), over {MAX_TOTAL // MB} MB", sorted(admitted))
 
-    # no leaked local machine paths in tracked sources
-    grep = subprocess.run(["git", "grep", "-nIE", MACHINE_PATH, "--", ".", ":!.github"], cwd=root, capture_output=True)
+    # no leaked local machine paths in tracked sources; binary files are searched too (no -I), as the inline step did
+    grep = subprocess.run(["git", "grep", "-nE", MACHINE_PATH, "--", ".", ":!.github"], cwd=root, capture_output=True)
     if grep.returncode == 0:
         hits = grep.stdout.decode("utf-8", errors="replace").splitlines()
         error("a local machine path in a tracked file", [h[:160] for h in hits[:20]])
