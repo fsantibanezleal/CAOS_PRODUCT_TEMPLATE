@@ -2,6 +2,57 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.10.000], 2026-10-20
+
+### Added
+
+- **Product notebooks** (feature rows NB-001 to NB-027). `notebooks/` holds an English and a Spanish tree at identical paths
+  (`notebooks/<language>/<topic>/<notebook>.ipynb`), by topic and by level: 1 fundamentals, 2 the method in practice, 3 the state
+  of the art, 4 beyond it. `notebooks/requirements.txt` carries exact pins. The example set teaches the SIR model on its own data:
+  five notebooks per language, levels 1 to 3, executed and committed. Their final-size solver is the pipeline oracle
+  `data-pipeline/pipeline/oracles.py`, imported by the notebooks, never copied into them.
+- **The notebook check** `scripts/check_notebooks.py` (static, in CI) holds:
+  - the layout, the mirror, the numbering, the levels and the SDD `BS-` claims;
+  - the anatomy, the metadata, the cleanliness and the size limits;
+  - the pins and the sources listed in the SDD;
+  - no copy of the engine, and the CI wiring.
+
+  A notebook never runs pip and holds no machine path (any drive form, `/opt/`, `/tmp/`, `/root/`, `/var/`, `/srv/`) and no
+  traceback. A notebook that imports packages prints their versions (`importlib.metadata`). A package not yet on PyPI is
+  installed from its release tag (`name @ git+https://github.com/<owner>/<repo>.git@<tag>`), and the README's Packages row may link
+  that tag.
+- **The notebook runner** `scripts/run_notebooks.py` (a local release gate, never CI, ADR-0074):
+  - it executes each notebook in a fresh kernel in `.venv-notebooks`;
+  - it strips volatile metadata and coalesces the output streams, so a second run writes the same bytes;
+  - `--check` runs copies and writes nothing, failing on an error or on committed outputs that differ from a fresh run;
+  - `--only` runs one notebook.
+
+  `scripts/setup.sh --notebooks` and `scripts/setup.ps1 -Notebooks` build the notebook environment.
+- **The README by areas** (feature rows RP-001 to RP-007). The `## Areas` section replaces "What is in it" and states the
+  repository by areas (web, API, core pipelines, packages, notebooks, data, contracts, docs, tests, deploy).
+  `scripts/check_readme_areas.py` (in CI) holds it, and `scripts/instantiate.py` writes the same section for a product.
+- The SDD gains the section `## Beyond the state of the art` ("None claimed." in the example) and the technology rows of the
+  notebook pins (matplotlib 3.11.2, nbclient 0.11.0, nbformat 5.11.1, ipykernel 7.4.0). Guide `docs/guides/08_notebooks.md`
+  describes the layer.
+
+### Changed
+
+- `scripts/check_content_standards.py` scans the notebooks, `scripts/check_template_residue.py` scans `.ipynb` (so a product
+  lists the example notebooks as residue), and `scripts/check_tech_matrix.py` reads `notebooks/requirements.txt`.
+
+### Migration
+
+A product instantiated from an earlier release:
+
+1. takes `scripts/check_notebooks.py`, `scripts/run_notebooks.py`, `scripts/check_readme_areas.py`,
+   `scripts/check_content_standards.py`, `scripts/check_template_residue.py` and `scripts/check_tech_matrix.py` verbatim, with the
+   setup scripts' notebook option and the two CI steps of `ci.yml`;
+2. writes its own `notebooks/en/` and `notebooks/es/` by topic and level on its own data and packages (guide 08), with
+   `notebooks/requirements.txt`, the SDD's `## Beyond the state of the art` section and the notebook pins in its technology table;
+3. replaces the README's "What is in it" with `## Areas`;
+4. runs `python scripts/check_notebooks.py`, `python scripts/check_readme_areas.py` and `python scripts/run_notebooks.py --check`,
+   and fixes what they report.
+
 ## [0.09.000], 2026-10-20
 
 ### Added
