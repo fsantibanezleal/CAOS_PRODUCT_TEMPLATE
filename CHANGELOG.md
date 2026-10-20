@@ -2,7 +2,7 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
-## [Unreleased]
+## [0.09.000], 2026-10-20
 
 ### Added
 
