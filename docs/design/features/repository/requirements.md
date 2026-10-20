@@ -15,3 +15,6 @@ reason) and says what the area holds. The check is `scripts/check_readme_areas.p
 | RP-005 | THE Packages row SHALL link each package on PyPI. | `tests/test_check_readme_areas.py::test_the_packages_row_must_link_pypi` |
 | RP-006 | THE README that the instantiate step writes for a product SHALL pass the check. | `tests/test_check_readme_areas.py::test_the_readme_instantiate_writes_states_every_area` |
 | RP-007 | THE template's own README SHALL state every area. | `tests/test_check_readme_areas.py::test_the_template_readme_states_every_area` |
+| RP-008 | THE Areas section SHALL come after the one-paragraph purpose and the live URLs. | `tests/test_check_readme_areas.py::test_the_areas_section_follows_the_purpose_and_the_live_urls` |
+| RP-009 | EACH area row SHALL say what the area holds in three words or more. | `tests/test_check_readme_areas.py::test_what_it_holds_is_more_than_a_dash` |
+| RP-010 | EVERY relative link of an area row, the area's own README or doc included, SHALL resolve to a path of the repository. | `tests/test_check_readme_areas.py::test_a_dead_link_in_what_it_holds_is_found` |
