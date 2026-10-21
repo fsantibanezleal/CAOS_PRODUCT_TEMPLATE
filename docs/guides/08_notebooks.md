@@ -124,7 +124,7 @@ language carry the same level, packages, data, beyond claims and the same sequen
 ./scripts/setup.sh --notebooks             # .venv-notebooks from notebooks/requirements.txt (setup.ps1 -Notebooks on Windows)
 python scripts/run_notebooks.py            # every notebook, top to bottom, fresh kernel, outputs written in place
 python scripts/run_notebooks.py --only notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb
-python scripts/run_notebooks.py --check    # executes copies in a temporary folder, writes nothing, fails on any error
+python scripts/run_notebooks.py --check --tmp DIR   # executes copies under the temp root DIR (or CAOS_TEMP_ROOT), writes nothing, fails on any error
 python scripts/check_notebooks.py          # the static check
 python scripts/check_readme_areas.py       # the README by areas
 ```

@@ -28,9 +28,16 @@ espejo se puede comprobar); cada cuaderno está escrito entero en el idioma de s
 ```bash
 ./scripts/setup.sh --notebooks             # .venv-notebooks from notebooks/requirements.txt (setup.ps1 -Notebooks on Windows)
 python scripts/run_notebooks.py            # executes every notebook top to bottom in a fresh kernel and writes the outputs in place
-python scripts/run_notebooks.py --check    # executes copies, writes nothing, fails on any error (a local release gate, never CI)
+python scripts/run_notebooks.py --check --tmp <temp root>   # executes copies under the temp root, writes nothing else, fails on any error
+                                                            # (CAOS_TEMP_ROOT=<temp root> works too; with neither it stops with exit 2; a local release gate, never CI)
 python scripts/check_notebooks.py          # the static check: layout, mirror, levels, anatomy, metadata, clean, pins (CI and local)
+python scripts/check_notebooks.py --pypi   # also reads PyPI for the pin of each method package (opt-in, needs the network, never CI)
 ```
+
+A product whose methods live in PyPI packages lists them in `product.json` as `"method_packages": ["<distribution>"]` (empty in the template), each
+with an exact `name==version` line in `notebooks/requirements.txt`. The static check then also fails a notebook cell that defines a function or a class
+such a package defines (a notebook imports a method, never copies it); a package not installed where the check runs is an info line, and
+`run_notebooks.py` stops before any notebook executes when one is not installed.
 
 Only the runner writes a notebook's outputs; the committed notebooks are the runner's output. To read one, open it on
 GitHub or in any Jupyter client (select the `.venv-notebooks` kernel to run it).
