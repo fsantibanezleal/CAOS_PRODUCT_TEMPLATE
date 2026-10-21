@@ -38,7 +38,7 @@ link to a folder that does not exist.
 ./scripts/precompute.sh                  # the canonical bake into data/derived (a release operation, never CI)
 .venv-pipeline/bin/python -m pytest      # the pipeline tests, sandboxed (.venv-pipeline/Scripts/python.exe on Windows)
 ./scripts/setup.sh --notebooks           # .venv-notebooks from notebooks/requirements.txt (setup.ps1 -Notebooks on Windows)
-python scripts/run_notebooks.py --check  # every notebook runs top to bottom (a local release gate, never CI)
+python scripts/run_notebooks.py --check --tmp <temp root>  # every notebook runs top to bottom in copies under the temp root (or CAOS_TEMP_ROOT); a local release gate, never CI
 cd frontend
 npm ci
 npm run build                            # copies the declared artifacts, type-checks, bundles, materialises the routes
