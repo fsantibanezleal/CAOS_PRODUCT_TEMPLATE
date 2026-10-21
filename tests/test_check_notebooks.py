@@ -745,3 +745,146 @@ def test_a_notebook_with_packages_prints_their_versions(repo: Path) -> None:
                 c["source"] = "# print a number\nprint(1)"
     edit(repo, "en", "01-basics/01-note.ipynb", drop)
     assert found(repo, "en/01-basics/01-note.ipynb", "anatomy", "importlib.metadata")
+
+
+# ---------------------------------------------------------------- the method packages (0.11.000, NB-043 to NB-047)
+
+FAKE_PIN = "fakepkg==1.2.3"
+
+
+def fake_package(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A small package on ``sys.path`` with no distribution metadata: public names in its modules, a private module, a ``tests``
+    folder and a nested package. Its ``__init__`` raises at the end, so any import of it fails the test."""
+    site = tmp_path / "site"
+    pkg = site / "fakepkg"
+    (pkg / "tests").mkdir(parents=True)
+    (pkg / "sub").mkdir()
+    (pkg / "__init__.py").write_text("def init_public():\n    pass\n\n\nraise RuntimeError('fakepkg was imported')\n", encoding="utf-8")
+    (pkg / "core.py").write_text("class Solver:\n    pass\n\n\ndef fit_model(x):\n    return x\n\n\nasync def fetch_all():\n    pass\n\n\n"
+                                 "def _hidden():\n    pass\n\n\nif True:\n    def nested_not_top_level():\n        pass\n", encoding="utf-8")
+    (pkg / "_private.py").write_text("def from_private_module():\n    pass\n", encoding="utf-8")
+    (pkg / "tests" / "test_core.py").write_text("def test_inside_tests():\n    pass\n", encoding="utf-8")
+    (pkg / "sub" / "__init__.py").write_text("def sub_public():\n    pass\n", encoding="utf-8")
+    (pkg / "sub" / "deep.py").write_text("def deep_public():\n    pass\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(site))
+    return site
+
+
+def declare(root: Path, packages, pin: str | None = FAKE_PIN) -> None:
+    (root / "product.json").write_text(json.dumps({"name": "x", "method_packages": packages}), encoding="utf-8")
+    if pin:
+        with (root / "notebooks" / "requirements.txt").open("a", encoding="utf-8") as f:
+            f.write(pin + "\n")
+
+
+def define_in_first_code_cell(root: Path, source: str, lang: str = "en", rel: str = "01-basics/01-note.ipynb") -> None:
+    edit(root, lang, rel, lambda d: next(c for c in d["cells"] if c["cell_type"] == "code").update(source=source))
+
+
+def test_adversarial_the_public_names_of_a_method_package_are_read_without_importing_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_package(tmp_path, monkeypatch)
+    names = CHECK.package_public_names("fakepkg")
+    assert names == {"init_public", "Solver", "fit_model", "fetch_all", "sub_public", "deep_public"}, names
+    assert "fakepkg" not in sys.modules, "the source is read with ast, the package is never imported"
+    assert CHECK.package_public_names("a_package_that_is_nowhere_installed") is None
+
+
+def test_adversarial_a_notebook_that_defines_a_method_package_name_is_found(repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_package(tmp_path, monkeypatch)
+    declare(repo, ["fakepkg"])
+    assert CHECK.findings_of(repo) == []
+    define_in_first_code_cell(repo, "# a copy of the method\ndef fit_model(x):\n    return x")
+    assert found(repo, "01-basics/01-note.ipynb", "code cell", "defines 'fit_model'", "fakepkg", "import it instead")
+    define_in_first_code_cell(repo, "# a class of the package\nclass Solver:\n    pass", lang="es")
+    assert found(repo, "notebooks/es/01-basics/01-note.ipynb", "defines 'Solver'", "fakepkg")
+    # a private name, a name of the tests folder and a helper of the notebook's own are fine
+    define_in_first_code_cell(repo, "# helpers\ndef _hidden():\n    pass\n\n\ndef test_inside_tests():\n    pass\n\n\ndef read_artifact(x):\n    return x",
+                              rel="01-basics/02-note.ipynb")
+    assert not found(repo, "01-basics/02-note.ipynb", "fakepkg")
+
+
+def test_adversarial_without_method_packages_the_check_is_unchanged(repo: Path) -> None:
+    assert CHECK.findings_of(repo) == []
+    for body in ('{"name": "x"}', '{"name": "x", "method_packages": []}'):
+        (repo / "product.json").write_text(body, encoding="utf-8")
+        infos: list[str] = []
+        assert CHECK.findings_of(repo, infos) == [] and infos == []
+    (repo / "product.json").write_text("not json", encoding="utf-8")
+    assert CHECK.findings_of(repo) == []  # the file is the product's; the key is optional
+    (repo / "product.json").write_text('{"method_packages": "fakepkg"}', encoding="utf-8")
+    assert found(repo, "product.json", "method_packages", "list of strings")
+
+
+def test_adversarial_a_method_package_that_is_not_installed_is_info_in_the_static_check(repo: Path) -> None:
+    declare(repo, ["not-installed-anywhere"], pin="not-installed-anywhere==0.1.0")
+    infos: list[str] = []
+    assert CHECK.findings_of(repo, infos) == []
+    assert infos == ["check_notebooks: not-installed-anywhere not installed here; its names are checked by run_notebooks.py"]
+    result = subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / "check_notebooks.py"), str(repo)], capture_output=True, encoding="utf-8")
+    assert result.returncode == 0, result.stdout
+    assert "not-installed-anywhere not installed here; its names are checked by run_notebooks.py" in result.stdout
+
+
+def test_adversarial_a_method_package_without_a_pin_is_found(repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_package(tmp_path, monkeypatch)
+    declare(repo, ["fakepkg"], pin=None)
+    assert found(repo, "notebooks/requirements.txt", "fakepkg", "no exact pin")
+    declare(repo, ["fakepkg"], pin="fakepkg>=1.0")  # a range is no pin
+    assert found(repo, "notebooks/requirements.txt", "fakepkg", "no exact pin")
+    (repo / "notebooks" / "requirements.txt").write_text(f"{PIN}\nFakePkg[extra]==1.2.3\n", encoding="utf-8")  # an extra and another case are fine
+    assert not found(repo, "no exact pin")
+    assert CHECK.method_pin(repo, "fakepkg") == "1.2.3"
+
+
+class FakeResponse:
+    def __init__(self, status: int) -> None:
+        self.status = status
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> bool:
+        return False
+
+
+def test_adversarial_the_pypi_check_fails_on_anything_but_200(repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture) -> None:
+    import urllib.error
+    declare(repo, ["fakepkg"], pin="fakepkg[extra]==1.2.3")
+    seen: list[str] = []
+    status = [200]
+
+    def fake_open(req, timeout=None):
+        url = req if isinstance(req, str) else req.full_url
+        seen.append(url)
+        if status[0] == 200:
+            return FakeResponse(200)
+        raise urllib.error.HTTPError(url, status[0], "Not Found", None, None)
+
+    monkeypatch.setattr(CHECK.urllib.request, "urlopen", fake_open)
+    assert CHECK.pypi_findings(repo) == [] and seen == ["https://pypi.org/pypi/fakepkg/1.2.3/json"]
+    status[0] = 404
+    out = CHECK.pypi_findings(repo)
+    assert len(out) == 1 and "https://pypi.org/pypi/fakepkg/1.2.3/json" in out[0] and "404" in out[0], out
+    # the command line: --pypi runs it, a plain run never touches the network
+    seen.clear()
+    monkeypatch.setattr(sys, "argv", ["check_notebooks.py", str(repo)])
+    assert CHECK.main() == 0 and seen == []
+    monkeypatch.setattr(sys, "argv", ["check_notebooks.py", str(repo), "--pypi"])
+    assert CHECK.main() == 1 and seen and "404" in capsys.readouterr().out
+    status[0] = 200
+    assert CHECK.main() == 0
+
+
+def test_adversarial_a_network_failure_is_a_pypi_finding(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    declare(repo, ["fakepkg"])
+
+    def refuse(req, timeout=None):
+        raise OSError("no route")
+    monkeypatch.setattr(CHECK.urllib.request, "urlopen", refuse)
+    out = CHECK.pypi_findings(repo)
+    assert len(out) == 1 and "https://pypi.org/pypi/fakepkg/1.2.3/json" in out[0] and "no route" in out[0]
+
+
+def test_adversarial_ci_never_passes_pypi() -> None:
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "check_notebooks.py --pypi" not in ci and "python scripts/check_notebooks.py" in ci
