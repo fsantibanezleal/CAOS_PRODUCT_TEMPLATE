@@ -2,6 +2,12 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.11.002], 2026-10-24
+
+### Fixed
+
+- Keep `check_content_standards.py` findings readable when its output is captured through a Windows ANSI-code-page pipe; diagnostics are emitted as UTF-8 and a planted emoji verifies the failure location survives.
+
 ## [0.11.001], 2026-10-24
 
 ### Changed
