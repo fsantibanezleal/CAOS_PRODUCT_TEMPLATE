@@ -8,8 +8,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -52,6 +54,26 @@ def test_a_suffixless_file_that_is_not_text_is_not_read(standards: Path) -> None
     track(standards)
     r = guard(standards, "check_content_standards.py", ok_marker="check_content_standards: OK")
     assert r.returncode == 0, r.stdout
+
+
+def test_emoji_diagnostic_survives_a_windows_ansi_pipe(standards: Path) -> None:
+    (standards / "README.md").write_text("emoji \U0001f600\n", encoding="utf-8")
+    track(standards)
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "cp1252"
+    script = standards / "scripts" / "check_content_standards.py"
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=standards,
+        env=env,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+    )
+    assert result.returncode == 1
+    assert "README.md:1:7" in result.stdout
+    assert "emoji (U+1F600" in result.stdout
 
 
 def test_the_residue_allow_file_of_the_template_has_no_em_dash() -> None:
