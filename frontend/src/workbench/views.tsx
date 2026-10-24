@@ -78,6 +78,7 @@ export function DynamicsView({ sel }: { sel: Selection | null }) {
       <NotedFill>
       {series ? (
         <UPlotChart
+          title={{ en: 'SIR trajectory', es: 'Trayectoria SIR' }}
           height="fill"
           x={{ values: series.t, label: { en: 'Day', es: 'Día' }, unit: 'd' }}
           y={{ label: { en: 'People', es: 'Personas' } }}
@@ -180,6 +181,7 @@ function ParityView({ sel }: { sel: Selection | null }) {
       </PlotCard>
       <PlotCard fill title={{ en: 'Infected, live minus replay', es: 'Contagiados, en vivo menos reproducción' }} lane="live" provenance="synthetic" dataKey={stateKey}>
         <UPlotChart
+          title={{ en: 'Infected, live minus replay', es: 'Contagiados, en vivo menos reproducción' }}
           height="fill"
           x={{ values: sel.data.trace.t, label: { en: 'Day', es: 'Día' }, unit: 'd' }}
           y={{ label: { en: 'Difference', es: 'Diferencia' }, unit: { en: 'people', es: 'personas' } }}
@@ -224,6 +226,7 @@ function FinalSizeView({ sel }: { sel: Selection | null }) {
       />
       <PlotCard fill title={{ en: 'Share ever infected against R0', es: 'Fracción alguna vez contagiada contra R0' }} lane="live" provenance="synthetic" dataKey={stateKey}>
         <UPlotChart
+          title={{ en: 'Share ever infected against R0', es: 'Fracción alguna vez contagiada contra R0' }}
           height="fill"
           x={{ values: curve.r0s, label: { en: 'Basic reproduction number', es: 'Número reproductivo básico' } }}
           y={{ label: { en: 'Attack rate', es: 'Tasa de ataque' }, range: [0, 1] }}

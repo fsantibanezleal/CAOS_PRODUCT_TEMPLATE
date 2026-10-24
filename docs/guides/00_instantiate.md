@@ -167,7 +167,7 @@ before the next starts; units whose write scopes are disjoint are built at once,
    product's own widgets, never for a shell class (`check_web_baseline.py`). **The App opens Focus mode** (ADR-0070): for a
    workbench, `CaseWorkbench` takes `focus`, which puts a Focus button in the rail head that opens the open group in the
    full viewport (`?focus=1` beside `?case=` and `?view=`; Escape or the exit button returns to the same case, group and
-   sub-view); for a surface (`"app": "surface"` in `product.json`, shell 0.16.0), `SurfacePage` takes `focus` and each view
+   sub-view); for a surface (`"app": "surface"` in `product.json`, shell 0.19.1), `SurfacePage` takes `focus` and each view
    with a stage takes `TabDef.focus` (see "`product.json` and the App's kind" above). `npm run gate` always passes
    `--require-focus`, so an App without Focus mode fails the gate (G18); only a surface without any simulation waives it, with
    its reason recorded.
