@@ -110,6 +110,7 @@ export function Experiments() {
                 {chart ? (
                   <PlotCard title={{ en: 'Attack rate against R0', es: 'Tasa de ataque contra R0' }} lane="replay" provenance="synthetic">
                     <UPlotChart
+                      title={{ en: 'Attack rate against R0', es: 'Tasa de ataque contra R0' }}
                       height={320}
                       x={{ values: chart.xs, label: { en: 'Basic reproduction number', es: 'Número reproductivo básico' } }}
                       y={{ label: { en: 'Attack rate', es: 'Tasa de ataque' }, range: [0, 1] }}
