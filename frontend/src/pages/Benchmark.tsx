@@ -233,6 +233,7 @@ export function Benchmark() {
         />
         <PlotCard title={{ en: 'Peak infected share against R0', es: 'Fracción de contagiados en el pico contra R0' }} lane="live" provenance="synthetic">
           <UPlotChart
+            title={{ en: 'Peak infected share against R0', es: 'Fracción de contagiados en el pico contra R0' }}
             height={300}
             x={{ values: robustness.xs, label: { en: 'Basic reproduction number', es: 'Número reproductivo básico' } }}
             y={{ label: { en: 'Peak infected share', es: 'Fracción de contagiados en el pico' }, range: [0, 0.6] }}
