@@ -415,7 +415,7 @@ def test_tech_t3_a_range_in_package_json_that_the_lock_does_not_record(tech_repo
 
 
 def test_tech_t3b_a_greater_than_range(tech_repo: Path) -> None:
-    edit(tech_repo, "frontend/package.json", '"vite": "^8.3.2"', '"vite": ">=8.0.0"')
+    edit(tech_repo, "frontend/package.json", '"vite": "8.3.5"', '"vite": ">=8.0.0"')
     r = _tech(tech_repo)
     assert r.returncode == 1 and "vite" in r.stdout, r.stdout
 
@@ -428,7 +428,7 @@ def test_tech_t3c_an_x_range_that_the_sdd_repeats(tech_repo: Path) -> None:
 
 
 def test_tech_t8_a_range_the_lock_does_not_satisfy(tech_repo: Path) -> None:
-    edit(tech_repo, "frontend/package.json", '"vite": "^8.3.2"', '"vite": "^9.0.0"')
+    edit(tech_repo, "frontend/package.json", '"vite": "8.3.5"', '"vite": "^9.0.0"')
     r = _tech(tech_repo)
     assert r.returncode == 1 and "vite" in r.stdout, r.stdout
 
@@ -438,9 +438,9 @@ def test_tech_a_lock_whose_version_does_not_satisfy_its_own_spec(tech_repo: Path
     doc = json.loads(lock.read_text(encoding="utf-8"))
     doc["packages"][""]["devDependencies"]["vite"] = "^9.0.0"
     lock.write_text(json.dumps(doc, indent=2), encoding="utf-8")
-    edit(tech_repo, "frontend/package.json", '"vite": "^8.3.2"', '"vite": "^9.0.0"')
+    edit(tech_repo, "frontend/package.json", '"vite": "8.3.5"', '"vite": "^9.0.0"')
     r = _tech(tech_repo)
-    assert r.returncode == 1 and "vite" in r.stdout and "8.3.2" in r.stdout, r.stdout
+    assert r.returncode == 1 and "vite" in r.stdout and "8.3.5" in r.stdout, r.stdout
 
 
 def test_tech_t4_a_dependency_in_optional_dependencies(tech_repo: Path) -> None:
