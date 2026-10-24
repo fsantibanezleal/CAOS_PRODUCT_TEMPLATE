@@ -2,6 +2,14 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.11.001], 2026-10-24
+
+### Changed
+
+- Adopt the latest published shared shell, `@fasl-work/caos-app-shell` 0.19.1, exactly. The example's plots now satisfy its chart interaction contract with named, keyboard-operable views, accessible summaries and data tables; the shell gate measures chart navigation, zoom, reset and data access. The product keeps using the shell's layout and chart styles instead of copying their behavior into template CSS. The shell also fixes narrow-screen flowing plot content, equation overflow cues and localized chart dates.
+- Lazy-load the App and documentation routes, then split React and KaTeX into shared runtime chunks; the main JS entry falls from 916 KB to 205 KB and every emitted chunk stays below 500 KB.
+- Pin Vite 8.3.5, which includes fixes for the Windows command-execution advisories in 8.3.2; the dependency audit now reports no high-severity issue.
+
 ## [0.11.000], 2026-10-21
 
 ### Added
