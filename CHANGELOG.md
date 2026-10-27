@@ -2,6 +2,12 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.11.003], 2026-10-26
+
+### Fixed
+
+- Two tests that need the template's own tree failed in every instantiated product: the instantiate test of the README areas guard (`instantiate.py` refuses a tree without `.template-source`) and the residue test that removes the sentinel from its copy. Both carry `TEMPLATE_ONLY` now (BD-1, found on CAOS_ChancaDEM's re-instantiation). A guard test names any test that runs `instantiate.py` or removes the sentinel without the marker, and EX-013 gains an adversarial gate that plants example residue in a throwaway tree, so it runs in every repository.
+
 ## [0.11.002], 2026-10-24
 
 ### Fixed
