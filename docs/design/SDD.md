@@ -38,7 +38,7 @@ Data file: content/executive.json
 Done before the plan, and kept here so a reader can re-check it (ADR-0075; rule 11 section 12). The example is a
 placeholder model, so the research is short; a product's is the persisted dossier summarised claim by claim, each
 with its source. The list shows what was decided and from what; every DOI below was resolved against the Crossref
-record on 2026-10-11 (HTTP 200 each).
+record on 2026-10-11 (HTTP 200 each; the two of Dormand and Prince and of Virtanen et al. on 2026-10-26, HTTP 200 each).
 
 | decision | what the research found | source |
 |---|---|---|
@@ -48,6 +48,8 @@ record on 2026-10-11 (HTTP 200 each).
 | The same threshold for compartmental models | R0 < 1 is the stability condition of the disease-free state | van den Driessche and Watmough 2002, https://doi.org/10.1016/S0025-5564(02)00108-6 |
 | The final-size relation z = 1 - exp(-R0 z) is the oracle independent of the time course | A closed derivation of the final size | Miller 2012, https://doi.org/10.1007/s11538-012-9749-6 |
 | Forward Euler at a quarter-day step, converging at first order | The scheme's global error is first order in the step | Hairer, Norsett and Wanner 1993, https://doi.org/10.1007/978-3-540-78862-1 |
+| A higher-order reference for the engine's integrator: the embedded pair RK45 | A fifth-order formula with a fourth-order error estimate that chooses the step, six evaluations per step | Dormand and Prince 1980, https://doi.org/10.1016/0771-050X(80)90013-3 |
+| The implementation of that pair that the level 3 notebook runs as the reference | `scipy.integrate.solve_ivp` offers RK45 and the eighth-order DOP853 | Virtanen et al. 2020, https://doi.org/10.1038/s41592-019-0686-2 |
 | Requirements are written in EARS form, each with its gate | The five EARS patterns used in the requirements files | Mavin et al. 2009, https://doi.org/10.1109/RE.2009.9 |
 
 Choices with no source because the example does not need one: the surrogate's four-term basis (a placeholder that
@@ -97,6 +99,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 |---|---|---|---|---|
 | engine | numpy | 2.4.6 | the SIR engine and the surrogate's least squares (numpy only, so the template installs with no native build); the same pin in `notebooks/requirements.txt` | scipy.integrate, rejected: a second heavy dependency for a one-line integrator |
 | notebooks | matplotlib | 3.11.2 | the figures of the notebooks (`notebooks/requirements.txt`); https://pypi.org/pypi/matplotlib/json read on 2026-10-19, released 2026-09-11 | none: the figures of the notebooks need a plotting library, and the web's uplot runs in the browser only |
+| notebooks | scipy | 1.18.1 | the pinned reference implementation of the level 3 example notebook (`scipy.integrate.solve_ivp`, RK45 and DOP853; `notebooks/requirements.txt`); https://pypi.org/pypi/scipy/json read on 2026-10-26, released 2026-08-21 | none: it is the state-of-the-art solver the level 3 notebook compares the engine with; the engine itself stays numpy only |
 | notebooks | nbclient | 0.11.0 | executes a notebook top to bottom in a fresh kernel (`scripts/run_notebooks.py`); https://pypi.org/pypi/nbclient/json read on 2026-10-19, released 2026-06-05 | nbconvert --execute, rejected: a heavier install for the same execution |
 | notebooks | nbformat | 5.11.1 | reads and writes the notebook format (`scripts/run_notebooks.py`); https://pypi.org/pypi/nbformat/json read on 2026-10-19, released 2026-08-17 | none: the format's own library |
 | notebooks | ipykernel | 7.4.0 | the Python kernel the notebooks run in; https://pypi.org/pypi/ipykernel/json read on 2026-10-19, released 2026-09-29 | none: nbclient needs a kernel |
@@ -182,8 +185,8 @@ None of these is a model judging a model.
 ## Beyond the state of the art
 
 None claimed. The example is a teaching model: its engine is the textbook SIR system integrated by Forward Euler, and
-the state of the art it is compared with (the next-generation matrix and the derivation of the final size) is in the
-level 3 notebook of `notebooks/`. A product that goes further lists each component here under an identifier of the form
+the state of the art it is compared with (a higher-order Runge-Kutta solver, SciPy's RK45) is in the level 3 notebook
+of `notebooks/`. A product that goes further lists each component here under an identifier of the form
 BS-<n>, with its evidence and its source, and covers each with a level 4 notebook in each language
 ([`docs/guides/08_notebooks.md`](../guides/08_notebooks.md)).
 
