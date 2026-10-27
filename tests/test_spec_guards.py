@@ -1492,6 +1492,7 @@ def ci_block(tmp: Path, lines: list[str]) -> Path:
     ALLOWED_STEP,
     "python -m pytest tests/adversarial",
     "pip install pytest==9.1.1 && python -m pytest tests/adversarial",
+    "pip install pytest==9.1.1 && python -m pytest tests/adversarial tests/template/adversarial -q",  # the template's own (BD-3)
 ])
 def test_ci_budget_b6_the_allowance_in_its_exact_forms_passes(tmp_path, command):
     r = run("check_ci_budget.py", str(ci_tree(tmp_path, command)))

@@ -116,7 +116,9 @@ def budget_repo(tmp_path: Path) -> Path:
     return make_tree(tmp_path / "repo", *BUDGET_INPUTS)
 
 
-ALLOWED = "pip install pytest==9.1.1 && python -m pytest tests/adversarial -q"
+# the allowance as the workflow writes it: the template also runs tests/template/adversarial (BD-3), a product does not
+ALLOWED = next(ln.strip()[len("run: "):] for ln in (Path(__file__).resolve().parents[2] / ".github" / "workflows" / "ci.yml")
+               .read_text(encoding="utf-8").splitlines() if ln.strip().startswith("run: pip install pytest=="))
 
 
 def _step(repo: Path, command: str) -> None:

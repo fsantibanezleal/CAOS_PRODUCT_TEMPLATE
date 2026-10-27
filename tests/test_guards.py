@@ -182,6 +182,9 @@ def test_adversarial_instantiate_removes_the_template_own_tests_and_says_so(tmp_
     assert not (copy / "tests" / "template").exists()
     assert "removed tests/template" in res.stdout, res.stdout
     assert (copy / "tests" / "test_guards.py").is_file() and (copy / "tests" / "adversarial").is_dir()  # the rest stays
+    # the template's CI runs the moved plants too; the product's workflow names no path that no longer exists
+    assert "tests/template" in (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "tests/template" not in (copy / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     # no feature row names a test that is gone, so the product's SDD guard is green from the first run (a feature left with
     # no requirement is removed with them)
     named = [f.as_posix() for f in (copy / "docs" / "design" / "features").rglob("*.md") if "tests/template/" in f.read_text(encoding="utf-8")]

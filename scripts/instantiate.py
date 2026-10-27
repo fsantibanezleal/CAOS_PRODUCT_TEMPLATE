@@ -292,6 +292,9 @@ def main() -> int:
     # the base's own tests that plant into or read the example: the guards a product takes verbatim are tested in the
     # template, a product tests its own guards and features under tests/adversarial/ (BD-3)
     remove("tests/template")
+    ci = ROOT / ".github" / "workflows" / "ci.yml"
+    if ci.exists():  # the template's CI also runs those plants; the product's runs only its own tests/adversarial
+        write(".github/workflows/ci.yml", ci.read_text(encoding="utf-8").replace(" tests/template/adversarial", ""))
     drop_template_test_rows()
     guides = ROOT / "docs" / "guides.md"
     if guides.exists():

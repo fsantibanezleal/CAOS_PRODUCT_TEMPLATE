@@ -133,7 +133,8 @@ The map is [`docs/design/README.md`](../design/README.md). In this order, each s
    **The template's own tests (`tests/template/`).** The base's own planted-defect tests that need the example (they plant
    into its notebooks, its requirement rows, its catalog rows or its case ids, or read this guide) live in `tests/template/`,
    and `scripts/instantiate.py` removes the folder with the example. The guards a product takes verbatim (the list under
-   "Files a product takes verbatim") are tested there, once, in the template; a product does not run them again. A product
+   "Files a product takes verbatim") are tested there, once, in the template, whose CI runs `tests/template/adversarial` beside `tests/adversarial`; instantiate drops
+   that path from the product's workflow, and a product does not run them again. A product
    writes the planted-defect tests of its own guards and of its own features under `tests/adversarial/`, on its own rows,
    notebooks and cases. `tests/test_guards.py` fails any test module outside `tests/template/` that exercises a base guard and
    holds a string the residue guard treats as example residue, so a base test cannot leak out of the folder.
