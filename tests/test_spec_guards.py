@@ -24,8 +24,8 @@ def run(script: str, *args: str) -> subprocess.CompletedProcess:
 
 SECTIONS = ("Problem and non-goals", "Research basis", "Sizing and contracts", "Technology and versions", "Resources",
             "Lanes", "Method ladder", "Cases", "Oracles", "Deploy driver", "Risks and kill criteria", "ADR fit")
-RESEARCH = ("- Kermack 1927, https://doi.org/10.1098/rspa.1927.0118\n- Miller 2012, doi 10.1007/s11538-012-9749-6\n"
-            "- Hethcote 2000, https://doi.org/10.1137/S0036144500371907\n\nUNVERIFIED: none\n")
+RESEARCH = ("- Doe 1927, https://doi.org/10.1098/rspa.1927.0118\n- Miller 2012, doi 10.1007/s11538-012-9749-6\n"
+            "- Roe 2000, https://doi.org/10.1137/S0036144500371907\n\nUNVERIFIED: none\n")
 RESOURCES = ("| stage | memory | disk | time | where it runs |\n|---|---|---|---|---|\n"
              "| bake | 120 MB | 1 MB | 0.1 s | workstation |\n| tests | 200 MB | 5 MB | 10 s | workstation |\n"
              "| build | 400 MB | 2 MB | 8 s | workstation |\n| deploy payload | 0 | 2 MB | 5 s | CI |\n")
@@ -105,7 +105,7 @@ def test_sdd_old_contracts_section_name_no_longer_counts(tmp_path):
 
 
 def test_sdd_research_with_two_sources_fails(tmp_path):
-    two = ("- Kermack 1927, 10.1098/rspa.1927.0118\n- Miller 2012, https://doi.org/10.1007/s11538-012-9749-6\n\n"
+    two = ("- Doe 1927, 10.1098/rspa.1927.0118\n- Miller 2012, https://doi.org/10.1007/s11538-012-9749-6\n\n"
            "UNVERIFIED: none\n")
     r = run("check_sdd.py", str(sdd_tree(tmp_path, validation=GOOD_VALIDATION, sdd=sdd_text(research=two))))
     assert r.returncode == 1 and "research basis" in r.stdout.lower() and "2" in r.stdout
