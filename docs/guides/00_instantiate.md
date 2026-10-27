@@ -130,6 +130,15 @@ The map is [`docs/design/README.md`](../design/README.md). In this order, each s
    planned or superseded is listed with its reason in `docs/design/features/.status-allow`. Add the planted-defect tests
    of the product's own guards to `tests/adversarial/`.
 
+   **The template's own tests (`tests/template/`).** The base's own planted-defect tests that need the example (they plant
+   into its notebooks, its requirement rows, its catalog rows or its case ids, or read this guide) live in `tests/template/`,
+   and `scripts/instantiate.py` removes the folder with the example. The guards a product takes verbatim (the list under
+   "Files a product takes verbatim") are tested there, once, in the template, whose CI runs `tests/template/adversarial` beside `tests/adversarial`; instantiate drops
+   that path from the product's workflow, and a product does not run them again. A product
+   writes the planted-defect tests of its own guards and of its own features under `tests/adversarial/`, on its own rows,
+   notebooks and cases. `tests/test_guards.py` fails any test module outside `tests/template/` that exercises a base guard and
+   holds a string the residue guard treats as example residue, so a base test cannot leak out of the folder.
+
 The walking skeleton comes next: the site built on the provider tree
 (`CAOS_DATA_ROOT=docs/contracts/fixtures/data/derived npm run build`) and the API serving it, deployed so the UI and
 the integration are checked from the first week. Every provider is labelled on the site by the readiness document
@@ -205,7 +214,7 @@ others to the row's own contract test (its `model io` column describes the contr
 ### Files a product takes verbatim
 
 A product takes these scripts from the template as they are and keeps no variant; they hold nothing that names a person (the GitHub
-handle `fsantibanezleal`, the repositories' owner identifier, may stand in a source URL) or a product, and `tests/adversarial/test_guard_gaps_0_09_0.py` fails when one of them names the owner:
+handle `fsantibanezleal`, the repositories' owner identifier, may stand in a source URL) or a product, and `tests/template/adversarial/test_guard_gaps_example.py` fails when one of them names the owner in the template:
 
 - `scripts/check_sdd.py`
 - `scripts/check_tech_matrix.py`

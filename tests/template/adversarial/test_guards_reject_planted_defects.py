@@ -93,7 +93,7 @@ def _save(repo: Path, data: dict) -> None:
     (repo / EXEC).write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_sdd_the_executive_brief_removed(repo: Path) -> None:
+def test_adversarial_sdd_the_executive_brief_removed(repo: Path) -> None:
     sdd = repo / "docs/design/SDD.md"
     text = sdd.read_text(encoding="utf-8")
     sdd.write_text(text[:text.index("## Executive brief")] + text[text.index("## Research basis"):], encoding="utf-8")
@@ -116,7 +116,7 @@ def test_sdd_the_brief_without_its_data_line_and_with_the_old_parts(repo: Path) 
     assert r.returncode == 1 and "Data file: content/executive.json" in r.stdout and "restates" in r.stdout, r.stdout
 
 
-def test_executive_view_the_data_file_removed_or_broken(repo: Path) -> None:
+def test_adversarial_executive_view_the_data_file_removed_or_broken(repo: Path) -> None:
     data = _load(repo)
     del data["pain"]["bearers"][1]["cost"]
     data["invented_field"] = "x"
@@ -128,13 +128,13 @@ def test_executive_view_the_data_file_removed_or_broken(repo: Path) -> None:
     assert r.returncode == 1 and EXEC in r.stdout and "missing" in r.stdout, r.stdout
 
 
-def test_executive_view_without_the_installed_schema(repo: Path) -> None:
+def test_adversarial_executive_view_without_the_installed_schema(repo: Path) -> None:
     shutil.rmtree(repo / "frontend" / "node_modules")
     r = guard(repo, "check_sdd.py")
     assert r.returncode == 1 and "npm ci" in r.stdout, r.stdout
 
 
-def test_executive_view_a_missing_or_blank_illustration(repo: Path) -> None:
+def test_adversarial_executive_view_a_missing_or_blank_illustration(repo: Path) -> None:
     data = _load(repo)
     for name, ill in data["illustrations"].items():
         copy = repo / PUBLIC / ill["file"]
@@ -148,7 +148,7 @@ def test_executive_view_a_missing_or_blank_illustration(repo: Path) -> None:
         copy.write_bytes(keep)
 
 
-def test_executive_view_a_figure_without_its_source_link(repo: Path) -> None:
+def test_adversarial_executive_view_a_figure_without_its_source_link(repo: Path) -> None:
     data = _load(repo)
     gone = data["headline_figures"][0]["source"]
     data["sources"] = [s for s in data["sources"] if s["id"] != gone]
@@ -167,7 +167,7 @@ def test_executive_view_a_figure_without_its_source_link(repo: Path) -> None:
     assert r.returncode == 1 and "sources[0].url" in r.stdout, r.stdout
 
 
-def test_executive_view_a_pitch_a_client_or_an_unowned_action(repo: Path) -> None:
+def test_adversarial_executive_view_a_pitch_a_client_or_an_unowned_action(repo: Path) -> None:
     data = _load(repo)
     data["proposal"]["actions"][0]["action"]["en"] = "Buy the product now."
     data["proposal"]["actions"][1]["owner"] = {"en": "A role nobody has", "es": "Un rol que nadie tiene"}
@@ -243,7 +243,7 @@ def test_contracts_a_schema_file_that_does_not_exist(repo: Path) -> None:
     assert r.returncode == 1 and "gone.json" in r.stdout, r.stdout
 
 
-def test_readiness_a_catalog_edited_without_recomputing_the_document(repo: Path) -> None:
+def test_adversarial_readiness_a_catalog_edited_without_recomputing_the_document(repo: Path) -> None:
     edit(repo, CATALOG, "Phase 2 of contract-first parallel delivery", "Phase 2 of the contract-first parallel delivery")
     r = guard(repo, "check_readiness.py")
     assert r.returncode == 1 and "readiness: stale" in r.stdout and "python data-pipeline/run.py readiness" in r.stdout, r.stdout
@@ -256,7 +256,7 @@ def test_readiness_a_row_whose_status_the_rules_do_not_know(repo: Path) -> None:
     assert r.returncode == 1 and "invalid catalog" in r.stdout and "done" in r.stdout, r.stdout
 
 
-def test_skeleton_a_row_still_served_by_a_provider_is_listed_with_exit_2(repo: Path) -> None:
+def test_adversarial_skeleton_a_row_still_served_by_a_provider_is_listed_with_exit_2(repo: Path) -> None:
     """The CI step turns exit 2 into a failure on main (ci.yml, 'Rows still served by a provider')."""
     edit(repo, CATALOG, "tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained | real |",
          "tests/contracts/test_surrogate.py::test_adversarial_swap_baseline_and_trained | active |")

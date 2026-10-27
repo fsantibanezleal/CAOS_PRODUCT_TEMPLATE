@@ -70,33 +70,33 @@ def test_the_unplanted_copy_passes_both_checks(repo: Path) -> None:
     assert guard(with_dirs(repo), "check_readme_areas.py", ok_marker="check_readme_areas: OK").returncode == 0
 
 
-def test_a_missing_spanish_index_is_found(repo: Path) -> None:
+def test_adversarial_a_missing_spanish_index_is_found(repo: Path) -> None:
     (repo / "notebooks" / "es" / "README.md").unlink()
     fails(repo, "notebooks/es/README.md", "layout")
 
 
-def test_a_spanish_notebook_deleted_breaks_the_mirror(repo: Path) -> None:
+def test_adversarial_a_spanish_notebook_deleted_breaks_the_mirror(repo: Path) -> None:
     (repo / ES / "03-next-generation-matrix-and-final-size-derivation.ipynb").unlink()
     fails(repo, "mirror", "03-next-generation-matrix-and-final-size-derivation.ipynb")
 
 
-def test_a_numbering_gap_in_both_trees_is_found(repo: Path) -> None:
+def test_adversarial_a_numbering_gap_in_both_trees_is_found(repo: Path) -> None:
     for tree in (EN, ES):
         (repo / tree / "02-the-final-size.ipynb").rename(repo / tree / "04-the-final-size.ipynb")
     fails(repo, "numbering", "no gap or repeat")
 
 
-def test_a_level_that_decreases_is_found(repo: Path) -> None:
+def test_adversarial_a_level_that_decreases_is_found(repo: Path) -> None:
     both(repo, "02-threshold-and-final-size/01-the-threshold.ipynb", lambda d: d["metadata"]["caos"].update(level=3))
     fails(repo, "levels", "decreases inside the topic")
 
 
-def test_a_topic_without_level_two_is_found(repo: Path) -> None:
+def test_adversarial_a_topic_without_level_two_is_found(repo: Path) -> None:
     both(repo, "01-getting-started/02-the-method-step-by-step.ipynb", lambda d: d["metadata"]["caos"].update(level=1))
     fails(repo, "no level 2 notebook")
 
 
-def test_a_missing_reason_for_level_three_is_found(repo: Path) -> None:
+def test_adversarial_a_missing_reason_for_level_three_is_found(repo: Path) -> None:
     index = repo / "notebooks" / "en" / "README.md"
     text = index.read_text(encoding="utf-8")
     assert "No level 3:" in text
@@ -104,14 +104,14 @@ def test_a_missing_reason_for_level_three_is_found(repo: Path) -> None:
     fails(repo, "01-getting-started", "no level 3 notebook and its row gives no reason")
 
 
-def test_a_notebook_dropped_from_the_index_is_found(repo: Path) -> None:
+def test_adversarial_a_notebook_dropped_from_the_index_is_found(repo: Path) -> None:
     index = repo / "notebooks" / "es" / "README.md"
     text = index.read_text(encoding="utf-8")
     index.write_text(text.replace("01-the-threshold.ipynb", "elided.ipynb"), encoding="utf-8")
     fails(repo, "notebooks/es/README.md", "is not listed")
 
 
-def test_an_sdd_claim_without_a_level_four_notebook_is_found(repo: Path) -> None:
+def test_adversarial_an_sdd_claim_without_a_level_four_notebook_is_found(repo: Path) -> None:
     sdd = repo / "docs" / "design" / "SDD.md"
     text = sdd.read_text(encoding="utf-8")
     assert "None claimed." in text
@@ -123,7 +123,7 @@ def test_an_sdd_claim_without_a_level_four_notebook_is_found(repo: Path) -> None
     fails(repo, "BS-7")
 
 
-def test_a_renamed_section_is_found(repo: Path) -> None:
+def test_adversarial_a_renamed_section_is_found(repo: Path) -> None:
     def rename(doc: dict) -> None:
         for c in doc["cells"]:
             if c["cell_type"] == "markdown" and c["source"][0].startswith("## Results"):
@@ -132,14 +132,14 @@ def test_a_renamed_section_is_found(repo: Path) -> None:
     fails(repo, "'## Results' is missing", "'## Findings' is not a section of the anatomy")
 
 
-def test_a_title_cell_turned_into_code_is_found(repo: Path) -> None:
+def test_adversarial_a_title_cell_turned_into_code_is_found(repo: Path) -> None:
     def retype(doc: dict) -> None:
         doc["cells"][0].update(cell_type="code", execution_count=None, outputs=[])
     jedit(repo, "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb", retype)
     fails(repo, "the first cell is not a markdown cell")
 
 
-def test_a_code_cell_stripped_of_its_comment_is_found(repo: Path) -> None:
+def test_adversarial_a_code_cell_stripped_of_its_comment_is_found(repo: Path) -> None:
     def strip(doc: dict) -> None:
         cell = first_code(doc)
         cell["source"] = [ln for ln in cell["source"] if not ln.lstrip().startswith("#")]
@@ -147,14 +147,14 @@ def test_a_code_cell_stripped_of_its_comment_is_found(repo: Path) -> None:
     fails(repo, "carries no comment line")
 
 
-def test_a_data_path_that_does_not_exist_is_found(repo: Path) -> None:
+def test_adversarial_a_data_path_that_does_not_exist_is_found(repo: Path) -> None:
     both(repo, "01-getting-started/01-the-problem-and-the-data.ipynb", lambda d: d["metadata"]["caos"]["data"].append("data/derived/never-baked/trace.json"))
     fails(repo, "data path 'data/derived/never-baked/trace.json'")
     jedit(repo, "notebooks/en/01-getting-started/02-the-method-step-by-step.ipynb", lambda d: d["metadata"]["caos"].update(packages=["numpy==1.0.0"]))
     fails(repo, "'numpy==1.0.0' is not a pin of notebooks/requirements.txt")
 
 
-def test_widgets_metadata_is_found(repo: Path) -> None:
+def test_adversarial_widgets_metadata_is_found(repo: Path) -> None:
     jedit(repo, "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb", lambda d: d["metadata"].update(widgets={"state": {}}))
     fails(repo, "notebook metadata beyond kernelspec, language_info and caos")
     jedit(repo, "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb", lambda d: d["metadata"].pop("widgets"))
@@ -162,7 +162,7 @@ def test_widgets_metadata_is_found(repo: Path) -> None:
     fails(repo, "metadata beyond tags")
 
 
-def test_an_execution_count_gap_is_found(repo: Path) -> None:
+def test_adversarial_an_execution_count_gap_is_found(repo: Path) -> None:
     def gap(doc: dict) -> None:
         codes = [c for c in doc["cells"] if c["cell_type"] == "code"]
         codes[2]["execution_count"] = 9
@@ -170,7 +170,7 @@ def test_an_execution_count_gap_is_found(repo: Path) -> None:
     fails(repo, "expected 3")
 
 
-def test_a_planted_traceback_is_found(repo: Path) -> None:
+def test_adversarial_a_planted_traceback_is_found(repo: Path) -> None:
     jedit(repo, "notebooks/en/01-getting-started/02-the-method-step-by-step.ipynb", lambda d: first_code(d)["outputs"].append(
         {"output_type": "error", "ename": "KeyError", "evalue": "x", "traceback": ["Traceback"]}))
     fails(repo, "an error output (KeyError)")
@@ -179,7 +179,7 @@ def test_a_planted_traceback_is_found(repo: Path) -> None:
     fails(repo, "a stderr stream")
 
 
-def test_a_machine_path_and_a_token_in_an_output_are_found(repo: Path) -> None:
+def test_adversarial_a_machine_path_and_a_token_in_an_output_are_found(repo: Path) -> None:
     jedit(repo, "notebooks/en/02-threshold-and-final-size/01-the-threshold.ipynb", lambda d: first_code(d)["outputs"].append(
         {"output_type": "stream", "name": "stdout", "text": "C:\\Users\\someone\\Documents\\x.csv\n"}))
     fails(repo, "holds a machine path")
@@ -188,32 +188,32 @@ def test_a_machine_path_and_a_token_in_an_output_are_found(repo: Path) -> None:
     fails(repo, "holds a token pattern")
 
 
-def test_an_image_above_the_limit_is_found(repo: Path) -> None:
+def test_adversarial_an_image_above_the_limit_is_found(repo: Path) -> None:
     big = base64.b64encode(b"\x01" * 500_000).decode()
     jedit(repo, "notebooks/en/01-getting-started/02-the-method-step-by-step.ipynb", lambda d: first_code(d)["outputs"].append(
         {"output_type": "display_data", "data": {"image/png": big}, "metadata": {}}))
     fails(repo, "an image (image/png)", "byte limit")
 
 
-def test_a_cell_deleted_from_the_spanish_counterpart_is_found(repo: Path) -> None:
+def test_adversarial_a_cell_deleted_from_the_spanish_counterpart_is_found(repo: Path) -> None:
     def drop(doc: dict) -> None:
         del doc["cells"][-1]
     jedit(repo, "notebooks/es/01-getting-started/01-the-problem-and-the-data.ipynb", drop)
     fails(repo, "not a full counterpart")
 
 
-def test_a_source_missing_from_the_sdd_is_found(repo: Path) -> None:
+def test_adversarial_a_source_missing_from_the_sdd_is_found(repo: Path) -> None:
     both(repo, "01-getting-started/01-the-problem-and-the-data.ipynb", lambda d: d["metadata"]["caos"]["sources"].append("https://doi.org/10.1000/never-researched"))
     fails(repo, "'https://doi.org/10.1000/never-researched' is not a source the SDD lists")
 
 
-def test_a_copy_of_the_engine_in_a_cell_is_found(repo: Path) -> None:
+def test_adversarial_a_copy_of_the_engine_in_a_cell_is_found(repo: Path) -> None:
     jedit(repo, "notebooks/en/01-getting-started/02-the-method-step-by-step.ipynb", lambda d: first_code(d).update(
         source=["# my own copy of the engine\n", "def simulate(p, dt=0.25):\n", "    return p"]))
     fails(repo, "defines 'simulate'", "import it instead of re-implementing it")
 
 
-def test_ci_executing_the_notebooks_is_found(repo: Path) -> None:
+def test_adversarial_ci_executing_the_notebooks_is_found(repo: Path) -> None:
     (repo / ".github" / "workflows" / "notebooks.yml").write_text("on: push\njobs:\n  x:\n    steps:\n      - run: python scripts/run_notebooks.py --check\n", encoding="utf-8")
     fails(repo, "notebooks.yml", "the execution is a local release gate, never CI")
     (repo / ".github" / "workflows" / "notebooks.yml").unlink()
@@ -222,7 +222,7 @@ def test_ci_executing_the_notebooks_is_found(repo: Path) -> None:
     fails(repo, "no step runs `python scripts/check_notebooks.py`")
 
 
-def test_an_unpinned_notebook_requirement_is_found(repo: Path) -> None:
+def test_adversarial_an_unpinned_notebook_requirement_is_found(repo: Path) -> None:
     req = repo / "notebooks" / "requirements.txt"
     req.write_text(req.read_text(encoding="utf-8") + "nbconvert>=7\n", encoding="utf-8")
     fails(repo, "'nbconvert>=7' is not an exact pin")
@@ -230,7 +230,7 @@ def test_an_unpinned_notebook_requirement_is_found(repo: Path) -> None:
     assert r.returncode == 1 and "nbconvert" in r.stdout
 
 
-def test_the_runner_strips_what_was_planted_in_the_metadata() -> None:
+def test_adversarial_the_runner_strips_what_was_planted_in_the_metadata() -> None:
     spec = importlib.util.spec_from_file_location("run_notebooks_under_test", ROOT / "scripts" / "run_notebooks.py")
     runner = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(runner)
@@ -250,7 +250,7 @@ def run_release_gate(repo: Path, *args: str) -> subprocess.CompletedProcess:
 
 
 @pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
-def test_a_raising_notebook_fails_the_release_gate(repo: Path) -> None:
+def test_adversarial_a_raising_notebook_fails_the_release_gate(repo: Path) -> None:
     only = "notebooks/en/02-threshold-and-final-size/01-the-threshold.ipynb"
     assert run_release_gate(repo, "--check", "--only", only).returncode == 0
     jedit(repo, only, lambda d: first_code(d).update(source=["# this cell raises\n", "raise RuntimeError('planted')"]))
@@ -259,7 +259,7 @@ def test_a_raising_notebook_fails_the_release_gate(repo: Path) -> None:
 
 
 @pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
-def test_a_missing_artifact_stops_the_run_naming_its_path(repo: Path) -> None:
+def test_adversarial_a_missing_artifact_stops_the_run_naming_its_path(repo: Path) -> None:
     only = "notebooks/en/02-threshold-and-final-size/01-the-threshold.ipynb"
     (repo / "data" / "derived" / "manifests" / "EX02_epidemic.json").unlink()
     r = run_release_gate(repo, "--check", "--only", only)
@@ -288,37 +288,37 @@ def readme_edit(repo: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
-def test_a_readme_without_areas_is_found(repo: Path) -> None:
+def test_adversarial_a_readme_without_areas_is_found(repo: Path) -> None:
     readme_edit(with_dirs(repo), "## Areas", "## What is in it")
     fails(repo, "no section '## Areas'", script="check_readme_areas.py")
 
 
-def test_a_dropped_area_row_is_found(repo: Path) -> None:
+def test_adversarial_a_dropped_area_row_is_found(repo: Path) -> None:
     text = (repo / "README.md").read_text(encoding="utf-8")
     kept = "\n".join(ln for ln in text.split("\n") if not ln.startswith("| Notebooks |"))
     (repo / "README.md").write_text(kept, encoding="utf-8")
     fails(with_dirs(repo), "the area 'Notebooks' has no row", script="check_readme_areas.py")
 
 
-def test_a_row_with_no_status_is_found(repo: Path) -> None:
+def test_adversarial_a_row_with_no_status_is_found(repo: Path) -> None:
     readme_edit(with_dirs(repo), "| active | The committed derived artifacts", "| somewhere in between | The committed derived artifacts")
     fails(repo, "the area 'Data' has no status", script="check_readme_areas.py")
     readme_edit(repo, "dormant: this solution does not require it at the moment", "dormant")
     fails(repo, "'API' is dormant with no reason", script="check_readme_areas.py")
 
 
-def test_a_dead_folder_link_is_found(repo: Path) -> None:
+def test_adversarial_a_dead_folder_link_is_found(repo: Path) -> None:
     with_dirs(repo)
     shutil.rmtree(repo / "deploy")
     fails(repo, "links 'deploy/', which does not exist", script="check_readme_areas.py")
 
 
-def test_a_packages_row_without_pypi_is_found(repo: Path) -> None:
+def test_adversarial_a_packages_row_without_pypi_is_found(repo: Path) -> None:
     readme_edit(with_dirs(repo), "[numpy 2.4.6](https://pypi.org/project/numpy/2.4.6/), [source](https://github.com/numpy/numpy)", "numpy")
     fails(repo, "links no package on PyPI", script="check_readme_areas.py")
 
 
-def test_an_instantiate_that_drops_the_areas_writes_a_failing_readme(repo: Path) -> None:
+def test_adversarial_an_instantiate_that_drops_the_areas_writes_a_failing_readme(repo: Path) -> None:
     path = repo / "scripts" / "instantiate.py"
     text = path.read_text(encoding="utf-8")
     assert "*areas(a)," in text
@@ -333,7 +333,7 @@ def test_an_instantiate_that_drops_the_areas_writes_a_failing_readme(repo: Path)
     fails(with_dirs(repo), "no section '## Areas'", script="check_readme_areas.py")
 
 
-def test_the_example_notebooks_left_in_a_product_are_listed(repo: Path, tmp_path: Path) -> None:
+def test_adversarial_the_example_notebooks_left_in_a_product_are_listed(repo: Path, tmp_path: Path) -> None:
     product = tmp_path / "product"
     shutil.copytree(repo / "notebooks", product / "notebooks")
     shutil.copytree(repo / "scripts", product / "scripts")
@@ -347,19 +347,19 @@ def test_the_example_notebooks_left_in_a_product_are_listed(repo: Path, tmp_path
 
 # ---------------------------------------------------------------- the review fixes (F3, F4, F5, F6, F9)
 
-def test_a_notebook_that_runs_pip_is_found(repo: Path) -> None:
+def test_adversarial_a_notebook_that_runs_pip_is_found(repo: Path) -> None:
     jedit(repo, "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb", lambda d: first_code(d).update(
         source="# install here\n%pip install numpy==2.4.6"))
     fails(repo, "a notebook never runs pip itself (convention section 4)")
 
 
-def test_a_drive_path_written_as_a_python_literal_is_found(repo: Path) -> None:
+def test_adversarial_a_drive_path_written_as_a_python_literal_is_found(repo: Path) -> None:
     jedit(repo, "notebooks/es/02-threshold-and-final-size/01-the-threshold.ipynb", lambda d: first_code(d).update(
         source="# a literal\nroot = 'D:\\\\_Datos\\\\sir'"))
     fails(repo, "holds a machine path")
 
 
-def test_a_package_installed_from_its_release_tag_is_held_to_its_exact_form(repo: Path) -> None:
+def test_adversarial_a_package_installed_from_its_release_tag_is_held_to_its_exact_form(repo: Path) -> None:
     req = repo / "notebooks" / "requirements.txt"
     saved = req.read_text(encoding="utf-8")
     good = "riskvalidation @ git+https://github.com/fsantibanezleal/CAOS_RiskValidation.git@v0.8.0"
@@ -370,13 +370,13 @@ def test_a_package_installed_from_its_release_tag_is_held_to_its_exact_form(repo
     fails(repo, "is not an exact pin")
 
 
-def test_a_notebook_outside_the_layout_is_found_and_not_run(repo: Path) -> None:
+def test_adversarial_a_notebook_outside_the_layout_is_found_and_not_run(repo: Path) -> None:
     src = repo / "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb"
     shutil.copy2(src, repo / "notebooks/en/99-loose.ipynb")
     fails(repo, "notebooks/en/99-loose.ipynb", "notebooks/<language>/<topic>/<notebook>.ipynb")
 
 
-def test_an_ipynb_with_an_em_dash_or_an_emoji_is_found_by_the_content_standards(tmp_path: Path) -> None:
+def test_adversarial_an_ipynb_with_an_em_dash_or_an_emoji_is_found_by_the_content_standards(tmp_path: Path) -> None:
     """F4: the guard read .md and .json but skipped .ipynb, where the runner writes raw characters."""
     repo = tmp_path / "r"
     (repo / "scripts").mkdir(parents=True)
@@ -391,13 +391,13 @@ def test_an_ipynb_with_an_em_dash_or_an_emoji_is_found_by_the_content_standards(
     assert r.returncode == 1 and "01-y.ipynb" in r.stdout and "em-dash" in r.stdout and "emoji" in r.stdout, r.stdout + r.stderr
 
 
-def test_a_printed_traceback_is_found(repo: Path) -> None:
+def test_adversarial_a_printed_traceback_is_found(repo: Path) -> None:
     jedit(repo, "notebooks/en/02-threshold-and-final-size/02-the-final-size.ipynb", lambda d: first_code(d)["outputs"].append(
         {"output_type": "stream", "name": "stdout", "text": "Traceback (most recent call last):\n  File \"x.py\", line 1\nKeyError: 'a'\n"}))
     fails(repo, "prints a traceback")
 
 
-def test_a_source_missing_from_the_references_and_a_missing_install_line_are_found(repo: Path) -> None:
+def test_adversarial_a_source_missing_from_the_references_and_a_missing_install_line_are_found(repo: Path) -> None:
     rel = "notebooks/en/01-getting-started/01-the-problem-and-the-data.ipynb"
 
     def drop_references(doc: dict) -> None:
@@ -413,13 +413,13 @@ def test_a_source_missing_from_the_references_and_a_missing_install_line_are_fou
     fails(repo, "shows no `pip install` line")
 
 
-def test_a_notebook_that_defines_the_final_size_oracle_is_found(repo: Path) -> None:
+def test_adversarial_a_notebook_that_defines_the_final_size_oracle_is_found(repo: Path) -> None:
     jedit(repo, "notebooks/en/02-threshold-and-final-size/02-the-final-size.ipynb", lambda d: first_code(d).update(
         source=["# a private copy of the oracle\n", "def final_size(r0):\n", "    return r0\n"]))
     fails(repo, "defines 'final_size'", "import it instead")
 
 
-def test_the_runner_coalesces_split_streams() -> None:
+def test_adversarial_the_runner_coalesces_split_streams() -> None:
     spec = importlib.util.spec_from_file_location("run_notebooks_coalesce", ROOT / "scripts" / "run_notebooks.py")
     runner = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(runner)
@@ -431,7 +431,7 @@ def test_the_runner_coalesces_split_streams() -> None:
 
 
 @pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
-def test_a_hand_edited_output_fails_the_release_gate(repo: Path) -> None:
+def test_adversarial_a_hand_edited_output_fails_the_release_gate(repo: Path) -> None:
     only = "notebooks/en/02-threshold-and-final-size/01-the-threshold.ipynb"
     path = repo / only
     text = path.read_text(encoding="utf-8")
@@ -442,7 +442,7 @@ def test_a_hand_edited_output_fails_the_release_gate(repo: Path) -> None:
 
 
 @pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
-def test_a_loose_notebook_stops_the_release_gate(repo: Path) -> None:
+def test_adversarial_a_loose_notebook_stops_the_release_gate(repo: Path) -> None:
     shutil.copy2(repo / "notebooks/en/02-threshold-and-final-size/01-the-threshold.ipynb", repo / "notebooks/en/99-loose.ipynb")
     r = run_release_gate(repo, "--check")
     assert r.returncode == 1 and "99-loose.ipynb" in r.stdout and "ran   " not in r.stdout, r.stdout
@@ -455,14 +455,14 @@ def readme_areas(repo: Path) -> tuple[str, str, str]:
     return text[:start], text[start:end], text[end:]
 
 
-def test_the_areas_section_before_the_purpose_is_found(repo: Path) -> None:
+def test_adversarial_the_areas_section_before_the_purpose_is_found(repo: Path) -> None:
     pre, areas, rest = readme_areas(repo)
     title, _, body = pre.partition("\n")
     (repo / "README.md").write_text(f"{title}\n\n{areas}\n{body}{rest}", encoding="utf-8")
     fails(with_dirs(repo), "comes after the purpose and the live URLs", script="check_readme_areas.py")
 
 
-def test_a_row_that_holds_a_dash_is_found(repo: Path) -> None:
+def test_adversarial_a_row_that_holds_a_dash_is_found(repo: Path) -> None:
     pre, areas, rest = readme_areas(repo)
     rows = [ln for ln in areas.splitlines() if ln.startswith("| Data |")]
     assert rows
@@ -472,12 +472,12 @@ def test_a_row_that_holds_a_dash_is_found(repo: Path) -> None:
     fails(with_dirs(repo), "'Data'", "'What it holds'", script="check_readme_areas.py")
 
 
-def test_a_dead_document_link_in_a_row_is_found(repo: Path) -> None:
+def test_adversarial_a_dead_document_link_in_a_row_is_found(repo: Path) -> None:
     readme_edit(with_dirs(repo), "[guide 08](docs/guides/08_notebooks.md)", "[guide 08](docs/guides/08_absent.md)")
     fails(repo, "links 'docs/guides/08_absent.md', which does not exist", script="check_readme_areas.py")
 
 
-def test_a_wrong_final_size_oracle_fails_the_relation(repo: Path) -> None:
+def test_adversarial_a_wrong_final_size_oracle_fails_the_relation(repo: Path) -> None:
     """NB-037: the relation the oracle must solve is the check; an oracle with a perturbed exponent breaks it."""
     path = repo / "data-pipeline" / "pipeline" / "oracles.py"
     text = path.read_text(encoding="utf-8")
@@ -492,7 +492,7 @@ def test_a_wrong_final_size_oracle_fails_the_relation(repo: Path) -> None:
 
 
 @pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
-def test_a_convergence_cell_that_loses_its_case_is_stale(repo: Path) -> None:
+def test_adversarial_a_convergence_cell_that_loses_its_case_is_stale(repo: Path) -> None:
     """NB-040, local-only: the figure says EX02_epidemic, so a cell that runs the last loop case writes other numbers and the
     release gate finds the committed outputs stale."""
     only = "notebooks/en/01-getting-started/02-the-method-step-by-step.ipynb"
