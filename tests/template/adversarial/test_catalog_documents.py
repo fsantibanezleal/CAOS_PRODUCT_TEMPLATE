@@ -32,7 +32,7 @@ def test_an_invalid_committed_document_fails(tree: Path) -> None:
     assert r.returncode == 1 and "data/derived/EX01_subcritical/trace.json: [trace]" in r.stdout, r.stdout
 
 
-def test_a_document_left_out_of_every_row_is_a_hole(tree: Path) -> None:
+def test_adversarial_a_document_left_out_of_every_row_is_a_hole(tree: Path) -> None:
     (tree / "data/derived/EX01_subcritical/extra.json").write_text("{}", encoding="utf-8")
     (tree / "models/other.json").write_text("{}", encoding="utf-8")
     r = guard(tree, "check_documents.py")
@@ -47,7 +47,7 @@ def test_a_trace_glob_narrowed_so_a_trace_is_left_out_is_a_hole(tree: Path) -> N
     assert r.returncode == 1 and "data/derived/EX02_epidemic/trace.json: covered by no row" in r.stdout, r.stdout
 
 
-def test_two_rows_claiming_one_file_fail(tree: Path) -> None:
+def test_adversarial_two_rows_claiming_one_file_fail(tree: Path) -> None:
     set_cell(tree, CATALOG, "readiness", DOCUMENTS_COLUMN, "data/derived/readiness.json, data/derived/manifests/index.json")
     r = guard(tree, "check_documents.py")
     assert r.returncode == 1, r.stdout
