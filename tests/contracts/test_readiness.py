@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import json
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -15,14 +13,12 @@ from pipeline import pipeline
 from pipeline.core import readiness
 from pipeline.io.formats import write_json
 
-from contract_schemas import ROOT, errors
+from contract_schemas import ROOT, errors, run_readiness_guard
 
 CATALOG = ROOT / "docs" / "contracts" / "catalog.md"
 VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
 OLDER = VERSION.rsplit(".", 1)[0] + ".999"  # an engine version that is not VERSION
 GOOD_PARAMS = "case_id,beta,gamma,N,I0,days\nEX02_epidemic,0.55,0.20,100000,50,160\nEX01_subcritical,0.18,0.25,100000,50,160\n"
-NO_NUMPY = ("import sys, runpy; sys.modules['numpy'] = None; path = sys.argv[1]; sys.argv = sys.argv[1:]; "
-            "runpy.run_path(path, run_name='__main__')")
 
 
 def _table(section: str) -> list[list[str]]:
@@ -218,7 +214,7 @@ def test_table_padding_is_formatting_not_a_status(repo):
 
 def test_adversarial_check_readiness_reports_an_unknown_status(repo):
     set_status(repo, "case-index", "stub")
-    p = _check(repo)
+    p = run_readiness_guard(repo)
     assert p.returncode == 1, p.stdout + p.stderr
     assert "case-index" in p.stdout and "real" in p.stdout and "active" in p.stdout
     assert "Traceback" not in p.stdout + p.stderr
@@ -320,21 +316,14 @@ def test_run_all_writes_a_valid_readiness(tmp_path):
         assert entry(doc, row)["state"] == "available", row  # baked and trained by this version
 
 
-def _check(root: Path | None = None, *, no_numpy: bool = False) -> subprocess.CompletedProcess:
-    script = str(ROOT / "scripts" / "check_readiness.py")
-    args = [str(root)] if root else []
-    cmd = [sys.executable, "-c", NO_NUMPY, script, *args] if no_numpy else [sys.executable, script, *args]
-    return subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
-
-
 def test_check_readiness_passes_on_the_repository():
-    p = _check()
+    p = run_readiness_guard()
     assert p.returncode == 0, p.stdout + p.stderr
     assert "readiness: current" in p.stdout
 
 
 def test_adversarial_check_readiness_runs_without_numpy():
-    p = _check(no_numpy=True)
+    p = run_readiness_guard(no_numpy=True)
     assert p.returncode == 0, p.stdout + p.stderr
     assert "readiness: current" in p.stdout
 
@@ -347,7 +336,7 @@ def test_adversarial_check_readiness_fails_on_a_changed_catalog(tmp_path):
     shutil.copy(ROOT / "VERSION", r / "VERSION")
     cat = CATALOG.read_text(encoding="utf-8")
     (r / "docs" / "contracts" / "catalog.md").write_text(cat.replace("One row per", "One Row per", 1), encoding="utf-8")
-    p = _check(r)
+    p = run_readiness_guard(r)
     assert p.returncode == 1, p.stdout + p.stderr
     assert "catalog_sha256" in p.stdout
     assert "python data-pipeline/run.py readiness" in p.stdout
