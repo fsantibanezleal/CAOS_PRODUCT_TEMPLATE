@@ -234,6 +234,8 @@ def main() -> int:
         "license": "MIT",
         "holder": a.holder,
         "year": a.year,
+        # the dotted names (module.function or module.Class) that run this product's method: the notebooks' floors count nothing else
+        "method_entrypoints": [],
     }
     write("product.json", json.dumps(product, indent=2, ensure_ascii=False) + "\n")
     pkg_path = ROOT / "frontend" / "package.json"
