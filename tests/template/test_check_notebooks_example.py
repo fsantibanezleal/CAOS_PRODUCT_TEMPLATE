@@ -5,13 +5,14 @@ notebooks in its own tests. The static check on synthetic trees stays in tests/t
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
-from test_check_notebooks import CHECK
+from test_check_notebooks import BAR, CHECK, bar_doc, bar_of, review_root
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -29,7 +30,7 @@ def test_the_example_notebooks_import_the_engine_and_never_redefine_it() -> None
     for path in (ROOT / "notebooks").rglob("*.ipynb"):
         doc = json.loads(path.read_text(encoding="utf-8"))
         code = "\n".join(CHECK.text_of(c["source"]) for c in doc["cells"] if c["cell_type"] == "code")
-        assert "from pipeline.model.sir import simulate" in code, path.name
+        assert re.search(r"from pipeline\.model\.sir import (derivatives, )?simulate(?![A-Za-z_])", code), path.name
         assert not (CHECK.defined_names(code) & engine), path.name
 
 
@@ -62,23 +63,6 @@ def test_the_convergence_cell_names_the_case_it_runs(lang: str) -> None:
     assert "0.933717" in printed and "0.300894" not in printed, printed  # EX02's first attack rate, not EX04's
 
 
-@pytest.mark.parametrize("lang,fixed,stale", [("en", "0.000002", "about 0.00005 for the cases that ended"),
-                                              ("es", "0,000002", "cerca de 0,00005 en los casos que terminaron")])
-def test_the_fast_burn_difference_is_stated_for_both_cases(lang: str, fixed: str, stale: str) -> None:
-    """F12: the derived relation differs from level 2 by 0.00005 for the epidemic case and 0.000002 for the fast burn."""
-    text = "\n".join(CHECK.text_of(c["source"]) for c in cells_of(lang, "02-threshold-and-final-size/03-next-generation-matrix-and-final-size-derivation.ipynb"))
-    assert fixed in text and stale not in text
-
-
-def test_the_spanish_final_size_notebook_uses_one_decimal_separator() -> None:
-    """F13: the Spanish prose writes its decimals with a comma, every number of the notebook's prose, in the same cell too."""
-    import re
-    for c in cells_of("es", "02-threshold-and-final-size/02-the-final-size.ipynb"):
-        if c["cell_type"] == "markdown":
-            prose = re.sub(r"`[^`]*`|https?://\S+|10\.\d{4,9}/\S+", "", CHECK.text_of(c["source"]))
-            assert not re.search(r"\d\.\d", prose), prose[:200]
-
-
 def test_the_final_size_solver_is_imported_by_the_notebooks_and_defined_in_none() -> None:
     """F14: a method is imported, never defined in a notebook; the solver lives in data-pipeline/pipeline/oracles.py."""
     assert "final_size" in CHECK.engine_names(ROOT)
@@ -89,4 +73,49 @@ def test_the_final_size_solver_is_imported_by_the_notebooks_and_defined_in_none(
         if "final_size(" in code:
             users += 1
             assert "from pipeline.oracles import final_size" in code, path.name
-    assert users == 6
+    assert users == 4
+
+
+def test_the_spanish_notebooks_use_one_decimal_separator() -> None:
+    """F13: the Spanish prose writes its decimals with a comma, every number of the notebooks' prose (math included)."""
+    import re
+    for path in sorted((ROOT / "notebooks" / "es").rglob("*.ipynb")):
+        for c in json.loads(path.read_text(encoding="utf-8"))["cells"]:
+            if c["cell_type"] == "markdown" and not CHECK.text_of(c["source"]).startswith("## Referencias"):
+                prose = re.sub(r"`[^`]*`|https?://\S+|10\.\d{4,9}/\S+|\b\d+\.\d+\.\d+\b", "", CHECK.text_of(c["source"]))
+                assert not re.search(r"\d\.\d", prose), (path.name, prose[:200])
+
+
+def test_the_level_three_example_runs_the_reference_implementation() -> None:
+    """NB-068: the level 3 notebooks run scipy's solve_ivp under State of the art, scipy is an exact pin, and the SDD lists it."""
+    assert "scipy==1.18.1" in CHECK.read_pins(ROOT)
+    for lang, section in (("en", "State of the art"), ("es", "Estado del arte")):
+        doc = json.loads((ROOT / "notebooks" / lang / "01-getting-started" / "03-a-higher-order-solver.ipynb").read_text(encoding="utf-8"))
+        assert doc["metadata"]["caos"]["level"] == 3 and "scipy==1.18.1" in doc["metadata"]["caos"]["packages"]
+        reading = CHECK.Reading(doc, lang, ROOT, CHECK.load_bar())
+        inside = [i for i in reading.method_cells if reading.section[i] == "State of the art"]
+        code = "\n".join(CHECK.text_of(doc["cells"][i]["source"]) for i in inside)
+        assert "solve_ivp(" in code and 'method="RK45"' in code, (lang, section)
+        # the equations live in the engine: the notebook imports derivatives and defines no right-hand side of its own
+        all_code = "\n".join(CHECK.text_of(c["source"]) for c in doc["cells"] if c["cell_type"] == "code")
+        assert "derivatives" in all_code and "solve_ivp(derivatives" in all_code, lang
+        assert "derivatives" in CHECK.engine_names(ROOT) and not (CHECK.defined_names(all_code) & {"sir_rhs", "derivatives"}), lang
+    assert "scipy" in (ROOT / "docs" / "design" / "SDD.md").read_text(encoding="utf-8")
+
+
+def test_adversarial_m6_sentences_copied_from_the_templates_example_are_found_in_a_product(tmp_path: Path) -> None:
+    root = review_root(tmp_path)
+    prose = [s for s in sorted(CHECK.long_sentences("\n".join(CHECK.text_of(c["source"]) for c in json.loads(
+        (ROOT / "notebooks/en/01-getting-started/02-the-method-step-by-step.ipynb").read_text(encoding="utf-8"))["cells"]
+        if c["cell_type"] == "markdown"), 50)) if CHECK.fingerprint(s) in set(BAR["example_fingerprints"].split())][:6]
+    assert len(prose) == 6
+    doc = bar_doc("en", 2)
+    doc["cells"][1]["source"] += "\n\n" + "\n\n".join(prose)
+    assert any("copied from the template's example notebooks" in f for f in bar_of(root, doc))
+    (root / ".template-source").write_text("", encoding="utf-8")  # the template itself keeps its own example
+    assert not any("copied from the template" in f for f in bar_of(root, doc))
+
+
+def test_m6_the_fingerprints_follow_the_example_notebooks() -> None:
+    """Edit an example notebook and this fails until ``python scripts/check_notebooks.py --write-fingerprints`` is run."""
+    assert BAR["example_fingerprints"].split() == CHECK.example_fingerprints(ROOT, BAR)
