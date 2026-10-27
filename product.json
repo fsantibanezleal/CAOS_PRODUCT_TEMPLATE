@@ -10,5 +10,11 @@
   "license": "MIT",
   "holder": "Felipe Santibáñez-Leal",
   "year": 2026,
-  "method_packages": []
+  "method_packages": [],
+  "method_entrypoints": [
+    "pipeline.model.sir.simulate",
+    "pipeline.model.sir.derivatives",
+    "pipeline.oracles.final_size",
+    "pipeline.model.baseline.peak_frac"
+  ]
 }
