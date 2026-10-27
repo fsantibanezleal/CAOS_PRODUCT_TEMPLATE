@@ -2,6 +2,18 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.11.005], 2026-10-27
+
+### Fixed
+
+- BD-4, found adopting 0.11.004 on CAOS_ChancaDEM: the static guard of BD-3 named a product's own test as example-bound
+  because it matched the bare topic `01-getting-started` and the folder `features/workbench`, names a product reuses for its
+  own first topic and its own workbench feature. It now matches the example's notebook paths and no generic folder; its
+  adversarial twin gains a product control that names both and is not flagged.
+- BD-4: the test of `scripts/check_artifacts.py` moves from `tests/test_guards.py`, which a product takes as it is, to its own
+  module `tests/test_check_artifacts.py`. The artifact guard is the example's, shaped by its manifest contract; a product adapts
+  it and replaces that test with its own, as it does the example's other tests.
+
 ## [0.11.004], 2026-10-27
 
 ### Fixed
