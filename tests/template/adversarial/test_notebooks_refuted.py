@@ -16,8 +16,11 @@ import sys
 from pathlib import Path
 
 import pytest
+from notebook_bar_helpers import bar_notebook, unit_module
 from planting import ROOT, guard, make_tree
 
+TEMPLATE_ONLY = pytest.mark.skipif(not (ROOT / ".template-source").exists(),
+                                   reason="the sentinel is removed from a copy of the template's example set (.template-source)")
 NOTEBOOK_PYTHON = next((p for p in (ROOT / ".venv-notebooks" / "Scripts" / "python.exe", ROOT / ".venv-notebooks" / "bin" / "python") if p.is_file()), None)
 EN = "notebooks/en/02-threshold-and-final-size"
 ES = "notebooks/es/02-threshold-and-final-size"
@@ -28,8 +31,8 @@ FOLDERS = ("frontend", "app", "data-pipeline", "notebooks", "data", "docs/contra
 def base(tmp_path_factory: pytest.TempPathFactory) -> Path:
     dest = tmp_path_factory.mktemp("nb-base")
     make_tree(dest, "notebooks", "docs/design/SDD.md", ".github", "data/derived", "README.md", "data-pipeline",
-              "scripts/check_notebooks.py", "scripts/check_readme_areas.py", "scripts/check_tech_matrix.py", "scripts/run_notebooks.py",
-              "scripts/instantiate.py", "scripts/check_template_residue.py", "VERSION", "requirements*.txt", "frontend/package.json", "frontend/package-lock.json", "pyproject.toml")
+              "scripts/check_notebooks.py", "scripts/notebook_bar.json", "scripts/check_readme_areas.py", "scripts/check_tech_matrix.py", "scripts/run_notebooks.py",
+              "scripts/instantiate.py", "scripts/check_template_residue.py", "VERSION", ".template-source", "product.json", "requirements*.txt", "frontend/package.json", "frontend/package-lock.json", "pyproject.toml")
     return dest
 
 
@@ -76,8 +79,8 @@ def test_adversarial_a_missing_spanish_index_is_found(repo: Path) -> None:
 
 
 def test_adversarial_a_spanish_notebook_deleted_breaks_the_mirror(repo: Path) -> None:
-    (repo / ES / "03-next-generation-matrix-and-final-size-derivation.ipynb").unlink()
-    fails(repo, "mirror", "03-next-generation-matrix-and-final-size-derivation.ipynb")
+    (repo / "notebooks/es/01-getting-started/03-a-higher-order-solver.ipynb").unlink()
+    fails(repo, "mirror", "03-a-higher-order-solver.ipynb")
 
 
 def test_adversarial_a_numbering_gap_in_both_trees_is_found(repo: Path) -> None:
@@ -101,7 +104,7 @@ def test_adversarial_a_missing_reason_for_level_three_is_found(repo: Path) -> No
     text = index.read_text(encoding="utf-8")
     assert "No level 3:" in text
     index.write_text(text.replace("No level 3:", "Level 3 left out:"), encoding="utf-8")
-    fails(repo, "01-getting-started", "no level 3 notebook and its row gives no reason")
+    fails(repo, "02-threshold-and-final-size", "no level 3 notebook and its row gives no reason")
 
 
 def test_adversarial_a_notebook_dropped_from_the_index_is_found(repo: Path) -> None:
@@ -119,7 +122,7 @@ def test_adversarial_an_sdd_claim_without_a_level_four_notebook_is_found(repo: P
     fails(repo, "BS-1", "covered by no level 4 notebook")
     # a notebook claiming what the SDD does not list is found too
     sdd.write_text(text, encoding="utf-8")
-    both(repo, "02-threshold-and-final-size/03-next-generation-matrix-and-final-size-derivation.ipynb", lambda d: d["metadata"]["caos"].update(beyond=["BS-7"]))
+    both(repo, "01-getting-started/03-a-higher-order-solver.ipynb", lambda d: d["metadata"]["caos"].update(beyond=["BS-7"]))
     fails(repo, "BS-7")
 
 
@@ -493,15 +496,136 @@ def test_adversarial_a_wrong_final_size_oracle_fails_the_relation(repo: Path) ->
 
 @pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
 def test_adversarial_a_convergence_cell_that_loses_its_case_is_stale(repo: Path) -> None:
-    """NB-040, local-only: the figure says EX02_epidemic, so a cell that runs the last loop case writes other numbers and the
+    """NB-040, local-only: the figure says EX02_epidemic, so a cell that runs another case writes other numbers and the
     release gate finds the committed outputs stale."""
     only = "notebooks/en/01-getting-started/02-the-method-step-by-step.ipynb"
 
     def lose_case(doc: dict) -> None:
         cell = next(c for c in doc["cells"] if c["cell_type"] == "code" and "steps = [1.0, 0.5" in "".join(c["source"]))
-        cell["source"] = [ln for ln in cell["source"] if "params_of(\"EX02_epidemic\")" not in ln]
-        assert not any("EX02_epidemic\")" in ln for ln in cell["source"])
+        cell["source"] = [ln.replace('params_of("EX02_epidemic")', 'params_of("EX04_slow_spread")') for ln in cell["source"]]
+        assert not any('params_of("EX02_epidemic")' in ln for ln in cell["source"])
     assert run_release_gate(repo, "--check", "--only", only).returncode == 0
     jedit(repo, only, lose_case)
     r = run_release_gate(repo, "--check", "--only", only)
     assert r.returncode == 1 and "stale" in r.stdout, r.stdout
+
+
+# ---------------------------------------------------------------- the floors of the bar refuted (example-bound)
+
+def test_adversarial_the_gate_run_from_the_command_line_fails_a_reader_notebook_in_the_committed_set(repo: Path) -> None:
+    """The real guard, as CI runs it, on the example set with one notebook replaced by one that only reads and prints."""
+    steps = [("Load.", "# read the baked case\nimport json\n\ncase = json.loads(Path('data/derived/EX02_epidemic/trace.json').read_text())\nprint(case.keys())", "x\n")]
+    doc = bar_notebook("en", 2, "a", steps)
+    doc["metadata"]["caos"]["topic"] = "02-threshold-and-final-size"
+    (repo / EN / "02-the-final-size.ipynb").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    fails(repo, "02-the-final-size.ipynb: bar: method cells 0")
+
+
+def test_adversarial_the_example_set_is_a_lesson_and_not_only_a_set_that_clears_the_floors() -> None:
+    """Most method cells of an example notebook compute something; at most one cell of it checks a value against a committed one."""
+    u = unit_module()
+    bar = u.CHECK.load_bar()
+    for lang in ("en", "es"):
+        for path in sorted((ROOT / "notebooks" / lang).rglob("*.ipynb")):
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            r = u.CHECK.Reading(doc, lang, ROOT, bar)
+            computing = [i for i in r.method_cells if i not in r.repro_cells]
+            assert len(r.repro_cells) <= 1, (path.name, r.repro_cells)
+            assert len(computing) >= u.CHECK.floor_at(bar, "method_cells", r.level) - 1, (path.name, len(computing))
+            assert len(r.setup_cells) == 1, (path.name, r.setup_cells)  # the one setup cell, and nothing else that is scaffolding
+
+
+def test_adversarial_the_residue_guard_flags_every_example_notebook_by_its_content(tmp_path: Path) -> None:
+    """A product that copied the example notebooks into its own repository (ChancaDEM did, byte for byte) is told, notebook by notebook."""
+    product = tmp_path / "product"
+    shutil.copytree(ROOT / "notebooks", product / "notebooks")
+    (product / "src").mkdir()
+    for n in range(12):
+        (product / "src" / f"m{n}.py").write_text("x = 1\n", encoding="utf-8")
+    shutil.copytree(ROOT / "scripts", product / "scripts", ignore=shutil.ignore_patterns("__pycache__", "node_modules"))
+    subprocess.run(["git", "init", "-q"], cwd=product, check=True)
+    r = subprocess.run([sys.executable, str(product / "scripts" / "check_template_residue.py"), str(product)], capture_output=True, encoding="utf-8", cwd=product)
+    assert r.returncode == 1, r.stdout
+    for path in sorted((product / "notebooks").rglob("*.ipynb")):
+        assert path.relative_to(product).as_posix() in r.stdout, path.name
+
+
+def test_adversarial_raising_a_floor_in_the_bar_file_fails_the_committed_set(repo: Path) -> None:
+    """The script reads its thresholds from scripts/notebook_bar.json: a floor raised there fails notebooks that met the old one."""
+    path = repo / "scripts" / "notebook_bar.json"
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    doc["floors"]["method_cells"]["2"] = 50
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    fails(repo, "method cells", "the floor at level 2 is 50")
+
+
+def test_adversarial_the_level_three_example_without_its_pin_is_found(repo: Path) -> None:
+    path = repo / "notebooks" / "requirements.txt"
+    path.write_text("".join(ln for ln in path.read_text(encoding="utf-8").splitlines(keepends=True) if not ln.startswith("scipy==")), encoding="utf-8")
+    fails(repo, "03-a-higher-order-solver.ipynb", "'scipy==1.18.1' is not a pin of notebooks/requirements.txt")
+
+
+def test_adversarial_the_review_trash_notebook_that_reads_the_manifests_and_prints_them_fails_end_to_end(repo: Path) -> None:
+    """B1 of the gate review: five reads with the pipeline's own reader, a module name printed, an answer that quotes the numpy version."""
+    read = "# read the baked manifest\nmanifest = read_json(ROOT / 'data' / 'derived' / 'manifests' / 'EX02_epidemic.json')\nprint(manifest['params'])"
+    steps = [("Import the reader.", "# the pipeline's reader\nfrom pipeline.io.formats import read_json", "")]
+    steps += [("Read.", read, "{'beta': 0.55}\n")] * 5 + [("Which module.", "# the module the reader comes from\nprint(read_json.__module__.upper())", "PIPELINE.IO.FORMATS\n")]
+    for lang in ("en", "es"):
+        doc = bar_notebook(lang, 2, "t", steps, figure=True, answer="The manifest is read with the tools of release 2.4 as printed above.")
+        doc["metadata"]["caos"]["topic"] = "01-getting-started"
+        (repo / f"notebooks/{lang}/01-getting-started/02-the-method-step-by-step.ipynb").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    fails(repo, "02-the-method-step-by-step.ipynb: bar: method cells 0", "answer quotes no number")
+
+
+@TEMPLATE_ONLY
+def test_adversarial_a_product_that_keeps_the_templates_example_prose_is_found(repo: Path) -> None:
+    """M6: the template's sentinel is what lets the template hold its own example; a product has none, and a copy fails the floor."""
+    (repo / ".template-source").unlink()
+    fails(repo, "sentences over 50 characters are copied from the template's example notebooks")
+
+
+def test_adversarial_the_gate_gives_the_same_verdict_whatever_the_environment_holds(monkeypatch: pytest.MonkeyPatch) -> None:
+    """B2, without a notebook environment: the verdict on the template is the same when the environment answers nothing, a wheel file name or an error."""
+    check = unit_module().CHECK
+    assert check.findings_of(ROOT) == []
+
+    class Odd:
+        files = [Path("scipy-1.18.1-cp313-cp313-win_amd64.whl"), Path("numpy.libs/x.dll")]
+
+        def read_text(self, name):
+            return None
+
+    for answer in (lambda dist: Odd(), lambda dist: (_ for _ in ()).throw(RuntimeError("no metadata"))):
+        monkeypatch.setattr(check.importlib.metadata, "distribution", answer)
+        monkeypatch.setattr(check.importlib.util, "find_spec", lambda *a, **k: None)
+        assert check.findings_of(ROOT) == []
+
+
+# the reproducers of the gate review, run again from here so that each requirement of the review has an adversarial gate
+
+
+def test_adversarial_the_second_review_trash_notebook_that_looks_cases_up_in_the_registry_fails_end_to_end(repo: Path) -> None:
+    """NB1 of the re-review: registry lookups printed, one short sentence repeated, an answer that quotes a printed parameter."""
+    look = "# look the case up in the registry\ncase = get_case('EX02_epidemic')\nprint(case.params)"
+    steps = [("Import.", "# the registry\nfrom pipeline.registry import get_case, list_cases", "")]
+    steps += [("Each value here is read from the case on file.", look, "SIRParams(beta=0.55)\n")] * 6
+    steps += [("Each value here is read from the case on file.", "# how many\nprint(len(list_cases()))", "5\n")]
+    for lang in ("en", "es"):
+        doc = bar_notebook(lang, 2, "t", steps, figure=True, answer="The epidemic case has beta 0.55 in the registry.", prose=10)
+        doc["metadata"]["caos"]["topic"] = "01-getting-started"
+        (repo / f"notebooks/{lang}/01-getting-started/02-the-method-step-by-step.ipynb").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    fails(repo, "02-the-method-step-by-step.ipynb: bar: method cells 0", "sentences occur more than twice inside the notebook")
+
+
+def test_adversarial_the_third_review_trash_notebook_with_one_run_list_methods_and_four_word_padding_fails_end_to_end(repo: Path) -> None:
+    """R2-1 of the second re-review: one engine run, `.index` and `.count` on its result, a four-word sentence as the whole prose."""
+    steps = [("Import.", "# the engine and its parameters\nfrom pipeline.model.sir import simulate\nfrom pipeline.io.schema import SIRParams", ""),
+             ("The value is shown.", "# run the engine once\np = SIRParams('EX02_epidemic', 0.55, 0.2, 100000.0, 50.0, 160)\nres = simulate(p)\n"
+                                     "print(round(res.attack_rate, 4))", "0.9237\n")]
+    for look in ("res.I.index(max(res.I))", "res.S.index(min(res.S))", "res.R.count(max(res.R))", "res.t.index(res.t[-1])"):
+        steps.append(("The value is shown.", f"# the step of the peak\nprint({look})", "97\n"))
+    for lang in ("en", "es"):
+        doc = bar_notebook(lang, 2, "t", steps, figure=True, answer="The attack rate is 0.9237.", prose=10)
+        doc["metadata"]["caos"]["topic"] = "01-getting-started"
+        (repo / f"notebooks/{lang}/01-getting-started/02-the-method-step-by-step.ipynb").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    fails(repo, "02-the-method-step-by-step.ipynb: bar: method cells 1", "sentences occur more than twice inside the notebook")
