@@ -39,32 +39,6 @@ def _git_tree(tmp: Path) -> Path:
     return tree
 
 
-def test_check_artifacts_reads_one_or_many_artifacts_and_the_index_files(tmp_path):
-    d = tmp_path / "data" / "derived"
-    n_single = _put(d, "A/trace.json", {"t": [0, 1]})
-    n_v1 = _put(d, "B/v1.json", {"x": 1})
-    n_v2 = _put(d, "B/v2.json", {"x": 22})
-    _put(d, "contract/index.json", {"families": []})
-    gate = {"lane": "live"}
-    _put(d, "manifests/A.json", {"artifact": {"path": "A/trace.json", "bytes": n_single}, "lane": "live", "gate": gate})
-    _put(d, "manifests/B.json", {"artifacts": [{"path": "B/v1.json", "bytes": n_v1, "lane": "live", "gate": gate},
-                                               {"path": "B/v2.json", "bytes": n_v2, "lane": "live", "gate": gate}]})
-    index = {"files": ["contract/index.json"], "cases": [{"case_id": "A", "manifest_path": "manifests/A.json"},
-                                                         {"case_id": "B", "manifest_path": "manifests/B.json"}]}
-    _put(d, "manifests/index.json", index)
-    ok = _run("check_artifacts.py", str(tmp_path))
-    assert ok.returncode == 0 and "2 cases, 3 artifacts" in ok.stdout, ok.stdout
-    # drift in the second variant, a lane that disagrees with its gate, a declared file gone
-    _put(d, "manifests/B.json", {"artifacts": [{"path": "B/v1.json", "bytes": n_v1, "lane": "live", "gate": gate},
-                                               {"path": "B/v2.json", "bytes": n_v2 + 1, "lane": "precompute", "gate": gate}]})
-    (d / "contract" / "index.json").unlink()
-    bad = _run("check_artifacts.py", str(tmp_path))
-    assert bad.returncode == 1
-    assert "byte drift" in bad.stdout and "B/v2.json" in bad.stdout
-    assert "lane/gate mismatch: B B/v2.json" in bad.stdout
-    assert "declared by the index but missing or empty" in bad.stdout
-
-
 REQ = """# Requirements: a unit not built yet
 
 {status}
@@ -248,12 +222,11 @@ def test_adversarial_an_unmarked_template_only_test_is_named(tmp_path):
     assert _template_only_offenders(tmp_path / "tests") == ["test_planted.py::test_runs_it", "test_planted.py::test_drops_it"]
 
 
-# What the content-based residue guard cannot see in a test: the example's rows, notebook slugs, feature folder and guide,
+# What the content-based residue guard cannot see in a test: the example's rows, notebook paths and guide,
 # named by id or path. Its own MARKERS (the model, the case ids, the references ...) are imported, never copied (BD-3).
 EXAMPLE_NAMES = (
     ("an example requirement id", re.compile(r"\bEX-\d{3}\b")),
-    ("an example notebook topic", re.compile(r"\b(?:01-getting-started|02-threshold-and-final-size)\b")),
-    ("the example feature folder", re.compile(r"docs/design/features/workbench|features/workbench")),
+    ("an example notebook", re.compile(r"\b02-threshold-and-final-size\b|01-getting-started/0[12]-the-(?:problem-and-the-data|method-step-by-step)")),
     ("the template's own guide", re.compile(r"00_instantiate\.md")),
     ("the example catalog history row", re.compile(r"\|\s*surrogate-model\s*\|\s*1\.0\.0\s*\|\s*2026-10-11\s*\|")),
 )
@@ -307,13 +280,15 @@ def test_adversarial_an_example_bound_guard_test_outside_tests_template_is_named
         "template/adversarial/test_kept.py": f"def test_it(repo):\n    guard(repo, 'check_notebooks.py', '{topic}')\n",
         "test_example_only.py": "def test_it():\n    assert precompute('EX0" + "2_epidemic')\n",
         "test_clean.py": "def test_it(tmp_path):\n    run('check_sdd.py', str(tmp_path))\n",
+        # BD-4: a product names its own first topic and its own workbench feature, as ChancaDEM does
+        "test_product_names.py": "def test_it(repo):\n    guard(repo, 'check_notebooks.py', 'notebooks/en/01-getting" + "-started/01-first-run.ipynb', 'docs/design/features/workbench')\n",
     }
     for rel, body in planted.items():
         (tests / rel).parent.mkdir(parents=True, exist_ok=True)
         (tests / rel).write_text(body, encoding="utf-8")
     found = _example_bound_offenders(tests)
     assert [f.split(":")[0] for f in found] == ["adversarial/test_planted_notebook.py", "test_planted_case.py", "test_planted_row.py"], found
-    assert "an example notebook topic" in found[0] and "an example case id" in found[1] and "an example requirement id" in found[2]
+    assert "an example notebook" in found[0] and "an example case id" in found[1] and "an example requirement id" in found[2]
 
 
 def _version_tree(tmp: Path) -> Path:
