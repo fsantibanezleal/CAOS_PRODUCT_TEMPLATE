@@ -159,10 +159,16 @@ replaces this table.
 
 ## Method ladder
 
-One method, the example engine, with one acceptance criterion: the live engine reproduces every baked trace to
-the trace rounding (0.005 people), and both converge to the final-size relation at first order in the step.
-Gates: `frontend/src/engine/sir.parity.test.ts`. A product's ladder (classical, state of the art, learned,
-frontier) gets one criterion per method here, each with its gate, per ADR-0069.
+Every method of the product is a row, with the tier it belongs to: `classical` (the established methods of the problem),
+`sota` (the current solutions, replicated or implemented) or `beyond` (the product's own proposals beyond the state of the
+art). A product has at least one method in each tier ([`docs/guides/09_method-tiers.md`](../guides/09_method-tiers.md));
+this teaching example has two tiers and says so under "Beyond the state of the art". Each row has one acceptance criterion and
+its gate, per ADR-0069.
+
+| id | tier | method | acceptance criterion | gate |
+|---|---|---|---|---|
+| M-1 | classical | The SIR system of Kermack and McKendrick integrated by Forward Euler, the example engine | The live engine reproduces every baked trace to the trace rounding (0.005 people), and both converge to the final-size relation at first order in the step | `frontend/src/engine/sir.parity.test.ts` |
+| M-2 | sota | A higher-order Runge-Kutta solver, SciPy's RK45 and DOP853, run on the same five cases | The level 3 notebook runs RK45 and DOP853 on the engine's cases and reports the engine's Forward Euler error against them in the peak and the attack rate | `notebooks/en/01-getting-started/03-a-higher-order-solver.ipynb` (`scripts/check_notebooks.py` fails when no level 3 notebook names M-2) |
 
 ## Cases
 
@@ -186,9 +192,14 @@ None of these is a model judging a model.
 
 None claimed. The example is a teaching model: its engine is the textbook SIR system integrated by Forward Euler, and
 the state of the art it is compared with (a higher-order Runge-Kutta solver, SciPy's RK45) is in the level 3 notebook
-of `notebooks/`. A product that goes further lists each component here under an identifier of the form
-BS-<n>, with its evidence and its source, and covers each with a level 4 notebook in each language
-([`docs/guides/08_notebooks.md`](../guides/08_notebooks.md)).
+of `notebooks/`. This is valid only for the template: `scripts/check_sdd.py` fails a product whose SDD says it, because
+every CAOS product proposes at least one method beyond the state of the art. A product lists each proposal here under an
+identifier of the form BS-<n> with its hypothesis, its method and the evaluation that would confirm or refute it, gives it
+a row of tier `beyond` in the method ladder, and covers it with a level 4 notebook in each language
+([`docs/guides/08_notebooks.md`](../guides/08_notebooks.md)). A validation protocol, a calibration or a benchmark design
+is not a method beyond the state of the art by itself: a proposal answers the problem differently, and a proposal that does
+not improve on the state of the art is reported as the negative result it is
+([`docs/guides/09_method-tiers.md`](../guides/09_method-tiers.md)).
 
 ## Deploy driver
 
