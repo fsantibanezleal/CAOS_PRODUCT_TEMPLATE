@@ -16,14 +16,22 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "check_manuscripts.py"
 RULE = "method-tiers-and-manuscripts.md"
 
-REPORT = {"kind": "technical-report", "concept_doi": "10.5281/zenodo.1234567", "title": "A detailed technical report", "version": "0.13.000",
+
+def rel(minor: int, patch: int = 0) -> str:
+    """A release version of the 0.XX.XXX form, built (a literal would be a version literal in code, check_version_coherence.py)."""
+    return f"0.{minor:02d}.{patch:03d}"
+
+
+NOW, BEHIND, AHEAD = rel(13), rel(12), rel(14)
+
+REPORT = {"kind": "technical-report", "concept_doi": "10.5281/zenodo.1234567", "title": "A detailed technical report", "version": NOW,
           "covers": []}
-PAPER = {"kind": "manuscript", "concept_doi": "10.5281/zenodo.7654321", "title": "The beyond method, a preprint", "version": "0.01.000",
+PAPER = {"kind": "manuscript", "concept_doi": "10.5281/zenodo.7654321", "title": "The beyond method, a preprint", "version": rel(1),
          "covers": ["BS-1"]}
 SDD = "# SDD\n\n## Beyond the state of the art\n\n- BS-1: the hypothesis, the method and the evaluation.\n- BS-2: another one.\n"
 
 
-def tree(tmp: Path, manuscripts, *, template: bool = False, version: str = "0.13.000", sdd: str | None = SDD, product: dict | None = None) -> Path:
+def tree(tmp: Path, manuscripts, *, template: bool = False, version: str = NOW, sdd: str | None = SDD, product: dict | None = None) -> Path:
     doc = dict(product or {"name": "P", "slug": "p"})
     if manuscripts is not None:
         doc["manuscripts"] = manuscripts
@@ -116,14 +124,14 @@ def test_a_manuscript_is_not_a_report_and_must_cover_a_claim(tmp_path):
 
 
 def test_a_report_version_ahead_of_the_release_fails(tmp_path):
-    assert fails(run(tree(tmp_path, [{**REPORT, "version": "0.14.000"}], version="0.13.000")), "ahead", "VERSION")
+    assert fails(run(tree(tmp_path, [{**REPORT, "version": AHEAD}], version=NOW)), "ahead", "VERSION")
 
 
 def test_adversarial_a_report_version_behind_the_release_passes_unless_the_release_changes_a_result(tmp_path):
-    root = tree(tmp_path, [{**REPORT, "version": "0.12.000"}], version="0.13.000")
+    root = tree(tmp_path, [{**REPORT, "version": BEHIND}], version=NOW)
     assert run(root).returncode == 0
     r = run(root, "--release")
-    assert fails(r, "technical report", "0.12.000", "0.13.000", "release")
+    assert fails(r, "technical report", BEHIND, NOW, "release")
 
 
 def test_the_release_mode_passes_when_the_report_matches_the_release(tmp_path):
@@ -164,7 +172,7 @@ def load():
 
 
 def record(**kw):
-    return {"conceptdoi": "10.5281/zenodo.1234567", "metadata": {"version": "0.13.000", "title": "A detailed technical report"}, **kw}
+    return {"conceptdoi": "10.5281/zenodo.1234567", "metadata": {"version": NOW, "title": "A detailed technical report"}, **kw}
 
 
 def test_the_online_check_accepts_a_record_that_matches():
@@ -181,8 +189,8 @@ def test_the_online_check_finds_a_missing_record_and_a_different_concept_doi():
 
 def test_adversarial_the_online_check_finds_a_version_behind_the_declared_one():
     mod = load()
-    behind = mod.zenodo_findings([REPORT], fetch=lambda n: record(metadata={"version": "0.12.000", "title": "x"}))
-    assert any("0.12.000" in f and "0.13.000" in f for f in behind)
+    behind = mod.zenodo_findings([REPORT], fetch=lambda n: record(metadata={"version": BEHIND, "title": "x"}))
+    assert any(BEHIND in f and NOW in f for f in behind)
 
 
 def test_adversarial_the_default_run_never_touches_the_network(tmp_path):

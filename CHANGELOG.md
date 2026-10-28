@@ -2,6 +2,23 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.13.000], 2026-10-28
+
+### Added
+
+- **The three method tiers, none optional** (CAOS_MANAGE `conventions/method-tiers-and-manuscripts.md`, Felipe 2026-10-28): every product implements the classical methods, the state of the art and its own proposals beyond it. The SDD's `## Method ladder` is now a table `| id | tier | method | acceptance criterion | gate |` whose tier is `classical`, `sota` or `beyond`, and `scripts/check_sdd.py` fails a product (a tree without `.template-source`) that has no method in a tier, no section `## Beyond the state of the art`, says `None claimed.` there, lists no `BS-<n>`, has a claim without its `beyond` row or a `beyond` row without its claim. A ladder without the tier column (or in prose) fails with the column to add and the rule file, for the template too. The template keeps `None claimed.` and a ladder of two tiers as its teaching example.
+- `scripts/check_notebooks.py` holds the tiers in the notebooks: every `sota` method of the ladder is named in `caos.methods` by a level 3 notebook in each language, a level 3 notebook names at least one, a name that is no `sota` row or a `methods` on another level is a finding, and the two languages carry the same list. The field is new and optional below level 3; the existing `BS-` coverage by level 4 notebooks stays. The example's level 3 notebook names `M-2` (RK45 and DOP853).
+- **The manuscripts on Zenodo, none optional**: `product.json` declares `manuscripts`, a list of `{kind, concept_doi, title, version, covers}` (`kind` is `technical-report` or `manuscript`, `concept_doi` is `10.5281/zenodo.<N>`, `covers` the `BS-<n>` claims). The new `scripts/check_manuscripts.py` (wired into CI) fails a product with no technical report, a malformed entry, a repeated concept DOI, a claim the SDD does not list or a report version ahead of `VERSION`; `--release` requires the report at the release's version and `--zenodo` reads the records online (opt-in, never CI). `instantiate.py` writes `"manuscripts": []`. The template declares none.
+- Guide 09 (`docs/guides/09_method-tiers.md`), the feature `docs/design/features/method-tiers/` (MT-001 to MT-009, each with its adversarial validation) and the release step in guide 00: a release that changes a method, a data source or a result publishes the new version of the technical report on Zenodo first or with it.
+
+### Changed
+
+- The SDD's method ladder and beyond sections of the example are rewritten to the tiers (M-1 classical, M-2 sota); `tests/test_spec_guards.py` builds its product SDD with a ladder of three tiers and a claim; the adversarial fixtures copy `.template-source` with the SDD inputs.
+
+### For products
+
+- A product that adopts 0.13.000 fails `scripts/check_sdd.py` until its ladder has the `tier` column, a method in each tier and at least one `BS-<n>` with its `beyond` row; fails `scripts/check_notebooks.py` until its level 3 notebooks name their `sota` methods in `caos.methods`; and fails `scripts/check_manuscripts.py` until `product.json` declares its technical report on Zenodo. Take `scripts/check_manuscripts.py` verbatim, add the CI step of `.github/workflows/ci.yml`, and write the report before the release.
+
 ## [0.12.000], 2026-10-27
 
 ### Added
