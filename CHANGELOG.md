@@ -6,6 +6,8 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
 
 ### Fixed
 
+- The planted-defect tests of the model-file rule declare their file under `models/planted/`: planted as `models/*.onnx`, the glob also matched a product's own released model, two catalog rows claimed it and `test_a_declared_onnx_file_passes_when_its_row_names_a_test` failed in CEFOP_DinHot (BD-3).
+
 - **The notebook runner copies `models/`** (base defect BD-2, found by CEFOP_DinHot's notebook unit U12c): `scripts/run_notebooks.py` copied only `data`, `data-pipeline`, `docs`, `content` and `notebooks` into its work tree, so a level 3 notebook that loads a product's released model (`models/<slot>.onnx`, a catalog `documents` file) failed under `--check` while it ran in place. The work tree now holds `models/` when the repository has one; an absent folder is skipped as before (NB-091).
 
 ## [0.13.000], 2026-10-28
