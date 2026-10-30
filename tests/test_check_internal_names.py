@@ -164,5 +164,11 @@ def test_adversarial_an_app_string_with_a_tier_name_fails(tmp_path):
            "frontend/src/pages/Results.tsx": "export const B = () => <h2>Beyond SOTA</h2>;\n"}
     for i, (name, text) in enumerate(tsx.items()):
         assert fails(run(tree(tmp_path / f"x{i}", files={name: text})), name), name
+    multi = {"frontend/src/pages/Tiers.tsx": "export const C = () => (\n  <p>\n    The state of the\n    art solver.\n  </p>\n);\n"}
+    assert fails(run(tree(tmp_path / "j", files=multi)), "frontend/src/pages/Tiers.tsx: line 3"), multi
+    locale = {"frontend/src/i18n/en.json": json.dumps({"nav": {"title": "Beyond SOTA"}})}
+    assert fails(run(tree(tmp_path / "n", files=locale)), "frontend/src/i18n/en.json"), locale
+    marked = {"frontend/src/pages/Note.tsx": "const a = 'the SOTA dataset'; // internal-name-ok a dataset's own name\n"}
+    assert run(tree(tmp_path / "k", files=marked)).returncode == 0
     tests = {"frontend/src/pages/Benchmark.test.tsx": "it('shows no state of the art', () => {});\n"}
     assert run(tree(tmp_path / "t", files=tests)).returncode == 0
