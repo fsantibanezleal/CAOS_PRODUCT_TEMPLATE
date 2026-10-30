@@ -4,7 +4,7 @@ The index of the English tree. Topics run from simple to complex; inside a topic
 number and the level never goes down. The Spanish counterpart of every notebook is at the same path under
 [`../es/`](../es/README.md). How to run them is in [`../README.md`](../README.md).
 
-Levels: 1 fundamentals, 2 the method in practice, 3 state of the art, 4 beyond the state of the art.
+Levels: 1 fundamentals, 2 the method in practice, 3 comparison with published methods, 4 proposed methods.
 
 Each notebook is a worked lesson on one question: it states the question in its first cell, runs the engine step by step on
 the example's cases, shows what it finds in figures, and answers the question in its Results with numbers it computed
@@ -17,7 +17,7 @@ A topic without a level 3 notebook says why on its row.
 | Topic | Needs | Level 3 |
 |---|---|---|
 | [01-getting-started](01-getting-started/) | none, this is the entry topic | [03-a-higher-order-solver](01-getting-started/03-a-higher-order-solver.ipynb) |
-| [02-threshold-and-final-size](02-threshold-and-final-size/) | topic 01-getting-started | No level 3: the research basis names no newer method for the threshold or the final size, and the example's one state-of-the-art comparison, the higher-order solver, is in topic 01 |
+| [02-threshold-and-final-size](02-threshold-and-final-size/) | topic 01-getting-started | No level 3: the research basis names no newer method for the threshold or the final size, and the example's one comparison with a published method, the higher-order solver, is in topic 01 |
 
 ## Notebooks
 
@@ -29,8 +29,8 @@ A topic without a level 3 notebook says why on its row.
 | [02-threshold-and-final-size/01-the-threshold.ipynb](02-threshold-and-final-size/01-the-threshold.ipynb) | 1 | for which contact and recovery rates an outbreak takes off, how it looks just above the threshold, and what immune share stops it |
 | [02-threshold-and-final-size/02-the-final-size.ipynb](02-threshold-and-final-size/02-the-final-size.ipynb) | 2 | what share an outbreak infects in the end, why it ignores the speed of the course, and where the engine's run does not reach it |
 
-## Beyond the state of the art
+## Proposed methods
 
-None claimed: the example is a teaching model, so it has no level 4 notebook. A product that claims a component beyond
-the state of the art lists it in its SDD and covers it with a level 4 notebook in each language
+None: the example is a teaching model, so it proposes no method of its own and has no level 4 notebook. A product
+lists each method it proposes in its SDD and covers it with a level 4 notebook in each language
 ([`docs/guides/08_notebooks.md`](../../docs/guides/08_notebooks.md)).

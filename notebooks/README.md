@@ -1,14 +1,15 @@
 # Notebooks
 
 The didactic layer of the product: notebooks that teach, step by step and on the product's own data, how its methods
-work, where each method stands against the state of the art and what the product adds beyond it. They import the
+work, how each one compares with the published methods and what the methods the product proposes add. They import the
 product's methods and never re-implement them. Each one is a worked lesson on one question, and from release 0.12.000 the
 static check holds it to measured floors: method cells, figures read in prose, one setup cell, no pasted prose, an answer
 that quotes a number from an output. The rule is `CAOS_MANAGE` `conventions/product-notebooks.md`, carried by the template
 from release 0.10.000 (guide: [`docs/guides/08_notebooks.md`](../docs/guides/08_notebooks.md)).
 
 La capa didáctica del producto: notebooks que enseñan, paso a paso y con los datos propios del producto, cómo
-funcionan sus métodos, dónde queda cada método frente al estado del arte y qué agrega el producto más allá. Importan los
+funcionan sus métodos, cómo se compara cada uno con los métodos publicados y qué agregan los métodos que propone el
+producto. Importan los
 métodos del producto y nunca los reimplementan.
 
 ## The two trees / Los dos árboles
@@ -20,7 +21,7 @@ métodos del producto y nunca los reimplementan.
 
 The two trees hold the same notebooks at the same relative paths (the slugs are English, so the mirror is checkable);
 each notebook is written wholly in its tree's language. Topics run from simple to complex, notebooks inside a topic by
-level: 1 fundamentals, 2 the method in practice, 3 state of the art, 4 beyond the state of the art.
+level: 1 fundamentals, 2 the method in practice, 3 comparison with published methods, 4 proposed methods.
 
 Los dos árboles tienen los mismos notebooks en las mismas rutas relativas (los nombres están en inglés, así que el
 espejo se puede comprobar); cada notebook está escrito entero en el idioma de su árbol.
