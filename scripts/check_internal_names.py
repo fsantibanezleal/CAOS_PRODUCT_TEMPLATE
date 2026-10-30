@@ -13,8 +13,8 @@ sections"). A reader sees each method by its name. The check fails, naming the f
   environment, ``.bib`` files, a References section), the text of an ``.svg`` figure, the strings of a ``.py`` figure script;
 - ``product.json``: the title of each ``manuscripts`` entry;
 - ``README.md``, the References section excepted;
-- the app: the string values of ``content/**/*.json`` and the strings and JSX text of ``frontend/src/**/*.ts(x)`` (tests and
-  generated files excepted).
+- the app: the string values of ``content/**/*.json`` and ``frontend/src/**/*.json``, and the strings and JSX text of
+  ``frontend/src/**/*.ts(x)`` (tests and generated files excepted).
 
 In a title or a heading (a markdown heading, ``caos.title``, a LaTeX ``\\title``, ``\\section``, ``\\caption``, a manuscript
 title, a JSON value under a ``title``, ``heading``, ``label``, ``name``, ``tab`` or ``caption`` key) the bare words "classical",
@@ -238,37 +238,52 @@ def json_strings(value, key: str = "", path: str = "$"):
         yield path, key, value
 
 
+def json_findings(root: Path, path: Path) -> list[str]:
+    """The string values of a JSON file the app reads; keys and lowercase key values are not text."""
+    rel = path.relative_to(root).as_posix()
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        return [f"{rel}: not readable as JSON ({e})"]
+    out: list[str] = []
+    for where, key, s in json_strings(doc):
+        if not KEY_LIKE.match(s) and (found := words(s, heading=key.lower() in TITLE_KEYS)):
+            out.append(finding(rel, where, found))
+    return out
+
+
+def source_findings(rel: str, text: str) -> list[str]:
+    """The strings of a TypeScript source and its JSX text, which may stand on lines of its own; comments are not text."""
+    raw = text.splitlines()
+    text = re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
+    lines = [re.sub(r"(?<![:\"'`\\])//.*$", "", ln) for ln in text.splitlines()]
+    hits: dict[int, list[str]] = {}
+    for n, line in enumerate(lines, 1):
+        for m in JS_STRING.finditer(line):
+            s = next(g for g in m.groups() if g is not None)
+            if not KEY_LIKE.match(s):
+                hits.setdefault(n, []).extend(words(s))
+    joined = "\n".join(lines)
+    for m in JSX_TEXT.finditer(joined):
+        for w in PHRASES.finditer(m.group(1)):
+            hits.setdefault(joined.count("\n", 0, m.start(1) + w.start()) + 1, []).append(w.group(0))
+    return [finding(rel, f"line {n}", found) for n, found in sorted(hits.items())
+            if found and not (n <= len(raw) and MARK in raw[n - 1])]
+
+
 def app_findings(root: Path) -> list[str]:
     out: list[str] = []
     for path in sorted((root / "content").rglob("*.json")) if (root / "content").is_dir() else []:
-        rel = path.relative_to(root).as_posix()
-        try:
-            doc = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as e:
-            out.append(f"{rel}: not readable as JSON ({e})")
-            continue
-        for where, key, s in json_strings(doc):
-            if KEY_LIKE.match(s):
-                continue
-            if (found := words(s, heading=key.lower() in TITLE_KEYS)):
-                out.append(finding(rel, where, found))
+        out += json_findings(root, path)
     src = root / "frontend" / "src"
     for path in sorted(src.rglob("*")) if src.is_dir() else []:
         name = path.name
-        if path.suffix not in {".ts", ".tsx"} or ".test." in name or ".gen." in name or name.endswith(".d.ts"):
+        if ".test." in name or ".gen." in name or name.endswith(".d.ts"):
             continue
-        rel = path.relative_to(root).as_posix()
-        text = path.read_text(encoding="utf-8", errors="replace")
-        text = re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
-        for n, line in enumerate(text.splitlines(), 1):
-            if MARK in line:
-                continue
-            line = re.sub(r"(?<![:\"'`\\])//.*$", "", line)
-            texts = [next(g for g in m.groups() if g is not None) for m in JS_STRING.finditer(line)]
-            texts += [m.group(1) for m in JSX_TEXT.finditer(line)]
-            found = [w for t in texts if not KEY_LIKE.match(t) for w in words(t)]
-            if found:
-                out.append(finding(rel, f"line {n}", found))
+        if path.suffix == ".json":
+            out += json_findings(root, path)
+        elif path.suffix in {".ts", ".tsx"}:
+            out += source_findings(path.relative_to(root).as_posix(), path.read_text(encoding="utf-8", errors="replace"))
     return out
 
 
