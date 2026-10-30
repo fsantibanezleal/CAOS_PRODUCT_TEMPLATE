@@ -2,6 +2,21 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.14.000], 2026-10-30
+
+### Added
+
+- **The tier names never reach a reader** (CAOS_MANAGE `conventions/method-tiers-and-manuscripts.md` section 0; Felipe, 2026-10-30: "that terms can never reach the manuscripts or the app titles or sections"). "Classical", "state of the art", "beyond the state of the art", SOTA, the claim ids `BS-<n>` and their Spanish forms sort the methods in the SDD, the plans and the gates; a reader sees each method by its name. The new `scripts/check_internal_names.py` (wired into CI) fails a product that uses them in a notebook (its file or folder name, its `caos.title`, its markdown outside References, the comments and text strings of its code, its text outputs), a notebook index, a manuscript source (its file or folder name, `.tex`, `.md`, `.txt` outside the bibliography, `.svg` text, `.py` figure strings), a `product.json` manuscript title, the README or an app string (`content/**/*.json` values, `frontend/src` strings and JSX text); in a title or a heading the bare words "classical", "clásico" and "tier" fail too. A cited title in References or the bibliography, a lowercase key string, a fenced block, app code comments and tests, the SDD and `docs/`, and a line marked `internal-name-ok` pass (MT-010, MT-011).
+
+### Changed
+
+- **The notebook anatomy**: the sections of levels 3 and 4 are `Comparison` (`Comparación`) and `Evidence` (`Evidencia`), formerly "State of the art" and "Beyond the state of the art"; the levels read "comparison with published methods" and "proposed methods" in the indexes, the guides and the requirements (NB-059, NB-060). The SDD keeps its internal section `## Beyond the state of the art`.
+- The example: the level 3 notebooks name SciPy's RK45 and the published solvers instead of the tier, the indexes carry the new level names and a `Proposed methods` section, the Methodology page names the Kermack-McKendrick model and the analytic baseline; guide 08 and guide 09 (the Methodology page presents each method by its name, a new section on the internal names); the example fingerprints of `scripts/notebook_bar.json` are rewritten from the edited notebooks.
+
+### For products
+
+- A product that adopts 0.14.000 fails `scripts/check_notebooks.py` until its level 3 and 4 notebooks rename the sections `State of the art` and `Beyond the state of the art` (`Estado del arte`, `Más allá del estado del arte`) to `Comparison` and `Evidence` (`Comparación`, `Evidencia`), and fails `scripts/check_internal_names.py` until its notebooks (their file names too, renamed in both trees and in the index), indexes, manuscripts, manuscript titles, README and app strings name each method instead of its tier. Take `scripts/check_internal_names.py` verbatim and add its CI step. A use whose words mean something else (a quantum product's "classical simulation") carries `internal-name-ok` on its line.
+
 ## [0.13.001], 2026-10-28
 
 ### Fixed
