@@ -112,8 +112,8 @@ function Baseline() {
   return (
     <DocSection title={{ en: 'The analytic peak', es: 'El pico analítico' }} area="method" kind="classical" refs={['km1927', 'hethcote2000']}>
       <P
-        en={<>The classical baseline of the surrogate needs no training. The model has a first integral: the sum of S and I minus the logarithm of S divided by R0 stays constant along every run <Cite id="hethcote2000" />. Starting from a nearly fully susceptible population with a vanishing infection, the constant fixes the whole path in the plane of S against I.</>}
-        es={<>La línea base clásica del sustituto no necesita entrenamiento. El modelo tiene una integral primera: la suma de S e I menos el logaritmo de S dividido por R0 permanece constante en toda corrida <Cite id="hethcote2000" />. Partiendo de una población casi totalmente susceptible con una infección que tiende a cero, la constante fija toda la trayectoria en el plano de S contra I.</>}
+        en={<>The analytic baseline of the surrogate needs no training. The model has a first integral: the sum of S and I minus the logarithm of S divided by R0 stays constant along every run <Cite id="hethcote2000" />. Starting from a nearly fully susceptible population with a vanishing infection, the constant fixes the whole path in the plane of S against I.</>}
+        es={<>La línea base analítica del sustituto no necesita entrenamiento. El modelo tiene una integral primera: la suma de S e I menos el logaritmo de S dividido por R0 permanece constante en toda corrida <Cite id="hethcote2000" />. Partiendo de una población casi totalmente susceptible con una infección que tiende a cero, la constante fija toda la trayectoria en el plano de S contra I.</>}
       />
       <Equation tex="S + I - \frac{1}{R_0} \ln S = \text{const}" caption={t('The first integral of the SIR system, with S and I as shares of the population.', 'La integral primera del sistema SIR, con S e I como fracciones de la población.')} />
       <P
@@ -210,8 +210,8 @@ export function Methodology() {
     <DocPage
       title={{ en: 'Methodology', es: 'Metodología' }}
       lede={t(
-        'The methods behind the example, one per tab: the classical model and its threshold, the final-size relation, the numerical scheme and the analytic peak, then the learned surrogate and the held-out evaluation that judges it against that baseline.',
-        'Los métodos detrás del ejemplo, uno por pestaña: el modelo clásico y su umbral, la relación de tamaño final, el esquema numérico y el pico analítico, y luego el sustituto aprendido y la evaluación con datos reservados que lo juzga frente a esa línea base.',
+        'The methods behind the example, one per tab: the Kermack-McKendrick model and its threshold, the final-size relation, the numerical scheme and the analytic peak, then the learned surrogate and the held-out evaluation that judges it against that baseline.',
+        'Los métodos detrás del ejemplo, uno por pestaña: el modelo de Kermack y McKendrick y su umbral, la relación de tamaño final, el esquema numérico y el pico analítico, y luego el sustituto aprendido y la evaluación con datos reservados que lo juzga frente a esa línea base.',
       )}
     >
       <Tabs
