@@ -87,13 +87,13 @@ def test_the_spanish_notebooks_use_one_decimal_separator() -> None:
 
 
 def test_the_level_three_example_runs_the_reference_implementation() -> None:
-    """NB-068: the level 3 notebooks run scipy's solve_ivp under State of the art, scipy is an exact pin, and the SDD lists it."""
+    """NB-068: the level 3 notebooks run scipy's solve_ivp under Comparison, scipy is an exact pin, and the SDD lists it."""
     assert "scipy==1.18.1" in CHECK.read_pins(ROOT)
-    for lang, section in (("en", "State of the art"), ("es", "Estado del arte")):
+    for lang, section in (("en", "Comparison"), ("es", "Comparación")):
         doc = json.loads((ROOT / "notebooks" / lang / "01-getting-started" / "03-a-higher-order-solver.ipynb").read_text(encoding="utf-8"))
         assert doc["metadata"]["caos"]["level"] == 3 and "scipy==1.18.1" in doc["metadata"]["caos"]["packages"]
         reading = CHECK.Reading(doc, lang, ROOT, CHECK.load_bar())
-        inside = [i for i in reading.method_cells if reading.section[i] == "State of the art"]
+        inside = [i for i in reading.method_cells if reading.section[i] == "Comparison"]
         code = "\n".join(CHECK.text_of(doc["cells"][i]["source"]) for i in inside)
         assert "solve_ivp(" in code and 'method="RK45"' in code, (lang, section)
         # the equations live in the engine: the notebook imports derivatives and defines no right-hand side of its own

@@ -1,7 +1,7 @@
 # Guide: write the product's notebooks
 
 The notebooks are the product's didactic layer: they teach a reader, step by step and on the product's own data, how
-its methods work, where each method stands against the state of the art, and what the product adds beyond it. They
+its methods work, how each method compares with the published methods, and what the product proposes of its own. They
 import the product's methods and never re-implement them; logic that exists only in a notebook is incomplete. The
 rule is CAOS_MANAGE `conventions/product-notebooks.md`; this guide is how a product applies it, and it opens with the bar. The template ships an
 example set on the SIR model, which a product replaces (`scripts/check_template_residue.py` lists it).
@@ -68,7 +68,7 @@ described above; they do not certify a lesson, the review does.
 | Generic filler sentences (the list in `notebook_bar.json`) | none | none |
 | Lines with two statements, code lines over 120 characters, cells over 30 lines of logic | none | none |
 | `**Question:**` in the first cell; `**Answer:**` in Results quoting a number that appears in an output | required | required |
-| Level 3: a method cell and a figure under State of the art. Level 4: a figure or a table under Beyond the state of the art | | required |
+| Level 3: a method cell and a figure under Comparison. Level 4: a figure or a table under Evidence | | required |
 | Not a copy of the template's example notebooks (`scripts/check_template_residue.py` finds them by content) | required | required |
 
 A notebook with no valid level is measured at level 2 (the missing level is a finding of its own). The Spanish tree is held to
@@ -135,8 +135,8 @@ notebooks/
 |---|---|---|
 | 1 | Fundamentals | the problem in its context, the data, the idea of the method, a first run on a small real slice |
 | 2 | The method in practice | the full algorithm step by step on the data, every intermediate shown, the product's validation of the result |
-| 3 | State of the art | the current methods the product's research found, with sources, run or reproduced and compared with level 2 on the same data |
-| 4 | Beyond the state of the art | the product's own components that go further, with the evidence |
+| 3 | Comparison with published methods | the current methods the product's research found, with sources, run or reproduced and compared with level 2 on the same data |
+| 4 | Proposed methods | the product's own components that go further, with the evidence |
 
 - Every topic has levels 1 and 2. The level never decreases with the notebook number.
 - A topic whose method has state-of-the-art research in the product's dossiers has a level 3 notebook. A topic without
@@ -145,7 +145,16 @@ notebooks/
   ladder has a level 3 notebook that names it in `caos.methods` (from 0.13.000, [guide 09](09_method-tiers.md)).
 - Every component the SDD claims beyond the state of the art has a level 4 notebook (next section).
 
-## 3. Claim and cover a component beyond the state of the art
+## The tier names stay internal
+
+"Classical", "state of the art", "beyond the state of the art", SOTA and the ids `M-<n>`, `S-<n>`, `BS-<n>` sort a product's
+methods in its SDD, plans and gates. They never reach a reader (CAOS_MANAGE `conventions/method-tiers-and-manuscripts.md`
+section 0, Felipe 2026-10-30): no notebook title, heading, level label, file name, prose, code comment, plot text or
+printed output uses them, and neither do the indexes, the manuscripts, the README or the app. A level 3 notebook titles
+its comparison section `Comparison` and names the published methods it runs; a level 4 notebook names the proposed
+method and measures it under `Evidence`. `scripts/check_internal_names.py` (in CI) fails a product that lets one through.
+
+## 3. Claim and cover a proposed method
 
 The SDD's section `## Beyond the state of the art` lists the product's proposed methods beyond the state of the art (a
 product must propose at least one; `None claimed.` is valid only in the template's own example,
@@ -155,7 +164,7 @@ each claim:
 
 1. State it in the SDD section with its identifier, what it adds, the measured evidence and the source it goes beyond.
 2. Write a level 4 notebook in each language whose `caos.beyond` lists the identifier, with the sections
-   `State of the art` and `Beyond the state of the art` and the evidence: measured size and power, a reconciliation, a
+   `Comparison` and `Evidence` and the evidence: measured size and power, a reconciliation, a
    case the state of the art gets wrong.
 3. `scripts/check_notebooks.py` fails an identifier no level 4 notebook covers in each language, and a notebook that
    claims one the SDD does not list.
@@ -171,8 +180,8 @@ sections, in this order, named in the tree's language:
 | Setup | Preparación | always |
 | Data | Datos | always |
 | Method | Método | always |
-| State of the art | Estado del arte | level 3 and 4 |
-| Beyond the state of the art | Más allá del estado del arte | level 4 |
+| Comparison | Comparación | level 3 and 4 |
+| Evidence | Evidencia | level 4 |
 | Results | Resultados | always |
 | Summary | Resumen | always |
 | References | Referencias | always |

@@ -2,6 +2,20 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.14.000], 2026-10-30
+
+### Changed
+
+- **The tier names are internal, never a heading** (CAOS_MANAGE `conventions/method-tiers-and-manuscripts.md` section 0, Felipe 2026-10-30: "that terms can never reach the manuscripts or the app titles or sections"). The notebook anatomy's level sections are `## Comparison` / `## Comparación` (levels 3 and 4: the published methods run beside the product's) and `## Evidence` / `## Evidencia` (level 4: the proposed method, measured); `scripts/check_notebooks.py` requires them and reads the level 3 method cell and figure under Comparison and the level 4 figure or table under Evidence. The SDD keeps its own section `## Beyond the state of the art` and the ladder's `tier` column: they are the gates' input, never a reader's heading. The levels read "comparison with published methods" and "proposed methods"; the example's level 3 notebook, the indexes and guide 08 follow.
+
+### Added
+
+- `scripts/check_internal_names.py` (wired into CI): fails a product whose notebooks (title, headings, prose, code comments, text in code, printed output, file names; References keep a cited title as published), notebook indexes, README, manuscripts (the bibliography excepted), `product.json` manuscript titles or app strings (the string literals of `frontend/src`, tests excepted) use a tier name in English or Spanish ("state of the art", "beyond the state of the art", SOTA, "method tiers", "classical approach", "estado del arte", "más allá del estado del arte") or a claim id (`BS-<n>`, `M-<n>`). Tests in `tests/test_check_internal_names.py`; the template's own example passes (`tests/template/test_internal_names_example.py`).
+
+### For products
+
+- A product that adopts 0.14.000 renames its level sections (`State of the art` to `Comparison`, `Beyond the state of the art` to `Evidence`, and the Spanish forms), retitles and renames its level 3 and level 4 notebooks by what they hold, and removes the tier names and the claim ids from every surface a reader sees until `scripts/check_internal_names.py` passes. Take `scripts/check_notebooks.py`, `scripts/check_internal_names.py` and `notebook_bar.json` verbatim and add the CI step of `.github/workflows/ci.yml`.
+
 ## [0.13.001], 2026-10-28
 
 ### Fixed
