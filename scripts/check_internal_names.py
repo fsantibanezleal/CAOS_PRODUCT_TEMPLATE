@@ -35,7 +35,9 @@ CASED = re.compile(r"\bSOTA\b|\bBS-\d+\b|\bM-\d+\b")
 FILE_NAME = re.compile(r"state-of-the-art|^\d\d-beyond-|(?:^|-)sota(?:-|\.|$)", re.IGNORECASE)
 REFERENCES = re.compile(r"^#{1,6}\s*(References|Referencias|Bibliography|Bibliografía)\s*$", re.IGNORECASE)
 TEX_BIB = re.compile(r"\\begin\{thebibliography\}|\\bibliography\{|\\printbibliography")
-STRING = re.compile(r"'(?:[^'\\\n]|\\.)*'|\"(?:[^\"\\\n]|\\.)*\"|`(?:[^`\\]|\\.)*`", re.DOTALL)
+# a comment or a string literal, whichever starts first: a "//" inside a string stays in the string, a quote inside a comment
+# opens nothing
+TOKEN = re.compile(r"(//[^\n]*|/\*.*?\*/)|('(?:[^'\\\n]|\\.)*'|\"(?:[^\"\\\n]|\\.)*\"|`(?:[^`\\]|\\.)*`)", re.DOTALL)
 SKIP_DIRS = {"node_modules", ".git", "dist", "build", ".venv", "__pycache__"}
 
 
@@ -101,9 +103,11 @@ def tex_findings(rel: str, text: str) -> list[str]:
 
 def app_findings(rel: str, text: str) -> list[str]:
     out = []
-    for m in STRING.finditer(text):
+    for m in TOKEN.finditer(text):
+        if m.group(2) is None:
+            continue
         line = text.count("\n", 0, m.start()) + 1
-        out += [f"{rel}:{line}: {w!r}" for w in words(m.group(0))]
+        out += [f"{rel}:{line}: {w!r}" for w in words(m.group(2))]
     return out
 
 

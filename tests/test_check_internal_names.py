@@ -99,3 +99,10 @@ def test_the_command_line_exits_1_with_findings_and_0_when_clean(tmp_path):
     r_good = subprocess.run([sys.executable, script, str(good)], capture_output=True, text=True)
     assert r_bad.returncode == 1 and "README.md:3" in r_bad.stdout and cin.RULE in r_bad.stdout
     assert r_good.returncode == 0, r_good.stdout
+
+
+def test_a_comment_with_an_apostrophe_is_not_read_as_a_string(tmp_path):
+    ts = ("/** the engine's BS-16 wrapper, the product's own */\nconst url = 'https://example.org/a//b';\n"
+          "// it's the claim BS-13's view\nexport const label = { en: 'Coverage', es: 'Cobertura' };\n")
+    root = _repo(tmp_path, {"frontend/src/workbench/view.tsx": ts})
+    assert cin.check(root) == []
