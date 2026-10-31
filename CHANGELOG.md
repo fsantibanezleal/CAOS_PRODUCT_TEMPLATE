@@ -2,6 +2,13 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.14.001], 2026-10-31
+
+### Fixed
+
+- `check_deploy_place.py` reads the single `target:` field of a product's structured deployment record and validates a composed static-site plus bounded-service VPS deployment. The original `pages` and `vps` sentinels remain supported. The guard now requires both a systemd unit and an nginx site file for VPS deployments and rejects mixed Pages/VPS files.
+- Added adversarial coverage for plain targets, the Neuraxis-style composite target, malformed declarations, missing VPS components and mixed deployment files.
+
 ## [0.14.000], 2026-10-30
 
 ### Added
