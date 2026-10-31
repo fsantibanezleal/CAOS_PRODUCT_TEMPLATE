@@ -2,7 +2,10 @@
 
 One deploy place per product, decided at instantiation and written in `deploy/TARGET`; this template's is GitHub
 Pages, a static site with no backend at request time (ADR-0055). `scripts/check_deploy_place.py` fails a product
-that carries the files of two places.
+that carries the files of two places. The instantiator writes the plain `pages` or `vps` sentinel. A product that
+composes a static VPS site with a separately bounded service may replace it with a structured record declaring one
+`target: vps-static+vps-service`; the guard requires both an nginx site file and a systemd unit and rejects Pages
+workflow residue.
 
 ## Before a deploy
 
