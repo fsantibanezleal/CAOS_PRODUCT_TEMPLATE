@@ -2,6 +2,22 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.14.002], 2026-11-01
+
+### Added
+
+- Numbered PowerShell and POSIX local workflows for prerequisite checks, initialization, sandboxed data generation and development. Existing flat entrypoints remain available.
+- Preserve local environment settings, propagate native failures, describe the next step and require a complete validated artifact set before explicit release promotion (issue #80).
+- Adopt published shared shell 0.19.11 with document traversal and executive-label bounds measured by its browser gate.
+
+### Fixed
+
+- Bind generation receipts to current source, recursive requirements and complete contract metadata; preserve recovery backups and attempt every rollback target after an error.
+- Validate actual input-admission and dormant API outcomes without relabeling readiness or admitting incomplete scientific payloads. Regenerate the five-case example through the real pipeline for this version.
+- Preserve supported external environment aliases, verify initialization fingerprints before development, clean owned process groups after a launcher exits, and enforce executable tracked shell scripts.
+- Keep contract generation compatible with patched minimatch 11.0.1 through a version/hash-guarded legacy binding adaptation, tested against actual matching and unchanged generated types.
+- Run the complete product and template guard plants in separate bounded CI jobs. Remove the entire template-only job during instantiation and reject malformed removal boundaries before any product write.
+
 ## [0.14.001], 2026-10-31
 
 ### Fixed
