@@ -2,6 +2,15 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.14.003], 2026-11-01 (candidate)
+
+### Updated
+
+- Adopt published shared shell 0.19.12, including cancellation-safe response-body handling, pinned exactly in the frontend manifest and lock.
+- Regenerate and promote all five example cases and their 20 documents through the numbered release workflow; all ten mirrored notebooks execute in fresh kernels and match their committed outputs.
+- Pass the static architecture, artifact, contract, readiness, document, notebook and repository-policy checks for this candidate; the frontend and full Python test suites and hosted release CI remain required.
+- Preserve the complete 0.14.002 workflow, source-bound stage admission, input rejection, strict CI grammar and whole-job factory boundary, and guarded contract-codegeneration compatibility.
+
 ## [0.14.002], 2026-11-01
 
 ### Added

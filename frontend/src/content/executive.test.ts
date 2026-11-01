@@ -130,8 +130,8 @@ function citations(): Array<{ source: string; tab: number }> {
 }
 
 describe('the example executive view', () => {
-  it('the shell is pinned exactly at 0.19.11, including measured document traversal and executive-label bounds', () => {
-    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.19.11');
+  it('the shell is pinned exactly at 0.19.12, including cancellation-safe body handling and measured document bounds', () => {
+    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.19.12');
     expect(EXECUTIVE_SCHEMA_VERSION).toBe('2.0.0');
   });
 
