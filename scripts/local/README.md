@@ -105,6 +105,13 @@ attempts taskkill on the tracked PID/tree. POSIX cleanup likewise addresses the 
 leader exit. Existing venvs, including Windows app-execution base aliases, remain supported. No broad
 process-name cleanup or environment migration is used.
 
+The template's frontend_environment declaration selects the already-validated local data/derived tree for
+the legacy copy-data consumer via a frontend-only CAOS_DATA_ROOT overlay. That consumer interprets the variable
+as compact web data; the global storage contract still uses it for raw data. Only frontend preparation and
+startup receive the overlay. API and generation retain the original global storage environment, including
+CAOS_DATA_ROOT, CAOS_MODELS_ROOT and CAOS_TEMP_ROOT. The caller's environment is never mutated. Without an
+explicit frontend_environment declaration, existing consumer/environment selection remains unchanged.
+
 The existing CI base-integrity guard checks Git index mode100755 for every tracked .sh file, including old
 and new entrypoints. File executable bits on a Windows filesystem do not replace this index check.
 

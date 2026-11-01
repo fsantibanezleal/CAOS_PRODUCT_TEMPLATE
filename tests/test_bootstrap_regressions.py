@@ -622,6 +622,7 @@ def test_adversarial_real_template_generation_admission(workflow, tmp_path, monk
     index = json.loads((stage / "data/derived/manifests/index.json").read_text())
     assert len(index["cases"]) == 5
     workflow.validate_stage(root, config, stage, python, env, receipt=True)
+
     assert ready_path.read_bytes() == ready_bytes, "admission must never rewrite the generated states"
     with pytest.raises(workflow.Failure, match="require the actual"):
         workflow.check_readiness_states(root, {**config, "readiness_check": None}, ready, stage)
@@ -650,8 +651,7 @@ def test_adversarial_real_template_generation_admission(workflow, tmp_path, monk
     index = workflow.json_read(stage / "data/derived/manifests/index.json")
     manifest_name = "data/derived/" + index["cases"][0]["manifest_path"]
     trace_name = next(
-        path.relative_to(stage).as_posix()
-        for path in (stage / "data/derived").rglob("trace.json")
+        path.relative_to(stage).as_posix() for path in (stage / "data/derived").rglob("trace.json")
     )
     for name in ("models/surrogate.json", manifest_name, trace_name):
         path = stage / name
@@ -720,3 +720,112 @@ def test_adversarial_real_template_generation_admission(workflow, tmp_path, monk
         workflow.generate(root, config, env)
     source.write_bytes(original)
     workflow.validate_stage(root, config, stage, python, env, receipt=True)
+
+
+def test_adversarial_frontend_environment_isolation(workflow, fixture_repo, monkeypatch):
+    root, config, _ = fixture_repo
+    present(root, config, workflow)
+    stamp(root, config, workflow)
+    version = (root / "VERSION").read_text().strip()
+    write(
+        root / "data/derived/manifests/index.json",
+        json.dumps(
+            {"engine_version": version, "cases": [{"case_id": "a", "manifest_path": "manifests/a.json"}]}
+        ),
+    )
+    write(root / "data/derived/manifests/a.json", json.dumps({"artifact": {"path": "cases/a.json"}}))
+    for name in ("copy-data.mjs", "declared.mjs"):
+        target = root / "frontend/scripts" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / "frontend/scripts" / name, target)
+    raw = root.parent / "global raw store"
+    raw.mkdir()
+    stores = {
+        "CAOS_DATA_ROOT": str(raw),
+        "CAOS_MODELS_ROOT": str(root.parent / "global models"),
+        "CAOS_TEMP_ROOT": str(root.parent / "global scratch"),
+    }
+    for key, value in stores.items():
+        monkeypatch.setenv(key, value)
+    baseline = workflow.environment(root)
+    producer = root / "producer.py"
+    capture = (
+        "import os,json\nfrom pathlib import Path\n"
+        "(Path(os.environ['CAOS_MODELS_ROOT']).parent/'generation-env.json').write_text("
+        "json.dumps({k:os.environ.get(k) for k in "
+        "('CAOS_DATA_ROOT','CAOS_MODELS_ROOT','CAOS_TEMP_ROOT')}))\n"
+    )
+    write(producer, capture + producer.read_text())
+    with socket.socket() as api_reservation, socket.socket() as web_reservation:
+        api_reservation.bind(("127.0.0.1", 0))
+        web_reservation.bind(("127.0.0.1", 0))
+        api_port = api_reservation.getsockname()[1]
+        config["web_port"] = web_reservation.getsockname()[1]
+    write(
+        root / "api.py",
+        """import json,os,sys
+from http.server import BaseHTTPRequestHandler,HTTPServer
+class Handler(BaseHTTPRequestHandler):
+ def do_GET(self):
+  body=json.dumps({k:os.environ.get(k) for k in
+   ('CAOS_DATA_ROOT','CAOS_MODELS_ROOT','CAOS_TEMP_ROOT')}).encode()
+  self.send_response(200);self.end_headers();self.wfile.write(body)
+ def log_message(self,*args): pass
+HTTPServer(('127.0.0.1',int(sys.argv[1])),Handler).serve_forever()
+""",
+    )
+    write(
+        root / "frontend/frontend-env.py",
+        """import json,os,sys,urllib.request
+from pathlib import Path
+api=json.loads(urllib.request.urlopen('http://127.0.0.1:'+sys.argv[1]+'/health').read())
+front={k:os.environ.get(k) for k in ('CAOS_DATA_ROOT','CAOS_MODELS_ROOT','CAOS_TEMP_ROOT')}
+Path('frontend-env.json').write_text(json.dumps({'frontend':front,'api':api}))
+""",
+    )
+    overlay = {"CAOS_DATA_ROOT": "{root}/data/derived"}
+    config.update(
+        frontend_environment=overlay,
+        frontend_prepare=[["node", "scripts/copy-data.mjs"]],
+        frontend_command=["{python}", "frontend-env.py", "{port}"],
+    )
+    config["api"].update(
+        active=True, port=api_port, health="/health", command=["{python}", "api.py", "{port}"]
+    )
+    write(root / "scripts/local/workflow.json", json.dumps(config))
+    stage = workflow.generate(root, config, baseline)
+    generated = json.loads((stage / "generation-env.json").read_text())
+    assert generated["CAOS_DATA_ROOT"] == stores["CAOS_DATA_ROOT"]
+    assert generated["CAOS_TEMP_ROOT"] == stores["CAOS_TEMP_ROOT"]
+    assert Path(generated["CAOS_MODELS_ROOT"]) == stage / "checkpoints"
+    assert baseline == workflow.environment(root), "generation must not mutate caller storage settings"
+
+    workflow.development(root, config)
+    recorded = root / "frontend/frontend-env.json"
+    observed = json.loads(recorded.read_text())
+    assert Path(observed["frontend"]["CAOS_DATA_ROOT"]).resolve() == (root / "data/derived").resolve()
+    assert observed["api"] == stores
+    assert all(observed["frontend"][key] == stores[key] for key in ("CAOS_MODELS_ROOT", "CAOS_TEMP_ROOT"))
+    assert (root / "frontend/public/data/cases/a.json").read_bytes() == (
+        root / "data/derived/cases/a.json"
+    ).read_bytes()
+    assert baseline == workflow.environment(root)
+    assert workflow.settings(ROOT)["frontend_environment"] == overlay
+
+    # Without the opt-in, the actual legacy consumer must retain its original global-root behavior.
+    config.pop("frontend_environment")
+    recorded.unlink()
+    with pytest.raises(workflow.Failure, match="Command failed"):
+        workflow.development(root, config)
+    assert not recorded.exists()
+    with pytest.raises(OSError):
+        urllib.request.urlopen(f"http://127.0.0.1:{api_port}/health", timeout=0.2)
+    assert baseline == workflow.environment(root)
+
+    # With no explicit global selector and no overlay, copy-data's existing local default still works.
+    monkeypatch.delenv("CAOS_DATA_ROOT")
+    workflow.development(root, config)
+    observed = json.loads(recorded.read_text())
+    assert observed["frontend"]["CAOS_DATA_ROOT"] is None and observed["api"]["CAOS_DATA_ROOT"] is None
+    for key in ("CAOS_MODELS_ROOT", "CAOS_TEMP_ROOT"):
+        assert observed["frontend"][key] == observed["api"][key] == stores[key]
