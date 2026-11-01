@@ -33,19 +33,13 @@ link to a folder that does not exist.
 
 ## Run it
 
-```bash
-./scripts/setup.sh                       # .venv-pipeline with the pinned pipeline requirements (setup.ps1 on Windows)
-./scripts/precompute.sh                  # the canonical bake into data/derived (a release operation, never CI)
-.venv-pipeline/bin/python -m pytest      # the pipeline tests, sandboxed (.venv-pipeline/Scripts/python.exe on Windows)
-./scripts/setup.sh --notebooks           # .venv-notebooks from notebooks/requirements.txt (setup.ps1 -Notebooks on Windows)
-python scripts/run_notebooks.py --check --tmp <temp root>  # every notebook runs top to bottom in copies under the temp root (or CAOS_TEMP_ROOT); a local release gate, never CI
-cd frontend
-npm ci
-npm run build                            # copies the declared artifacts, type-checks, bundles, materialises the routes
-npm test                                 # contract both ways, engine parity, the artifact layer
-npm run preview                          # serves dist/ the way GitHub Pages does
-npm run gate                             # the measured gate on the build
-```
+Start with the [sequenced local workflow](scripts/local/README.md). Run the parallel PowerShell or Bash
+00 prerequisite check, 01 initialization and 03 development entrypoints. The 02 data entrypoint defaults
+to an external sandbox and requires explicit validated promotion before replacing shipped artifacts.
+
+Follow the numbered workflow for initialization and local services, including the optional API lane.
+Its README lists the focused tests and the existing full smoke/build/browser gates. The flat precompute
+command remains an intentional canonical generation operation; the numbered 02 command is sandboxed by default.
 
 ## Make a product from it
 
