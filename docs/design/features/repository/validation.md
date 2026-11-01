@@ -33,6 +33,7 @@ test that does not exist.
 | RP-024 | Challenge the actual helper/guard with the positive production contract and its matching malformed or failure case; require refusal or complete owned recovery. | `tests/test_bootstrap_regressions.py::test_adversarial_tracked_shell_modes` |
 | RP-025 | Exercise current matching package/lock range: accept22.12/24/26 without installation; refuse22.0/22.11/23/25, and refuse a mismatched lock declaration. | `tests/test_bootstrap_regressions.py::test_adversarial_locked_node_engines` |
 | RP-026 | Run the real template SIR generator, finalization bridge, registry/document/artifact/readiness validators with pinned dependencies in an external fixture checkout; reject altered source/staged params, absent params, relabeled API/rejection evidence and default missing product rows. Never promote. | `tests/test_bootstrap_regressions.py::test_adversarial_real_template_generation_admission` |
+| RP-027 | Run actual copy-data.mjs/declared.mjs through development preparation with a global raw store and declared local compact-tree override; verify copied bytes, frontend child/API/generation environments and caller preservation. Removing the declaration must retain the old raw-store failure; unset/default behavior must still work. | `tests/test_bootstrap_regressions.py::test_adversarial_frontend_environment_isolation` |
 
 Windows and POSIX cleanup address the recorded process group after leader exit; RP-022 exercises the existing
 venv and an independent HTTP control process. External venv directory aliases remain allowed

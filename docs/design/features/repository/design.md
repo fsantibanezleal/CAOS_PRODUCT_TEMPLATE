@@ -34,3 +34,11 @@ validation may target the bridge's own checkout; write modes retain external-sta
 The original four-row params CSV and its two deliberate rejected
 IDs remain intact; the five engine cases remain registry-derived. Missing manifests, artifacts or models cannot
 use those exceptions. OreFlow declares no stage_inputs/readiness exceptions and retains strict17-row admission.
+
+After shipped-data validation, development creates a separate environment dictionary for frontend_prepare
+and frontend_command, applying only the explicit frontend_environment mapping and existing substitutions.
+The template maps the legacy copy-data consumer's CAOS_DATA_ROOT to the validated local data/derived tree.
+API/generation and the caller retain the global raw/model/temp roots; no storage contract is renamed. With no
+declaration the environment values stay identical. The regression executes the actual Node copy-data consumer
+and compares frontend, real HTTP child and generation environments in external fixtures. Product adoption of
+this template-only follow-up waits for the owner's active smoke gate; no product file is changed here.
