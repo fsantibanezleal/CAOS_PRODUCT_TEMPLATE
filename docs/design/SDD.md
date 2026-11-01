@@ -109,7 +109,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
 | API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
 | API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
-| shell | @fasl-work/caos-app-shell | 0.19.11 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| shell | @fasl-work/caos-app-shell | 0.19.12 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
 | web | react | 19.3.0 | the UI | none: the shell requires it |
 | web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
 | web | react-router | 8.4.0 | the routes | none: the shell requires it |
@@ -127,6 +127,15 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | build | @types/react-dom | 19.3.0 | types of React DOM | none |
 | tests | vitest | 5.0.3 | the web unit tests | jest, rejected: needs a transform for the vite config |
 | gate | playwright | 1.63.0 | the measured UI gate (`npm run gate`), local only | cypress, rejected: heavier install |
+
+### Shell 0.19.12 adoption
+
+Template 0.14.003 is an unreleased candidate. Its frontend manifest and lock pin the published
+`@fasl-work/caos-app-shell` 0.19.12 exactly. The complete five-case, 20-document numbered-workflow
+generation and promotion passed. All ten English and Spanish notebooks execute in fresh kernels and
+match their committed outputs. Architecture, artifact, contract, readiness, document, notebook and
+repository-policy checks pass; the frontend and full Python test suites and hosted release CI remain
+release gates. Generated records are now from this candidate's completed numbered workflow.
 
 ## Resources
 
@@ -233,5 +242,5 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0071 | the page is the viewport; one tab row; drawing at least half the viewport | the shell's `CaseWorkbench`; the gate (G5, G6) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
-| ADR-0078 | rules live in the base | shell 0.19.11 (pinned exactly) and this template; no product re-implements them |
+| ADR-0078 | rules live in the base | shell 0.19.12 (pinned exactly) and this template; no product re-implements them |
 | ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |
