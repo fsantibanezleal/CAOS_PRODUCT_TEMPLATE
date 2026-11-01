@@ -142,7 +142,9 @@ def test_ci_budget_the_allowance_itself_passes(budget_repo: Path) -> None:
     ("B-9 a plugin", "run: python -m pytest tests/adversarial -p no:cacheprovider"),
     ("B-9 an and-chain", "run: python -m pytest tests/adversarial && python -m pytest tests"),
 ])
-def test_ci_budget_an_allowance_that_is_broader_than_the_adversarial_suite(budget_repo: Path, plant: str, command: str) -> None:
+@pytest.mark.parametrize("suite", ["tests/adversarial", "tests/template/adversarial"])
+def test_ci_budget_an_allowance_that_is_broader_than_the_adversarial_suite(budget_repo: Path, plant: str, command: str, suite: str) -> None:
+    command = command.replace("tests/adversarial", suite)
     _step(budget_repo, command)
     r = guard(budget_repo, "check_ci_budget.py")
     assert r.returncode == 1 and "tests run locally" in r.stdout, r.stdout
@@ -230,7 +232,9 @@ def test_sdd_rereview_the_data_line_inside_a_code_block_is_not_the_data_line(sdd
     ("M10d PYTEST_ADDOPTS on the step", "env:\n          PYTEST_ADDOPTS: \"tests --override-ini=addopts=\"\n        run: " + ALLOWED),
     ("M10d PYTEST_ADDOPTS exported in the command", "run: export PYTEST_ADDOPTS=tests && python -m pytest tests/adversarial"),
 ])
-def test_ci_budget_rereview_an_allowance_broader_than_the_yaml_shows(budget_repo: Path, plant: str, command: str) -> None:
+@pytest.mark.parametrize("suite", ["tests/adversarial", "tests/template/adversarial"])
+def test_ci_budget_rereview_an_allowance_broader_than_the_yaml_shows(budget_repo: Path, plant: str, command: str, suite: str) -> None:
+    command = command.replace("tests/adversarial", suite)
     _step(budget_repo, command)
     r = guard(budget_repo, "check_ci_budget.py")
     assert r.returncode == 1 and ("tests run locally" in r.stdout or "PYTEST_" in r.stdout), r.stdout
