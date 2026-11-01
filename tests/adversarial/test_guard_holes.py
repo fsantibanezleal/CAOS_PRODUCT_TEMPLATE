@@ -170,11 +170,13 @@ def _brief_span(text: str) -> tuple[int, int]:
 
 
 def test_sdd_rereview_m3b_a_brief_after_resources_when_the_headings_are_numbered(sdd_repo: Path) -> None:
+    clean = sdd(sdd_repo)
+    assert clean.returncode == 0 and "check_sdd: OK" in clean.stdout, clean.stdout
     text = sdd_text(sdd_repo)
     a, b = _brief_span(text)
     brief = text[a:b]
     text = text[:a] + text[b:]
-    at = text.index("## Lanes\n")
+    at, _ = section(text, "Lanes")
     text = text[:at] + brief + text[at:]
     text = text.replace("## Problem and non-goals", "## 1. Problem and non-goals", 1)
     (sdd_repo / SDD).write_bytes(text.encode("utf-8"))
@@ -191,11 +193,28 @@ def test_sdd_rereview_xs2_numbered_headings_in_place_pass(sdd_repo: Path) -> Non
 
 
 def test_sdd_rereview_m3d_the_brief_inside_a_tilde_fence_with_a_backtick_line(sdd_repo: Path) -> None:
+    clean = sdd(sdd_repo)
+    assert clean.returncode == 0 and "check_sdd: OK" in clean.stdout, clean.stdout
     text = sdd_text(sdd_repo)
     a, b = _brief_span(text)
     (sdd_repo / SDD).write_bytes((text[:a] + "~~~\n```\n" + text[a:b] + "```\n~~~\n\n" + text[b:]).encode("utf-8"))
     r = sdd(sdd_repo)
-    assert r.returncode == 1, r.stdout
+    assert r.returncode == 1 and "no section 'Executive brief'" in r.stdout, r.stdout
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_section_plant_preserves_offsets_and_ignores_fenced_or_commented_headings(newline: str) -> None:
+    before = "<!--\n## Executive brief\n-->\n~~~\n```\n## Executive brief\n```\n~~~\n"
+    body = "## 2. Executive brief\n\nData file: content/executive.json\n\n"
+    text = (before + body + "## 3. Research basis\nreal body\n").replace("\n", newline)
+    a, b = section(text, "Executive brief")
+    assert text[a:b] == body.replace("\n", newline)
+
+
+@pytest.mark.parametrize("text,count", [("## Other\nbody\n", 0), ("## Executive brief\nbody\n## 2. Executive brief\nbody\n", 2)])
+def test_section_plant_rejects_missing_or_ambiguous_structure(text: str, count: int) -> None:
+    with pytest.raises(AssertionError, match=f"found {count}"):
+        section(text, "Executive brief")
 
 
 def test_sdd_rereview_the_data_line_inside_a_code_block_is_not_the_data_line(sdd_repo: Path) -> None:

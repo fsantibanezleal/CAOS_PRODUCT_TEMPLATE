@@ -34,6 +34,7 @@ reason) and says what the area holds. The check is `scripts/check_readme_areas.p
 | RP-024 | The existing CI base-integrity guard SHALL reject tracked shell entrypoints without mode100755. | `tests/test_bootstrap_regressions.py::test_adversarial_tracked_shell_modes` |
 | RP-025 | Prerequisite checks SHALL honor the matching package/lock Node range ^22.12.0 or ^24.0.0 or >=26.0.0, preserve compatible installations, and refuse 22.0/23/25 with repair advice. | `tests/test_bootstrap_regressions.py::test_adversarial_locked_node_engines` |
 | RP-026 | Template generation SHALL stage exact authored params bytes and bind them to source/admission identity, preserve genuine rejected-record and static-API readiness outcomes, and verify them with the real readiness producer. Other missing/partial payload rows and default product missing states SHALL remain refused. | `tests/test_bootstrap_regressions.py::test_adversarial_real_template_generation_admission` |
+| RP-027 | Development SHALL apply declared frontend-only environment overrides to preparation and frontend startup, preserving global storage settings for API/generation and the caller. Without that declaration, existing environment behavior SHALL remain unchanged. | `tests/test_bootstrap_regressions.py::test_adversarial_frontend_environment_isolation` |
 
 Windows and POSIX cleanup address the recorded process group after leader exit; RP-022 exercises the existing
 venv and an independent HTTP control process. External venv directory aliases remain allowed
