@@ -1,4 +1,6 @@
 {
+  "external_environments_required": true,
+  "environment_namespace": "caos-product-template",
   "readiness_excludes": ["readiness"],
   "stage_inputs": ["data/examples/params.csv"],
   "readiness_exceptions": {"params-record": "partial", "api": "missing"},
