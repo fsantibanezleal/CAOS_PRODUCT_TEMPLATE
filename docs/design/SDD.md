@@ -130,7 +130,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 
 ### Shell 0.19.12 adoption
 
-Template 0.14.003 is an unreleased candidate. Its frontend manifest and lock pin the published
+Template 0.14.003 was released. The 0.14.004 correction candidate retains the same shell pin and adds immutable admission identities and required external runtime namespaces. Its frontend manifest and lock pin the published
 `@fasl-work/caos-app-shell` 0.19.12 exactly. The complete five-case, 20-document numbered-workflow
 generation and promotion passed. All ten English and Spanish notebooks execute in fresh kernels and
 match their committed outputs. Architecture, artifact, contract, readiness, document, notebook and

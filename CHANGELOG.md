@@ -2,6 +2,15 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.14.004], 2026-11-02
+
+### Fixed
+
+- Bind local promotion to one immutable admission receipt, source identity and payload snapshot through validation, copying and installation; preserve rollback on late mutation.
+- Require external role-root environments with product namespaces by default; reject internal, redirected, reserved-name and non-directory destinations before writes.
+- Route legacy setup, precompute and dev through the same numbered helper. Instantiation never starts an in-checkout bake; generation stays external until explicit promotion.
+- Add adversarial controls for receipt read-window changes, metadata mutations, namespace/runtime junctions, rollback and executable entrypoint forwarding.
+
 ## [0.14.003], 2026-11-01 (candidate)
 
 ### Updated
