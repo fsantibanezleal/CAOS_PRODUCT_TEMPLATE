@@ -2,6 +2,14 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.14.005], 2026-11-02
+
+### Fixed
+
+- Separate actual template-example generation controls from instantiated-product admission controls, so template-only tests are marked accurately and product readiness checks always run on the product.
+- Derive product admission inventory and exceptions from its current catalog instead of retaining a fixed row count or inferring identity from one optional pipeline module.
+- Preserve the generic guard that detects unmarked sentinel-deletion/instantiation tests and retain complete staged-artifact refusal checks.
+
 ## [0.14.004], 2026-11-02
 
 ### Fixed
