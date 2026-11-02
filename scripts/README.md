@@ -1,7 +1,7 @@
 # scripts/
 
 Start with the [numbered local workflow](local/README.md): check prerequisites, initialize, optionally generate
-into an external sandbox, then start the declared local frontend/API. Existing flat commands remain compatible.
+into an external sandbox, then start the declared local frontend/API. Flat setup/dev/precompute forward to the same guarded helper; precompute stages externally unless explicit release promotion is requested.
 
 Environment and pipeline scripts in both `*.sh` and `*.ps1`, and the guards CI runs (each runs locally too, with the
 standard library only).
@@ -10,9 +10,9 @@ standard library only).
 
 | Script | What it does |
 |---|---|
-| `setup.sh` / `setup.ps1` | creates `.venv-pipeline` and installs the pinned pipeline requirements; `--notebooks` (`-Notebooks`) builds `.venv-notebooks` from `notebooks/requirements.txt` instead |
+| `setup.sh` / `setup.ps1` | forwards to numbered initialization: external declared runtimes and locked frontend dependencies; optional `--notebooks` (`-Notebooks`) adds the teaching runtime |
 | `run_notebooks.py` | executes the notebooks top to bottom in a fresh kernel and writes the outputs in place; `--check` runs copies and writes nothing; `--only <path>` runs one (a local release gate, never CI) |
-| `precompute.sh` / `precompute.ps1` | the canonical bake: `python data-pipeline/run.py` (a release operation, never CI) |
+| `precompute.sh` / `precompute.ps1` | forwards to external generation; `--release` (`-Release`) explicitly promotes the validated staged set, never CI |
 | `dev.sh` / `dev.ps1`, `smoke.sh` / `smoke.ps1` | local development and a sandboxed smoke run |
 | `instantiate.py` | makes a product from the template (identity, licence, version, deploy place) |
 
