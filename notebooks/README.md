@@ -34,6 +34,7 @@ python scripts/run_notebooks.py            # executes every notebook top to bott
 python scripts/run_notebooks.py --check --tmp <temp root>   # executes copies under the temp root, writes nothing else, fails on any error
                                                             # (CAOS_TEMP_ROOT=<temp root> works too; with neither it stops with exit 2; a local release gate, never CI)
 python scripts/check_notebooks.py          # the static check: layout, mirror, levels, anatomy, metadata, clean, pins and the floors of the bar (CI and local)
+python scripts/check_notebook_depth.py     # current depth, equations, sources, limits/own-data sections and whole-tool coverage (CI and local)
 python scripts/check_notebooks.py --pypi   # also reads PyPI for the pin of each method package (opt-in, needs the network, never CI)
 ```
 
@@ -49,7 +50,7 @@ GitHub or in any Jupyter client (select the `.venv-notebooks` kernel to run it).
 
 ## The example set / El conjunto de ejemplo
 
-The template's example product (the SIR epidemic model) ships two topics, five notebooks in each language, written to the bar.
+The template's example product (the SIR epidemic model) ships two topics, six notebooks in each language, written to the bar.
 A product replaces them with its own; `scripts/check_template_residue.py` lists them until it does.
 
 - `01-getting-started`: one epidemic run day by day (level 1), how wrong the engine's Forward Euler step is (level 2), and
@@ -60,3 +61,9 @@ A product replaces them with its own; `scripts/check_template_residue.py` lists 
 
 `requirements.txt` pins the notebook environment exactly: the product's PyPI packages first, then the runtime that
 executes the notebooks.
+
+## Whole-tool coverage / Cobertura completa
+
+The six lessons per language cover the actual model, independent final-size oracle, RK45/DOP853 comparison and four-term regression slot. The surrogate lesson runs admission, features, temporary training, inference and held-out evaluation, and explains export/provenance/readiness. Its scope is synthetic teaching, with no forecasting claim. `coverage.json` maps the actual three methods, seven contracts and six stages; the example declares no method distribution.
+
+Las seis lecciones de cada idioma cubren modelo, relación final independiente, comparación RK45/DOP853 y regresión de cuatro términos. La lección del sustituto ejecuta admisión, características, ajuste temporal, inferencia y evaluación reservada, y explica exportación, procedencia y disponibilidad. Son ejemplos sintéticos sin afirmar capacidad predictiva real.

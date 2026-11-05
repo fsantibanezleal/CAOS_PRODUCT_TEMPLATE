@@ -15,6 +15,12 @@
     "pipeline.model.sir.simulate",
     "pipeline.model.sir.derivatives",
     "pipeline.oracles.final_size",
-    "pipeline.model.baseline.peak_frac"
+    "pipeline.model.baseline.peak_frac",
+    "pipeline.stages.preprocess.run",
+    "pipeline.stages.feature_extraction.run",
+    "pipeline.stages.train.run",
+    "pipeline.stages.train.predict",
+    "pipeline.stages.infer.run",
+    "pipeline.stages.evaluate.run"
   ]
 }
