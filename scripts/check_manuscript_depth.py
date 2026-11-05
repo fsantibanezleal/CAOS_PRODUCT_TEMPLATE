@@ -89,6 +89,8 @@ HEADER_MACROS = ("docversion", "docdate", "versiondoi", "conceptdoi")
 
 SECTIONING = re.compile(r"\\(section|subsection|subsubsection)\*?\s*(?:\[[^\]]*\])?\s*\{")
 LITERAL_ENVS = re.compile(r"\\begin\{(verbatim\*?|lstlisting|minted|comment)\}.*?\\end\{\1\}", re.S)
+CONDITIONAL = re.compile(r"\\(?:iffalse|iftrue|ifnum|ifdim|ifx|ifcat|ifodd|ifvmode|ifhmode|ifmmode|ifinner|"
+                         r"ifvoid|ifhbox|ifvbox|ifeof|ifcase|ifdefined|ifcsname|iffontchar|else|fi|or)(?![A-Za-z])")
 LEVEL = {"section": 1, "subsection": 2, "subsubsection": 3}
 MATH_ENVS = r"equation|align|gather|multline|eqnarray|displaymath|flalign|alignat"
 DISPLAY = re.compile(r"\\begin\{(?:" + MATH_ENVS + r")\*?\}|\\\[|\$\$")
@@ -141,8 +143,9 @@ def braced(text: str, at: int) -> tuple[str, int]:
     return text[at + 1:], len(text)
 
 
-def expand(path: Path, folder: Path, seen: set[Path]) -> str:
+def expand(path: Path, folder: Path, seen: set[Path], working_directory: Path | None = None) -> str:
     path = path.resolve()
+    working_directory = working_directory or path.parent
     boundary = folder.resolve().parent
     if not path.is_relative_to(boundary):
         raise ValueError(f"LaTeX include escapes manuscripts/: {path.name}")
@@ -158,10 +161,12 @@ def expand(path: Path, folder: Path, seen: set[Path]) -> str:
 
     def sub(m: re.Match) -> str:
         name = m.group(1).strip()
-        target = (path.parent / name)
-        if target.suffix != ".tex":
+        # TeX resolves nested inputs from the main compilation working directory,
+        # not from the directory containing the currently expanded input file.
+        target = working_directory / name
+        if not target.suffix:
             target = target.with_name(target.name + ".tex")
-        return expand(target.resolve(), folder, seen)
+        return expand(target.resolve(), folder, seen, working_directory)
 
     return re.sub(r"\\(?:input|include)\{([^}]+)\}", sub, text)
 
@@ -181,12 +186,20 @@ def words(text: str) -> int:
 
 
 def clean_title(text: str) -> str:
-    return " ".join(WORD.findall(plain(text))).lower()
+    # Preserve value-bearing characters, case and unknown commands. Erasing math
+    # or selecting alphabetic words silently made 999 equal to 1 (and -1 to 1).
+    text = re.sub(r"\\(?:textbf|textit|textnormal|textrm|textsf|texttt|emph|text|mathrm|mathbf|mathit)\s*", "", text)
+    text = re.sub(r"(?<!\\)\$", "", text)
+    text = text.replace(r"\(", "").replace(r"\)", "")
+    text = re.sub(r"\\([%&#_$])", r"\1", text)
+    text = re.sub(r"\\[,;:! ]", " ", text)
+    text = text.replace("{", "").replace("}", "").replace("~", " ")
+    return " ".join(text.split())
 
 
 def find_main(folder: Path) -> Path | None:
     """The main source: a ``.tex`` with ``\\documentclass`` in the folder or in its ``tex/`` subfolder, ``main.tex`` first."""
-    candidates = sorted(folder.glob("*.tex")) or sorted((folder / "tex").glob("*.tex"))
+    candidates = sorted(folder.glob("*.tex")) + sorted((folder / "tex").glob("*.tex"))
     with_class = [p for p in candidates if "\\documentclass" in strip_comments(p.read_text(encoding="utf-8", errors="replace"))]
     if not with_class:
         return None
@@ -204,6 +217,8 @@ def load(folder: Path) -> Doc | None:
     begin = source.find("\\begin{document}")
     end = source.rfind("\\end{document}")
     body = source[begin + len("\\begin{document}"):end if end > begin else len(source)] if begin >= 0 else source
+    if CONDITIONAL.search(body):
+        raise ValueError("Active TeX conditional in manuscript body: content depth is unmeasurable statically; use explicit rendered source before admission")
     body = re.sub(r"\\begin\{thebibliography\}.*?\\end\{thebibliography\}", " ", body, flags=re.S)
     body = re.sub(r"\\(?:bibliography|printbibliography)\b(?:\{[^}]*\}|\[[^\]]*\])*", " ", body)
     title = ""
@@ -264,33 +279,26 @@ def measures(doc: Doc) -> dict[str, int]:
     }
 
 
-def sdd_ids(root: Path) -> tuple[list[str], set[str]]:
+def sdd_ids(root: Path, findings: list[str] | None = None) -> tuple[list[str], set[str]]:
     """The method ids of the SDD's ## Method ladder and the claim ids of its ## Beyond the state of the art."""
     sdd = root / "docs" / "design" / "SDD.md"
+    findings = findings if findings is not None else []
+    ids = inventory_table(sdd, "method ladder", "tier", findings, root)
     if not sdd.is_file():
         return [], set()
-    methods: list[str] = []
+    markdown = visible(sdd.read_text(encoding="utf-8"), drop_inline=False)
+    # Inventory membership comes from the one validated parser. Source order is
+    # presentation only and cannot discard inline-code or indented table IDs.
+    methods = sorted(ids, key=lambda identifier: (markdown.find(identifier), identifier))
     claims: set[str] = set()
     where = None
-    ladder_table_started = False
-    for line in visible(sdd.read_text(encoding="utf-8"), drop_inline=False).splitlines():
-        if re.match(r"^##\s", line):
-            name = re.sub(r"^##\s+(?:\d+\.\s*)?", "", line).strip().lower()
-            where = ("ladder" if name == "method ladder" else "beyond" if name == "beyond the state of the art"
+    for line in markdown.splitlines():
+        if re.match(r"^\s{0,3}##\s", line):
+            name = re.sub(r"^\s{0,3}##\s+(?:\d+\.\s*)?", "", line).strip().lower()
+            where = ("beyond" if name == "beyond the state of the art"
                      else "novel" if name == "novel contributions" else None)
-            ladder_table_started = False
             continue
-        if where == "ladder":
-            if not line.strip() or not line.lstrip().startswith("|"):
-                if ladder_table_started:
-                    where = None
-                continue
-            m = re.match(r"^\|\s*([A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)\s*\|", line)
-            if m and m.group(1).lower() == "id":
-                ladder_table_started = True
-            elif ladder_table_started and m:
-                methods.append(m.group(1))
-        elif where == "beyond":
+        if where == "beyond":
             claims.update(re.findall(r"\bBS-\d+\b", line))
         elif where == "novel":
             claims.update(re.findall(r"\bNC-\d+\b", line))
@@ -401,11 +409,17 @@ def check_doc(root: Path, doc: Doc, cov: dict, methods: list[str], claims: set[s
             if i not in claims:
                 out.append(f"{at}/coverage.json: claims maps {i}, which the SDD's '## Beyond the state of the art' or '## Novel contributions' does not list")
     for group, (min_words, min_eq) in REGION.items():
+        regions: list[tuple[str, Section]] = []
         for i, lab in (cov.get(group) or {}).items():
             text, holder = region_of(doc, str(lab))
             if holder is None:
                 out.append(f"{at}/coverage.json: {group} {i} points at {lab!r}, which is not a \\label inside a section")
                 continue
+            if group in {"methods", "claims"}:
+                for other_id, other in regions:
+                    if max(holder.start, other.start) < min(holder.end, other.end):
+                        out.append(f"{at}/coverage.json: {group} {other_id} and {i} use overlapping coverage regions; each method or proposal needs its own substantial section")
+                regions.append((i, holder))
             n, eq = words(text), len(DISPLAY.findall(text))
             if n < min_words or eq < min_eq:
                 out.append(f"{at}: the section '{holder.title}' that covers {i} has {n} words and {eq} display equations; "
@@ -431,10 +445,7 @@ def check(root: Path, only: str | None = None, report: bool = False) -> list[str
                 if isinstance(e, dict) and isinstance(e.get("title"), str)}
     methods, claims, contracts = [], set(), []
     try:
-        methods, claims = sdd_ids(root)
-        # Refuse missing, malformed, hidden-only or duplicate inventories instead
-        # of silently reducing the required coverage to an empty list.
-        inventory_table(root / "docs/design/SDD.md", "method ladder", "tier", out, root)
+        methods, claims = sdd_ids(root, out)
         contracts = sorted(inventory_table(root / "docs/contracts/catalog.md", None, "version", out, root))
     except (OSError, UnicodeError, ValueError) as error:
         out.append(f"manuscript coverage inventories: cannot read ({error})")

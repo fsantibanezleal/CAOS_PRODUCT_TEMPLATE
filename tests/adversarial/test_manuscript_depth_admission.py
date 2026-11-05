@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from test_manuscript_depth import depth, product, has, SCRIPT, report_tex, paper_tex, SDD, PAPER_COV, prose
+from test_manuscript_depth import depth, product, has, SCRIPT, report_tex, paper_tex, SDD, PAPER_COV, prose, sec, eqs
 
 
 def test_prescribed_class_and_section_based_paper_are_enforced(tmp_path):
@@ -76,8 +76,11 @@ def test_fenced_fake_claims_do_not_become_real_but_novel_contributions_require_p
     sdd = SDD + '\n## Novel contributions\n- NC-1: a reusable benchmark design.\n'
     root = product(tmp_path / 'novel', sdd=sdd)
     assert has(depth.check(root), 'NC-1', 'has no manuscript')
-    coverage = {**PAPER_COV, 'claims': {**PAPER_COV['claims'], 'NC-1': 'sec:proposed'}}
+    coverage = {**PAPER_COV, 'claims': {**PAPER_COV['claims'], 'NC-1': 'sec:benchmark'}}
     (root / 'manuscripts/step-policy/coverage.json').write_text(json.dumps(coverage), encoding='utf8')
+    main = root / 'manuscripts/step-policy/main.tex'
+    source = main.read_text(encoding='utf8').replace('\\end{document}', sec('Benchmark construction', prose(1600) + eqs(6, 'benchmark'), 'sec:benchmark') + '\n\\end{document}')
+    main.write_text(source, encoding='utf8')
     assert depth.check(root) == []
 
 
