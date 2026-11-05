@@ -2,6 +2,15 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.000], 2026-11-05
+
+### Added
+
+- Adopt shared shell 0.20.0 exactly, including ADR-0082 story framing, evidence callouts, reciprocal linked views, shared cursor and reduced-motion controls; complete G21 validation remains required before release.
+- Complete the example's numerical-method view with the actual forward-Euler step, adjacent compartment states, infection/recovery fluxes and population-balance residual, linked to the same case cursor.
+- Extend the guided case story to four direct routes and check method behavior on desktop and phone.
+- Supply twelve worked lessons, current depth and coverage guards, and separate canonical native LaTeX report/paper blueprints with source-content admission and preserved historical examples.
+
 ## [0.14.006], 2026-11-05
 
 ### Fixed
