@@ -32,7 +32,9 @@ def base(tmp_path_factory: pytest.TempPathFactory) -> Path:
     dest = tmp_path_factory.mktemp("nb-base")
     make_tree(dest, "notebooks", "docs/design/SDD.md", ".github", "data/derived", "README.md", "data-pipeline",
               "scripts/check_notebooks.py", "scripts/notebook_bar.json", "scripts/check_readme_areas.py", "scripts/check_tech_matrix.py", "scripts/run_notebooks.py",
-              "scripts/instantiate.py", "scripts/check_template_residue.py", "VERSION", ".template-source", "product.json", "requirements*.txt", "frontend/package.json", "frontend/package-lock.json", "pyproject.toml")
+              "scripts/instantiate.py", "scripts/check_template_residue.py", "VERSION", ".template-source", "product.json", "requirements*.txt", "frontend/package.json", "frontend/package-lock.json", "pyproject.toml",
+              "docs/contracts/api.openapi.json", "data/examples/params.csv", "models/surrogate.json",
+              "docs/contracts/schemas/surrogate-model.schema.json")
     return dest
 
 

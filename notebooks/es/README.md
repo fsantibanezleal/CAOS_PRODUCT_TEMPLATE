@@ -17,7 +17,7 @@ Un tema sin notebook de nivel 3 explica por qué en su fila.
 | Tema | Requiere | Nivel 3 |
 |---|---|---|
 | [01-getting-started](01-getting-started/) | ninguno, es el tema de entrada | [03-a-higher-order-solver](01-getting-started/03-a-higher-order-solver.ipynb) |
-| [02-threshold-and-final-size](02-threshold-and-final-size/) | tema 01-getting-started | Sin nivel 3: la base de investigación no nombra un método más nuevo para el umbral ni para el tamaño final, y la única comparación del ejemplo con un método publicado, el resolvedor de orden mayor, está en el tema 01 |
+| [02-threshold-and-final-size](02-threshold-and-final-size/) | tema 01-getting-started | Sin nivel 3: la base de investigación no nombra un método más nuevo para el umbral, el tamaño final ni el sustituto ilustrativo, y la única comparación del ejemplo con un método publicado, el resolvedor de orden mayor, está en el tema 01 |
 
 ## Notebooks
 
@@ -28,6 +28,7 @@ Un tema sin notebook de nivel 3 explica por qué en su fila.
 | [01-getting-started/03-a-higher-order-solver.ipynb](01-getting-started/03-a-higher-order-solver.ipynb) | 3 | cómo se compara el RK45 de SciPy con el motor en los mismos casos, por el error según el paso y según el costo |
 | [02-threshold-and-final-size/01-the-threshold.ipynb](02-threshold-and-final-size/01-the-threshold.ipynb) | 1 | con qué tasas de contacto y de recuperación despega un brote, cómo se ve justo sobre el umbral, y qué parte inmune lo detiene |
 | [02-threshold-and-final-size/02-the-final-size.ipynb](02-threshold-and-final-size/02-the-final-size.ipynb) | 2 | qué parte infecta un brote al final, por qué ignora la velocidad del curso, y dónde la corrida del motor no la alcanza |
+| [02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb](02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb) | 2 | qué información pierde un predictor basado solamente en R0, con ajuste temporal, reserva y límites de extrapolación |
 
 ## Métodos propuestos
 
