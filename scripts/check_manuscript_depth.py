@@ -424,7 +424,7 @@ def check_doc(root: Path, doc: Doc, cov: dict, methods: list[str], claims: set[s
             if n < min_words or eq < min_eq:
                 out.append(f"{at}: the section '{holder.title}' that covers {i} has {n} words and {eq} display equations; "
                            f"the floor is {min_words} words and {min_eq} equations")
-    for bad in re.findall(r"\b(?:M|BS)-\d+\b", plain(doc.body)):
+    for bad in re.findall(r"\b(?:M|BS|NC)-\d+\b", plain(doc.body)):
         out.append(f"{at}: the internal id {bad} appears in the text: name the method")
         break
     return out

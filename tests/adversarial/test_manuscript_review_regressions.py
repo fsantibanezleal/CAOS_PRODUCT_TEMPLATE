@@ -7,6 +7,12 @@ from test_manuscript_depth import (
 )
 
 
+def test_novel_contribution_ids_remain_internal_in_visible_prose(tmp_path):
+    source = report_tex().replace('\\end{document}', '\nNC-1 is an internal inventory identifier.\n\\end{document}')
+    findings = depth.check(product(tmp_path, report=source))
+    assert has(findings, 'internal id NC-1 appears in the text'), findings
+
+
 @pytest.mark.parametrize('indent', ['', '  '])
 def test_authoritative_inline_method_ids_cannot_disappear_from_required_coverage(tmp_path, indent):
     sdd = SDD.replace('| M-1 |', '| `M-1` |').replace('| M-2 |', '| `M-2` |')
