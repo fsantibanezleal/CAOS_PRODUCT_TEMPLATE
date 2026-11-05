@@ -51,12 +51,17 @@ record on 2026-10-11 (HTTP 200 each; the two of Dormand and Prince and of Virtan
 | A higher-order reference for the engine's integrator: the embedded pair RK45 | A fifth-order formula with a fourth-order error estimate that chooses the step, six evaluations per step | Dormand and Prince 1980, https://doi.org/10.1016/0771-050X(80)90013-3 |
 | The implementation of that pair that the level 3 notebook runs as the reference | `scipy.integrate.solve_ivp` offers RK45 and the eighth-order DOP853 | Virtanen et al. 2020, https://doi.org/10.1038/s41592-019-0686-2 |
 | Requirements are written in EARS form, each with its gate | The five EARS patterns used in the requirements files | Mavin et al. 2009, https://doi.org/10.1109/RE.2009.9 |
+| Teach the existing small regression surrogate as a separate method, without a scientific novelty claim | `stages/train.py` fits the four declared columns with NumPy least squares, using max(r0, 1e-6) in its design; the primary API documents residual minimization and rank behavior. The chosen columns are an example design, not a research-established optimal basis. | https://numpy.org/doc/2.4/reference/generated/numpy.linalg.lstsq.html ; https://github.com/fsantibanezleal/CAOS_PRODUCT_TEMPLATE/blob/0190bf8/data-pipeline/pipeline/stages/train.py and `docs/contracts/schemas/surrogate-model.schema.json` |
+| Match a peak-accuracy reference to the finite initial susceptible state | The closed SIR first integral gives the continuous peak at susceptible fraction 1/R0 when a positive seed satisfies R0 times its initial susceptible share above one; the vanishing-seed peak is a different limit. Finite-horizon removed R(T)/N excludes I(T), unlike ever-infected [I(T)+R(T)]/N. | Hethcote 2000, https://doi.org/10.1137/S0036144500371907 ; actual paper section2.3 https://stat.cmu.edu/~kass/covid/HethcoteReview2000.pdf ; `data-pipeline/pipeline/model/sir.py` and `pipeline/model/baseline.py` |
+| Separate integration tolerance, output sampling and evaluation counts in the numerical comparison | The primary solver documentation distinguishes `rtol`/`atol`, `t_eval`, dense interpolation, success and `nfev`; none is a general forecasting-accuracy guarantee. | https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html ; Dormand and Prince 1980 above |
 
 Choices with no source because the example does not need one: the surrogate's four-term basis (a placeholder that
 shows where a trained model sits) and the 1500 ms run budget (the template's lane gate, measured in the Lanes
 section below).
 
-UNVERIFIED: what each work says beyond its title, scope and DOI record (kept in `frontend/src/content/citations.ts`):
+The two primary software-documentation rows were read on 2026-11-05, alongside the actual local implementations, before the curriculum extension. The live SciPy manual identified itself as 1.18.0; its 1.18.1 URL was unavailable, so these API semantics are also checked by the pinned local execution rather than claiming that unavailable manual was read.
+
+UNVERIFIED: for the earlier historical DOI-only review, what each work says beyond its title, scope and DOI record (kept in `frontend/src/content/citations.ts`):
 the page text of the works was not re-read for this release, only their Crossref records, so the "what the research
 found" cells restate the reason the example cites each work, not a quotation.
 
@@ -179,6 +184,7 @@ its gate, per ADR-0069.
 |---|---|---|---|---|
 | M-1 | classical | The SIR system of Kermack and McKendrick integrated by Forward Euler, the example engine | The live engine reproduces every baked trace to the trace rounding (0.005 people), and both converge to the final-size relation at first order in the step | `frontend/src/engine/sir.parity.test.ts` |
 | M-2 | sota | A higher-order Runge-Kutta solver, SciPy's RK45 and DOP853, run on the same five cases | The level 3 notebook runs RK45 and DOP853 on the engine's cases and reports the engine's Forward Euler error against them in the peak and the attack rate | `notebooks/en/01-getting-started/03-a-higher-order-solver.ipynb` (`scripts/check_notebooks.py` fails when no level 3 notebook names M-2) |
+| M-3 | classical | The existing four-term least-squares regression surrogate of peak infected fraction from R0, with the analytic peak as fallback | The bilingual level 2 lesson calls the real feature/train/predict/evaluate APIs on disjoint training and held-out operating points, records finite bounded predictions, and exposes initial-condition and horizon information missing from the input; no forecasting or modern-product qualification is claimed | `notebooks/en/02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb`, `tests/contracts/test_surrogate.py` |
 
 ## Cases
 

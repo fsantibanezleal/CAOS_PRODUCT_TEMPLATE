@@ -4,6 +4,7 @@ notebooks in its own tests. The static check on synthetic trees stays in tests/t
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import shutil
@@ -30,7 +31,17 @@ def test_the_example_notebooks_import_the_engine_and_never_redefine_it() -> None
     for path in (ROOT / "notebooks").rglob("*.ipynb"):
         doc = json.loads(path.read_text(encoding="utf-8"))
         code = "\n".join(CHECK.text_of(c["source"]) for c in doc["cells"] if c["cell_type"] == "code")
-        assert re.search(r"from pipeline\.model\.sir import (derivatives, )?simulate(?![A-Za-z_])", code), path.name
+        if path.name == "03-what-r0-prediction-misses.ipynb":
+            tree = ast.parse(code)
+            stages = {"preprocess", "feature_extraction", "train", "infer", "evaluate"}
+            imported = {alias.name for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+                        and node.module == "pipeline.stages" for alias in node.names}
+            called = {node.func.value.id for node in ast.walk(tree) if isinstance(node, ast.Call)
+                      and isinstance(node.func, ast.Attribute) and node.func.attr == "run"
+                      and isinstance(node.func.value, ast.Name)}
+            assert stages <= imported and stages <= called, path.name
+        else:
+            assert re.search(r"from pipeline\.model\.sir import (derivatives, )?simulate(?![A-Za-z_])", code), path.name
         assert not (CHECK.defined_names(code) & engine), path.name
 
 
