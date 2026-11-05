@@ -2,6 +2,14 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.14.006], 2026-11-05
+
+### Fixed
+
+- Admit explicitly declared non-method research contributions without assigning false proposed-method identities.
+- Resolve custom readiness through the declared product provider before importing the template example engine; refuse invalid provider paths and interfaces.
+- Run notebooks in the external role environment created by setup, including custom runtime names, with actual kernel execution in the runner controls.
+
 ## [0.14.005], 2026-11-02
 
 ### Fixed
