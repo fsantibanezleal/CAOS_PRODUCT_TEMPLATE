@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -18,7 +19,6 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTEBOOK_PYTHON = next((p for p in (ROOT / ".venv-notebooks" / "Scripts" / "python.exe", ROOT / ".venv-notebooks" / "bin" / "python") if p.is_file()), None)
 
 
 def load(name: str):
@@ -30,6 +30,10 @@ def load(name: str):
 
 CHECK = load("check_notebooks")
 RUNNER = load("run_notebooks")
+try:
+    NOTEBOOK_PYTHON = RUNNER.venv_python()
+except (OSError, ValueError, KeyError, TypeError):
+    NOTEBOOK_PYTHON = None
 
 
 HEADINGS = {
@@ -406,6 +410,16 @@ def runner_repo(tmp_path: Path, body: str) -> tuple[Path, Path]:
     base = make_repo(tmp_path / "r")
     (base / "scripts").mkdir()
     shutil.copy2(ROOT / "scripts" / "run_notebooks.py", base / "scripts" / "run_notebooks.py")
+    if NOTEBOOK_PYTHON is not None:
+        directory = NOTEBOOK_PYTHON.parent.parent.resolve()
+        local = base / "scripts/local"
+        local.mkdir()
+        shutil.copy2(ROOT / "scripts/local/workflow.py", local / "workflow.py")
+        write_json(local / "workflow.json", {
+            "external_environments_required": True,
+            "environment_namespace": directory.parent.name,
+            "environments": [{"path": directory.name, "when": "notebooks", "requirements": []}],
+        })
     (base / "VERSION").write_text("0.0.0\n", encoding="utf-8")
     path = base / "notebooks" / "en" / "01-basics" / "01-note.ipynb"
     doc = json.loads(path.read_text(encoding="utf-8"))
@@ -417,7 +431,8 @@ def runner_repo(tmp_path: Path, body: str) -> tuple[Path, Path]:
 
 def run_runner(base: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run([str(NOTEBOOK_PYTHON), str(base / "scripts" / "run_notebooks.py"), *args], capture_output=True, encoding="utf-8",
-                          errors="replace", cwd=base, timeout=300)
+                          errors="replace", cwd=base, timeout=300,
+                          env={**os.environ, "CAOS_VENVS_ROOT": str(NOTEBOOK_PYTHON.parent.parent.resolve().parent.parent)})
 
 
 needs_env = pytest.mark.skipif(NOTEBOOK_PYTHON is None, reason="the notebook environment is not built (scripts/setup.sh --notebooks)")
