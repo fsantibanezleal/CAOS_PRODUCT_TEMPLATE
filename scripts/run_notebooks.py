@@ -50,10 +50,34 @@ LANGS = ("en", "es")
 LAYOUT = "notebooks/<language>/<topic>/<notebook>.ipynb"
 
 
-def venv_python() -> Path | None:
+def notebook_environment() -> Path:
+    """Use the same declared external runtime as setup, without creating an alias."""
+    config_path = ROOT / "scripts/local/workflow.json"
+    if not config_path.is_file():
+        return VENV
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    if not config.get("external_environments_required"):
+        return VENV
+    candidates = [item["path"] for item in config.get("environments", []) if item.get("when") == "notebooks"]
+    if len(candidates) != 1:
+        raise ValueError("Declare exactly one notebook runtime in scripts/local/workflow.json")
+    helper_path = ROOT / "scripts/local/workflow.py"
+    if not helper_path.is_file():
+        raise ValueError("The external notebook runtime requires scripts/local/workflow.py")
+    spec = importlib.util.spec_from_file_location("notebook_local_workflow", helper_path)
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    try:
+        return helper.environment_directory(ROOT, candidates[0])
+    except helper.Failure as error:
+        raise ValueError(str(error)) from error
+
+
+def venv_python(directory: Path | None = None) -> Path | None:
+    directory = notebook_environment() if directory is None else directory
     for rel in ("Scripts/python.exe", "bin/python"):
-        if (VENV / rel).is_file():
-            return VENV / rel
+        if (directory / rel).is_file():
+            return directory / rel
     return None
 
 
@@ -192,8 +216,20 @@ def main() -> int:
             print(f"run_notebooks: the temp root {temp_root} is not a folder")
             return 2
 
-    py = venv_python()
-    if not a.inner and py is not None and Path(sys.prefix).resolve() != VENV.resolve():
+    try:
+        directory = notebook_environment()
+        py = venv_python(directory)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(f"run_notebooks: notebook environment is unavailable: {error}")
+        return 2
+    if py is None:
+        print("run_notebooks: initialize the declared notebook runtime with scripts/setup.ps1 -Notebooks "
+              "or scripts/setup.sh --notebooks; configure CAOS_VENVS_ROOT for external environments")
+        return 2
+    if Path(sys.prefix).resolve() != directory.resolve():
+        if a.inner:
+            print("run_notebooks: the inner runner is not using the declared notebook environment")
+            return 2
         return subprocess.run([str(py), __file__, "--inner", *sys.argv[1:]], cwd=ROOT).returncode
     try:
         import nbclient  # noqa: F401
