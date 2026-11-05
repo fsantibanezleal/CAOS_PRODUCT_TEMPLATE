@@ -16,7 +16,8 @@ def test_real_published_native_examples_are_complete_and_exact(tmp_path):
     assert manifest["technical_report"]["outcome"] == "negative timing criterion"
     assert manifest["paper"]["outcome"] == "negative registered directional comparison"
     files = manifest["files"]
-    assert len(files) == 157
+    assert len(files) == 155
+    assert not any(name.endswith("/main.pdf") for name in files), "Source-only fixtures exclude compiled manuscripts"
     assert {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()} == {entry.get("storage", name) for name, entry in files.items()}
     restored = tmp_path / "historical-product"
     for name, expected in files.items():
