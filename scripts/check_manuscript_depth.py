@@ -188,7 +188,7 @@ def words(text: str) -> int:
 def clean_title(text: str) -> str:
     # Preserve value-bearing characters, case and unknown commands. Erasing math
     # or selecting alphabetic words silently made 999 equal to 1 (and -1 to 1).
-    text = re.sub(r"\\(?:textbf|textit|textnormal|textrm|textsf|texttt|emph|text|mathrm|mathbf|mathit)\s*", "", text)
+    text = re.sub(r"\\(?:textbf|textit|textnormal|textrm|textsf|texttt|emph|text|mathrm|mathbf|mathit)(?![A-Za-z])\s*", "", text)
     text = re.sub(r"(?<!\\)\$", "", text)
     text = text.replace(r"\(", "").replace(r"\)", "")
     text = re.sub(r"\\([%&#_$])", r"\1", text)
