@@ -17,7 +17,7 @@ A topic without a level 3 notebook says why on its row.
 | Topic | Needs | Level 3 |
 |---|---|---|
 | [01-getting-started](01-getting-started/) | none, this is the entry topic | [03-a-higher-order-solver](01-getting-started/03-a-higher-order-solver.ipynb) |
-| [02-threshold-and-final-size](02-threshold-and-final-size/) | topic 01-getting-started | No level 3: the research basis names no newer method for the threshold or the final size, and the example's one comparison with a published method, the higher-order solver, is in topic 01 |
+| [02-threshold-and-final-size](02-threshold-and-final-size/) | topic 01-getting-started | No level 3: the research basis names no newer method for the threshold, final size or illustrative surrogate, and the example's one comparison with a published method, the higher-order solver, is in topic 01 |
 
 ## Notebooks
 
@@ -28,6 +28,7 @@ A topic without a level 3 notebook says why on its row.
 | [01-getting-started/03-a-higher-order-solver.ipynb](01-getting-started/03-a-higher-order-solver.ipynb) | 3 | how SciPy's RK45 compares with the engine on the same cases, by error against the step and against the cost |
 | [02-threshold-and-final-size/01-the-threshold.ipynb](02-threshold-and-final-size/01-the-threshold.ipynb) | 1 | for which contact and recovery rates an outbreak takes off, how it looks just above the threshold, and what immune share stops it |
 | [02-threshold-and-final-size/02-the-final-size.ipynb](02-threshold-and-final-size/02-the-final-size.ipynb) | 2 | what share an outbreak infects in the end, why it ignores the speed of the course, and where the engine's run does not reach it |
+| [02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb](02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb) | 2 | what an R0-only predictor loses, using temporary training, held-out points and extrapolation limits |
 
 ## Proposed methods
 
