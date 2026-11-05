@@ -106,8 +106,6 @@ jobs:
         run: pip install jsonschema==4.26.0
       - name: Every product guard rejects a planted defect
         run: pip install pytest==9.1.1 && python -m pytest tests/adversarial -q
-      - name: The current notebook content guard rejects incomplete or forged coverage and hidden content
-        run: python -m pytest tests/test_check_notebook_depth.py -q
 
   # BEGIN TEMPLATE-ONLY PLANTS
   template-plants:
