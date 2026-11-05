@@ -11,7 +11,7 @@ import { simulate } from '../engine/sir';
 import { caseAbsent } from '../readiness/readiness';
 import { useReadiness } from '../readiness/useReadiness';
 import { COVERAGE, type Selection } from './model';
-import { CompareView, ContextView, DynamicsView, UnavailableContext, ValidationView } from './views';
+import { CompareView, ContextView, DynamicsView, EulerStepView, SystemDiagramView, UnavailableContext, ValidationView } from './views';
 
 function LiveValues({ sel }: { sel: Selection | null }) {
   const stateKey = useWorkbenchState()?.stateKey;
@@ -128,8 +128,10 @@ export function Workbench() {
       rail={rail}
       focus
       groups={[
+        { id: 'system', label: { en: 'System', es: 'Sistema' }, lane: 'live', provenance: 'synthetic', content: <SystemDiagramView sel={sel} /> },
         { id: 'dynamics', label: { en: 'Dynamics', es: 'Dinámica' }, lane: 'live', provenance: 'synthetic', content: <DynamicsView sel={sel} /> },
         { id: 'validation', label: { en: 'Validation', es: 'Validación' }, lane: 'live', provenance: 'synthetic', content: <ValidationView sel={sel} /> },
+        { id: 'integration', label: { en: 'Integration step', es: 'Paso de integración' }, lane: 'live', provenance: 'synthetic', content: <EulerStepView sel={sel} /> },
       ]}
       compare={{ label: { en: 'Compare immunisation', es: 'Comparar inmunización' }, lane: 'live', provenance: 'synthetic', content: <CompareView sel={sel} /> }}
       context={{ content: <ContextView sel={sel} /> }}

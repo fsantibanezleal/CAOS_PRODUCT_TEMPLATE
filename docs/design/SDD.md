@@ -93,6 +93,28 @@ the sizing's parallel units, built at once against the fixed rows.
 - The dormant API (api, `docs/contracts/api.openapi.json`): GET only; 503 with the declared state when a document
   is absent.
 
+## Visualization catalog
+
+This example documents the six universal view purposes from ADR-0082. The catalog describes the SIR example only; an
+instantiated product must replace every example contract with its own domain research and implementation evidence.
+`S`, `I` and `R` are state fractions; no plant or public-health telemetry is represented.
+
+| id | question | data contract | kind | interactions | linked views | placement |
+|---|---|---|---|---|---|---|
+| V1 | How does infection move through the closed population? | `example.trace/v1`: S, I and R by day; `example.manifest/v4`: beta, gamma, population, seed | The system: 2D SIR compartments and directed infection/removal flows derived from the equations | Select a compartment, inspect its fraction and connected flows; scrub day | V2 selected-state detail, V3 phase plane, V4 time series, V5 integration trace | App system view and story context step |
+| V2 | Which state transition controls the peak? | `example.trace/v1` plus beta and gamma from the manifest | Inapplicable physical component because this teaching model has no physical asset; replacement is the selected infectious-state transition within V1 and V5, with S→I and I→R terms shown and named | Select S, I or R to inspect its equation derivative; scrub day to update connected flows | V1 system, V3 phase plane and V5 integration trace | App system inspector and story context step; no artificial physical cutaway |
+| V3 | At what susceptible fraction does prevalence stop rising? | SIR equations and the same trace; threshold `S/N = gamma/beta` | Domain diagram: S-I phase plane with the analytically derived nullcline and the simulated trajectory | Hover or keyboard-scrub the trajectory; linked day marker reports S/N, I/N and threshold | V1 system, V2 component detail, V4 time series, V5 integration trace | App validation view and story phase step |
+| V4 | When does prevalence peak and how do all compartments change? | `example.trace/v1`, run timestamp and scenario parameters from the manifest | Dynamics: three aligned time series with peak-day marker and scenario horizon | Hover readout, scrub day, select a compartment | V1 system, V3 phase plane, V6 scenario comparison | App dynamics view and story finding step |
+| V5 | How does the chosen integration method advance the model? | The live TypeScript engine's S, I, R values at adjacent quarter-day indices, with beta, gamma and population from the selected manifest | Method at work: actual forward-Euler compartment update, infection and recovery fluxes, shared time marker and population-balance residual | Scrub the shared time cursor; inspect before and after values, equation terms and residual; the same cursor updates V1 and V3 | V1 system, V2 transition detail and V3 phase trajectory | App Integration step view and fourth guided-story step |
+| V6 | How do initial immunisation scenarios change outbreak burden? | Same selected-case manifest and horizon; live engine recomputes 0%, 30% and 60% coverage scenarios | Decision comparison: attack-rate and peak-infection bars on separate unit-labelled axes with the active scenario highlighted | Select a scenario and compare both burden measures while retaining the case provenance | V1 system, V3 phase plane, V4 time series and V5 integration trace | App immunisation comparison and story decision step |
+
+The example rows distinguish the physical-component view (inapplicable to this non-physical model, replaced by its
+named S→I and I→R transitions) from implemented behavior. The fourth story view derives its before/after values and
+fluxes from the exact selected live run; it does not animate a separate illustrative solver. The guided story's four
+distinct views, shared cursor, exact return route, pause-on-input and phone callout clearance are checked by
+`frontend/scripts/check_story_mode.mjs`; the template's shell gate separately checks route, stage, panel and callout
+geometry. This example has no real telemetry: all run values and comparisons are synthetic and recomputed locally.
+
 ## Technology and versions
 
 Every pinned dependency of `requirements-precompute.txt` (through `data-pipeline/requirements.txt`),
@@ -114,7 +136,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
 | API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
 | API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
-| shell | @fasl-work/caos-app-shell | 0.19.12 | the shared app shell (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| shell | @fasl-work/caos-app-shell | 0.20.0 | the shared app shell with ADR-0082 story framing and measured G21 gate (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
 | web | react | 19.3.0 | the UI | none: the shell requires it |
 | web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
 | web | react-router | 8.4.0 | the routes | none: the shell requires it |
@@ -133,14 +155,14 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | tests | vitest | 5.0.3 | the web unit tests | jest, rejected: needs a transform for the vite config |
 | gate | playwright | 1.63.0 | the measured UI gate (`npm run gate`), local only | cypress, rejected: heavier install |
 
-### Shell 0.19.12 adoption
+### Shell 0.20.0 adoption
 
-Template 0.14.003 was released. The 0.14.004 correction candidate retains the same shell pin and adds immutable admission identities and required external runtime namespaces. Its frontend manifest and lock pin the published
-`@fasl-work/caos-app-shell` 0.19.12 exactly. The complete five-case, 20-document numbered-workflow
-generation and promotion passed. All ten English and Spanish notebooks execute in fresh kernels and
-match their committed outputs. Architecture, artifact, contract, readiness, document, notebook and
-repository-policy checks pass; the frontend and full Python test suites and hosted release CI remain
-release gates. Generated records are now from this candidate's completed numbered workflow.
+Template 0.15.000 adopts shell 0.20.0 exactly. Its example adds a fourth guided step that exposes the selected live
+forward-Euler update, its equation-derived flows, the adjacent observed state and population balance. The pinned
+shell APIs supply the story frame, sourced callouts, reciprocal linked views, reduced-motion transitions and measured
+G21 gate; the product-specific browser check verifies all four distinct views and the same cursor across them. The
+shell package is being verified from its release candidate; the lockfile and data bake must match the published shell
+and this template version before release.
 
 ## Resources
 
@@ -245,8 +267,9 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0058 | architecture modal, five themed bilingual tabs | `frontend/src/architecture/`, validated by the shell on mount |
 | ADR-0069 | method vertical with its acceptance criterion | this SDD, the parity and convergence tests |
 | ADR-0070 | Focus mode for the App: a workbench opens the open group of a case in the full viewport, a surface opens each view with a stage; `?focus=1`, Escape or the exit button returns to the same case or view, group and sub-view | `frontend/src/workbench/Workbench.tsx` (`focus`), `npm run gate` with `--require-focus` (G18); the App's kind is `product.json` `app` (this example is a workbench), and only a surface App without simulation waives Focus, with its reason here as "not applicable: <reason>" |
-| ADR-0071 | the page is the viewport; one tab row; drawing at least half the viewport | the shell's `CaseWorkbench`; the gate (G5, G6) |
+| ADR-0071 | the page is the viewport; one tab row; drawing at least 60% of the App viewport, 80% in Focus | the shell's `CaseWorkbench`; the gate (G5, G6, G18) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
-| ADR-0078 | rules live in the base | shell 0.19.12 (pinned exactly) and this template; no product re-implements them |
+| ADR-0078 | rules live in the base | shell 0.20.0 (pinned exactly) and this template; no product re-implements them |
 | ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |
+| ADR-0082 | every app records V1–V6 with product-specific data/interaction contracts; story mode has 3–6 directly linked finding steps, a dominant stage, docked panel, sourced in-stage callouts, accessible playback, linked interaction and measured motion/performance | `docs/design/SDD.md` catalog checked by `scripts/check_sdd.py`; shell primitives and G21 measure route, evidence, linkage, transitions, reduced motion, phone layout, LCP, frame rate and interaction latency; `frontend/scripts/check_story_mode.mjs` checks four distinct live views, shared cursor, pause/exit and phone clearance; V2 is explicitly replaced by the S→I and I→R transition view because this SIR example has no physical equipment; V5 is implemented as the selected forward-Euler update and tested against the live run |
