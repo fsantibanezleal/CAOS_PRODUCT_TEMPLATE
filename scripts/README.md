@@ -28,6 +28,7 @@ standard library only).
 | `check_readme_areas.py` | the README states the repository by areas, each active or dormant, every folder link present |
 | `check_sdd.py` | the SDD has its sections; every requirement names a gate that exists; the method ladder names the tier of each method and a product has all three (classical, sota, beyond) and a `BS-` claim |
 | `check_manuscripts.py` | `product.json` declares the product's Zenodo manuscripts, a technical report at least; `--release` requires the report at the release's version, `--zenodo` reads the records online (local, never CI) |
+| `check_manuscript_depth.py` | native LaTeX source, current complete report/paper content floors, section depth, authoritative method/contract/contribution coverage and result-supported titles; standard-library companions share the existing Markdown parser; independent scientific/visual acceptance remains a separate local publication gate |
 | `check_template_residue.py` | an instantiated product carries none of the example |
 | `check_doc_paths.py` | every repository path a document names exists |
 | `check_web_baseline.py` | the web's tokens, classes, numbers, images and animation loops |
