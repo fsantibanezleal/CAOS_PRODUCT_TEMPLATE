@@ -204,10 +204,6 @@
       "sha256": "4d8f065e0e7a630d38b6e3fc10975a9c5e641f7d2285a8082c10a83273c7fd98",
       "bytes": 685
     },
-    "manuscripts/coupled-peak-study/main.pdf": {
-      "sha256": "6bfd39512e805398824a0e99506a886abf0982d1d9dd25c50d19bcde304accc2",
-      "bytes": 628930
-    },
     "manuscripts/coupled-peak-study/main.tex": {
       "sha256": "e9330af421c1e7a047cae3a62741efa8f3ecb63971db20e57b9f195b8b113c29",
       "bytes": 3001
@@ -595,10 +591,6 @@
     "manuscripts/soft-constraint-study/generated/study-results.tex": {
       "sha256": "4d8f065e0e7a630d38b6e3fc10975a9c5e641f7d2285a8082c10a83273c7fd98",
       "bytes": 685
-    },
-    "manuscripts/soft-constraint-study/main.pdf": {
-      "sha256": "b3ac57f723713cf48117a8a41002980637910579404167ff2b7c2efddd0bf300",
-      "bytes": 906442
     },
     "manuscripts/soft-constraint-study/main.tex": {
       "sha256": "71b693210b52327a62df455f13547e15c7116592db224fbfc41e9ca04c2c456e",
