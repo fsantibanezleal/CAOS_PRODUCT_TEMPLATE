@@ -63,6 +63,13 @@ def test_presentation_only_title_wrapping_keeps_the_same_identity(tmp_path):
     assert depth.check(product(tmp_path, paper=paper_tex(title='\\textbf{' + PAPER_TITLE + '}'))) == []
 
 
+def test_a_valid_custom_title_macro_cannot_be_erased_as_a_known_wrapper_prefix(tmp_path):
+    source = paper_tex(title=PAPER_TITLE + r' \textbfExtra{999}')
+    source = source.replace('\\begin{document}', '\\newcommand{\\textbfExtra}[1]{0}\n\\begin{document}')
+    findings = depth.check(product(tmp_path, paper=source, titles=(REPORT_TITLE, PAPER_TITLE + ' Extra999')))
+    assert has(findings, 'is not the title of any product.json manuscripts entry'), findings
+
+
 def test_nested_inputs_use_the_main_compile_working_directory(tmp_path):
     root = product(tmp_path)
     folder = root / 'manuscripts/technical-report'
