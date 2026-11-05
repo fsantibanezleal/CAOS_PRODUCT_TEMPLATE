@@ -12,6 +12,8 @@ The report and paper have different required structures and floors. A technical 
 
 The current multipage-table rule also counts captioned longtable environments, with the same caption, label and prose-reference requirements. The guard shares the existing reviewed standard-library Markdown inventory parser with the companion source guards, refuses missing/malformed/hidden-only inventories, and includes both declared proposed methods and other novel contributions. Literal quoted LaTeX does not become active includes, structure or content counts.
 
+Inventory membership comes from that same validated table result, including inline-code IDs and valid row indentation. A second approximate ID reader cannot silently reduce required coverage. Distinct methods and proposals need disjoint substantial source regions; different labels in the same section, or a parent and its child, cannot double-count one region. Active core TeX conditionals in the body are refused as statically unmeasurable rather than credited as rendered prose. The checker is not a TeX interpreter. Title matching retains numbers, signs, units, case and unknown commands instead of reducing a title to alphabetic words. Nested inputs use the main compilation working directory, including a main in the allowed tex subfolder.
+
 ## Native source and historical examples
 
 Default blueprints use the authoritative11pt article base,1.1in margins, navy links, theorem family, ORCID/header identity and running headers. The technical report and research paper remain separate source trees; the paper uses sections. Unpublished blueprint metadata must not invent a DOI, author approval, scientific result or completed content review. The content gate refuses incomplete authored copies.
