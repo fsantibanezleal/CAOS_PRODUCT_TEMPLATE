@@ -19,8 +19,10 @@ with exit 2, and the system temp folder is never used. A product that declares m
 and no notebook may define a name they define: the run stops before any notebook executes (``scripts/check_notebooks.py`` holds
 the same names statically when the packages are installed).
 
-It runs in ``.venv-notebooks`` (``scripts/setup.sh --notebooks`` or ``scripts/setup.ps1 -Notebooks``, built from
-``notebooks/requirements.txt``): started with another interpreter, it re-runs itself in that venv. A local release gate, never CI
+It runs in the notebook runtime declared by ``scripts/local/workflow.json`` (``when: notebooks``), created by
+``scripts/setup.sh --notebooks`` or ``scripts/setup.ps1 -Notebooks`` from ``notebooks/requirements.txt``.
+External environments use the same configured ``CAOS_VENVS_ROOT`` and product namespace as setup; no local alias is required.
+Started with another interpreter, it re-runs itself in that environment. A local release gate, never CI
 (ADR-0074). A missing artifact fails the notebook with its path in the error; nothing stands in for it.
 A notebook outside ``notebooks/<language>/<topic>/<notebook>.ipynb`` fails the run before any notebook executes.
 Exit 0 every notebook ran, 1 on any failure, 2 on a usage or environment problem.
