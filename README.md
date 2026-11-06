@@ -70,5 +70,7 @@ product replaces next, is [docs/guides/00_instantiate.md](docs/guides/00_instant
   The App opens Focus mode for every case, and the gate runs with `--require-focus`, so a product built from the
   template cannot ship an App without it.
 - English in the repository; every reader-facing string in English and Spanish (ADR-0011, ADR-0066).
+- Author separate native LaTeX reports and research papers using the [source blueprints](templates/manuscripts/README.md). The [manuscript guide](docs/guides/10_native-manuscripts.md) explains content/coverage admission and independent scientific and rendered-page review. An incomplete blueprint is refused, not counted as a publication.
 
 Licensed under the MIT License (see [LICENSE](LICENSE)).
+The attributed native manuscript blueprints and frozen historical manuscript sources retain CC BY 4.0 as documented in their [provenance](templates/manuscripts/provenance.json) and [fixture inventory](tests/fixtures/manuscript-depth/source.json).
