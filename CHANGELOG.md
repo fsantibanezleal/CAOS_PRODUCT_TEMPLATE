@@ -6,7 +6,8 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
 
 ### Added
 
-- Adopt shared shell 0.22.0 exactly, including ADR-0082 story framing, evidence callouts, reciprocal linked views, shared cursor, reduced-motion controls and measured G21 acceptance.
+- Adopt shared shell 0.23.0 exactly, including the bounded mobile story stage floor required to keep the live plot, controls and three evidence callouts visible together.
+- Keep all three data-derived callouts visible at phone widths and reserve their header band above the interactive drawing; the story uses the shared `StoryFrame.mobileStageMinHeight` API instead of a product-local height override.
 - Complete the example's numerical-method view with the actual forward-Euler step, adjacent compartment states, infection/recovery fluxes and population-balance residual, linked to the same case cursor.
 - Extend the guided case story to four direct routes and check method behavior on desktop and phone.
 
