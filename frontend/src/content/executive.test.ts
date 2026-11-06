@@ -130,8 +130,8 @@ function citations(): Array<{ source: string; tab: number }> {
 }
 
 describe('the example executive view', () => {
-  it('the shell is pinned exactly at 0.20.0, including the ADR-0082 story and measured showcase gate', () => {
-    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.20.0');
+  it('the shell is pinned exactly at 0.21.0, including immersive story routes and measured showcase primitives', () => {
+    expect(pkg.dependencies['@fasl-work/caos-app-shell']).toBe('0.21.0');
     expect(EXECUTIVE_SCHEMA_VERSION).toBe('2.0.0');
   });
 

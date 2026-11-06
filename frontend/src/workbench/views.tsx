@@ -61,6 +61,8 @@ function NotedFill({ children }: { children: ReactNode }) {
 
 const LOADING: BiText = { en: 'Loading the case artifacts', es: 'Cargando los artefactos del caso' };
 
+function svgCoordinate(value: number): string { return String(Math.round(value * 100) / 100); }
+
 /** S, I and R of the live run, with the replay trace of the case dashed under the live infected curve. */
 export function DynamicsView({ sel }: { sel: Selection | null }) {
   const stateKey = useWorkbenchState()?.stateKey;
@@ -143,7 +145,6 @@ export function SystemDiagramView({ sel }: { sel: Selection | null }) {
     <Stage label={{ en: 'SIR compartments, infection and recovery flows', es: 'Compartimentos SIR, flujos de contagio y recuperación' }}>
       {({ width, height }) => width < 520 ? <svg viewBox="0 0 360 410" width={width} height={height} role="group" aria-label={t('Vertical SIR process map and live flows', 'Mapa vertical del proceso SIR y flujos en vivo')} data-system-diagram="" data-layout="mobile">
         <defs><marker id="sir-mobile-infection-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L0,8 L8,4 z" fill="var(--color-accent)"/></marker><marker id="sir-mobile-recovery-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L0,8 L8,4 z" fill="var(--color-good)"/></marker></defs>
-        <text x="180" y="20" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="11">{t('Closed population · no external inflow', 'Población cerrada · sin ingreso externo')}</text>
         {([['S', t('Susceptible', 'Susceptibles'), S, 'var(--color-accent)'], ['I', t('Infectious', 'Contagiados'), I, 'var(--color-bad)'], ['R', t('Recovered', 'Recuperados'), R, 'var(--color-good)']] as const).map(([symbol, name, value, tone], row) => {
           const y = 35 + row * 113;
           const chosen = (linkedSelection ?? 'I') === symbol;
@@ -177,8 +178,8 @@ export function SystemDiagramView({ sel }: { sel: Selection | null }) {
         <text x="480" y="487" textAnchor="middle" fill="var(--color-fg-faint)" fontSize="12">{t('Flows are evaluated from the live model at the selected day.', 'Los flujos se evalúan con el modelo en vivo en el día seleccionado.')}</text>
       </svg>}
     </Stage>
-    <label className="caos-system-scrub">{t('Day', 'Día')} <strong>{formatNumber(sel.run.t[index]!, lang, { decimals: 2 })}</strong><input aria-label={t('Scrub model day', 'Mover día del modelo')} type="range" min={0} max={sel.run.t.length - 1} value={index} data-linked-cursor="" onChange={(event) => scrub(Number(event.currentTarget.value))}/></label>
-    <p className="caos-system-selection" aria-live="polite" data-linked-selection={linkedSelection ?? 'I'}>{t('Selected state', 'Estado seleccionado')}: <strong>{linkedSelection ?? 'I'}</strong> · {linkedSelection === 'S' ? `dS/dt = −βSI/N = −${formatNumber(infections, lang, { decimals: 1 })}` : linkedSelection === 'R' ? `dR/dt = γI = ${formatNumber(recoveries, lang, { decimals: 1 })}` : `dI/dt = βSI/N − γI = ${formatNumber(infections - recoveries, lang, { decimals: 1 })}`} {t('people/day', 'personas/día')}</p>
+    <label data-caos-plot-control="">{t('Day', 'Día')} <strong>{formatNumber(sel.run.t[index]!, lang, { decimals: 2 })}</strong><input aria-label={t('Scrub model day', 'Mover día del modelo')} type="range" min={0} max={sel.run.t.length - 1} value={index} data-linked-cursor="" onChange={(event) => scrub(Number(event.currentTarget.value))}/></label>
+    <p className="template-system-selection" aria-live="polite" data-linked-selection={linkedSelection ?? 'I'}>{t('Selected state', 'Estado seleccionado')}: <strong>{linkedSelection ?? 'I'}</strong> · {linkedSelection === 'S' ? `dS/dt = −βSI/N = −${formatNumber(infections, lang, { decimals: 1 })}` : linkedSelection === 'R' ? `dR/dt = γI = ${formatNumber(recoveries, lang, { decimals: 1 })}` : `dI/dt = βSI/N − γI = ${formatNumber(infections - recoveries, lang, { decimals: 1 })}`} {t('people/day', 'personas/día')}</p>
   </PlotCard>;
 }
 
@@ -232,7 +233,7 @@ export function EulerStepView({ sel }: { sel: Selection | null }) {
         <line x1="90" x2="890" y1="435" y2="435" stroke="var(--color-border)" strokeWidth="3"/><circle cx={90 + index / Math.max(1, sel.run.t.length - 1) * 800} cy="435" r="9" fill="var(--color-accent)" data-linked-cursor-marker="" data-linked-cursor-position={index}/>
       </svg>}
     </Stage>
-    <label className="caos-system-scrub" data-euler-step="" data-linked-cursor-marker="" data-linked-cursor-position={index}>{t('Euler step', 'Paso de Euler')} {index + 1}/{sel.run.t.length - 1}<input aria-label={t('Scrub Euler step', 'Mover paso de Euler')} type="range" min={0} max={sel.run.t.length - 1} value={index} data-linked-cursor="" onChange={(event) => scrub(Number(event.currentTarget.value))}/></label>
+    <label data-caos-plot-control="" data-euler-step="" data-linked-cursor-marker="" data-linked-cursor-position={index}>{t('Euler step', 'Paso de Euler')} {index + 1}/{sel.run.t.length - 1}<input aria-label={t('Scrub Euler step', 'Mover paso de Euler')} type="range" min={0} max={sel.run.t.length - 1} value={index} data-linked-cursor="" onChange={(event) => scrub(Number(event.currentTarget.value))}/></label>
     <p className="caos-plot-note">{t('population balance residual', 'residuo de balance poblacional')}: {formatNumber(residual, lang, { decimals: 6 })} {t('people', 'personas')} · {t('The before/after values come from the same live forward-Euler run.', 'Los valores antes/después vienen de la misma corrida Euler explícita en vivo.')}</p>
   </PlotCard>;
 }
@@ -256,9 +257,11 @@ export function PhasePlaneView({ sel }: { sel: Selection | null }) {
       return;
     }
     const r = event.currentTarget.getBoundingClientRect();
-    const px = ((event.clientX - r.left) / r.width) * 960;
-    const py = ((event.clientY - r.top) / r.height) * 520;
-    const left = 74, right = 928, top = 24, bottom = 458;
+    const mobile = event.currentTarget.dataset.layout === 'mobile';
+    const viewWidth = mobile ? 360 : 960, viewHeight = mobile ? 330 : 520;
+    const px = ((event.clientX - r.left) / r.width) * viewWidth;
+    const py = ((event.clientY - r.top) / r.height) * viewHeight;
+    const left = mobile ? 52 : 90, right = mobile ? 345 : 928, top = mobile ? 38 : 24, bottom = mobile ? 256 : 458;
     const maxI = Math.max(...sel.run.I) / n || 1;
     let best = 0, bestDistance = Infinity;
     for (let k = 0; k < sel.run.t.length; k += 1) {
@@ -273,25 +276,28 @@ export function PhasePlaneView({ sel }: { sel: Selection | null }) {
     <Stage label={{ en: 'S-I trajectory and growth nullcline', es: 'Trayectoria S-I y nulclina de crecimiento' }}>
       {({ width, height }) => {
         const maxI = Math.max(...sel.run.I) / n || 1;
-        const x = (s: number) => 90 + s * 838;
-        const y = (i: number) => 458 - (i / maxI) * 434;
-        const path = sel.run.S.map((value, k) => `${k ? 'L' : 'M'}${x(value / n).toFixed(2)},${y(sel.run.I[k]! / n).toFixed(2)}`).join(' ');
+        const mobile = width < 520;
+        const viewWidth = mobile ? 360 : 960, viewHeight = mobile ? 330 : 520;
+        const left = mobile ? 52 : 90, right = mobile ? 345 : 928, top = mobile ? 38 : 24, bottom = mobile ? 256 : 458;
+        const x = (s: number) => left + s * (right - left);
+        const y = (i: number) => bottom - (i / maxI) * (bottom - top);
+        const path = sel.run.S.map((value, k) => `${k ? 'L' : 'M'}${svgCoordinate(x(value / n))},${svgCoordinate(y(sel.run.I[k]! / n))}`).join(' ');
         const threshold = sel.gamma / sel.beta;
         const thresholdX = x(Math.min(1, threshold));
         const px = x(current.s), py = y(current.i);
-        return <svg viewBox="0 0 960 520" width={width} height={height} role="img" aria-label={t('S-I phase plane. The vertical nullcline marks when infections stop growing.', 'Plano de fase S-I. La nulclina vertical marca cuándo dejan de crecer los contagios.')} tabIndex={0} onPointerMove={nearest} onFocus={() => scrub(peakIndex)} onKeyDown={nearest} data-phase-plane="">
+        return <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width={width} height={height} role="img" aria-label={t('S-I phase plane. The vertical nullcline marks when infections stop growing.', 'Plano de fase S-I. La nulclina vertical marca cuándo dejan de crecer los contagios.')} tabIndex={0} onPointerMove={nearest} onFocus={() => scrub(peakIndex)} onKeyDown={nearest} data-phase-plane="" data-layout={mobile ? 'mobile' : 'desktop'}>
           <title>{t('S-I phase plane with live trajectory and threshold', 'Plano de fase S-I con trayectoria en vivo y umbral')}</title>
-          {[0, .25, .5, .75, 1].map((tick) => <g key={`x${tick}`}><line x1={x(tick)} x2={x(tick)} y1="24" y2="458" stroke="var(--color-border)"/><text x={x(tick)} y="482" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="13">{formatNumber(tick * 100, lang, { decimals: 0 })}%</text></g>)}
-          {[0, .25, .5, .75, 1].map((tick) => <g key={`y${tick}`}><line x1="90" x2="928" y1={y(tick * maxI)} y2={y(tick * maxI)} stroke="var(--color-border)"/><text x="82" y={y(tick * maxI) + 4} textAnchor="end" fill="var(--color-fg-subtle)" fontSize="13">{formatNumber(tick * maxI * 100, lang, { decimals: 1 })}%</text></g>)}
-          <line x1={thresholdX} x2={thresholdX} y1="24" y2="458" stroke="var(--color-warn)" strokeWidth="2" strokeDasharray="7 5"/><text x={threshold > 1 ? thresholdX - 7 : thresholdX + 7} y="42" textAnchor={threshold > 1 ? 'end' : 'start'} fill="var(--color-warn)" fontSize="13">{threshold > 1 ? 'S/N = γ/β (>100%)' : 'S/N = γ/β'}</text>
+          {[0, .25, .5, .75, 1].map((tick) => <g key={`x${tick}`}><line x1={x(tick)} x2={x(tick)} y1={top} y2={bottom} stroke="var(--color-border)"/><text x={x(tick)} y={mobile ? 278 : 482} textAnchor="middle" fill="var(--color-fg-subtle)" fontSize={mobile ? 10 : 13}>{formatNumber(tick * 100, lang, { decimals: 0 })}%</text></g>)}
+          {[0, .25, .5, .75, 1].map((tick) => <g key={`y${tick}`}><line x1={left} x2={right} y1={y(tick * maxI)} y2={y(tick * maxI)} stroke="var(--color-border)"/><text x={left - 7} y={y(tick * maxI) + 4} textAnchor="end" fill="var(--color-fg-subtle)" fontSize={mobile ? 10 : 13}>{formatNumber(tick * maxI * 100, lang, { decimals: 1 })}%</text></g>)}
+          <line x1={thresholdX} x2={thresholdX} y1={top} y2={bottom} stroke="var(--color-warn)" strokeWidth="2" strokeDasharray="7 5"/><text x={threshold > 1 ? thresholdX - 7 : thresholdX + 7} y={mobile ? 30 : 42} textAnchor={threshold > 1 ? 'end' : 'start'} fill="var(--color-warn)" fontSize={mobile ? 10 : 13}>{threshold > 1 ? 'S/N = γ/β (>100%)' : 'S/N = γ/β'}</text>
           <path d={path} fill="none" stroke="var(--color-accent)" strokeWidth="3" strokeLinejoin="round"/>
           <circle cx={px} cy={py} r="8" fill="var(--color-bad)" stroke="var(--color-bg)" strokeWidth="3" data-linked-cursor-marker="" data-linked-cursor-position={index}/>
-          <text x="500" y="512" textAnchor="middle" fill="var(--color-fg)" fontSize="14">{t('Susceptible fraction S/N', 'Fracción susceptible S/N')}</text>
-          <text transform="translate(18 242) rotate(-90)" textAnchor="middle" fill="var(--color-fg)" fontSize="14">{t('Infected fraction I/N', 'Fracción contagiada I/N')}</text>
+          <text x={mobile ? 198 : 500} y={mobile ? 316 : 512} textAnchor="middle" fill="var(--color-fg)" fontSize={mobile ? 11 : 14}>{t('Susceptible fraction S/N', 'Fracción susceptible S/N')}</text>
+          {!mobile && <text transform="translate(18 242) rotate(-90)" textAnchor="middle" fill="var(--color-fg)" fontSize="14">{t('Infected fraction I/N', 'Fracción contagiada I/N')}</text>}
         </svg>;
       }}
     </Stage>
-    <p className="caos-phase-readout" aria-live="polite" data-phase-readout="">{t('Day', 'Día')} <strong>{formatNumber(current.day, lang, { decimals: 2 })}</strong> · S/N <strong>{formatNumber(current.s * 100, lang, { decimals: 2 })}%</strong> · I/N <strong>{formatNumber(current.i * 100, lang, { decimals: 3 })}%</strong> · {t('threshold', 'umbral')} <strong>{formatNumber(sel.gamma / sel.beta * 100, lang, { decimals: 2 })}%</strong></p>
+    <p className="template-phase-readout" aria-live="polite" data-phase-readout="">{t('Day', 'Día')} <strong>{formatNumber(current.day, lang, { decimals: 2 })}</strong> · S/N <strong>{formatNumber(current.s * 100, lang, { decimals: 2 })}%</strong> · I/N <strong>{formatNumber(current.i * 100, lang, { decimals: 3 })}%</strong> · {t('threshold', 'umbral')} <strong>{formatNumber(sel.gamma / sel.beta * 100, lang, { decimals: 2 })}%</strong></p>
     <p className="caos-plot-note">{t('Move over the trajectory or use the arrow keys. Infection growth stops where S/N crosses γ/β.', 'Desplace el puntero por la trayectoria o use las flechas. El crecimiento infeccioso se detiene cuando S/N cruza γ/β.')}</p>
   </PlotCard>;
 }

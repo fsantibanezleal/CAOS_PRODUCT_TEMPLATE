@@ -30,6 +30,7 @@ const config: ShellConfig = {
   license: { en: `${product.license} licence`, es: `Licencia ${product.license}` },
   visibility: product.visibility === 'private' ? 'private' : 'public',
   contain: true,
+  immersiveRoutes: ['/story'],
   architecture,
 };
 
