@@ -1,0 +1,61 @@
+{
+  "methods": {
+    "M-1": [
+      "01-getting-started/02-the-method-step-by-step.ipynb"
+    ],
+    "M-2": [
+      "01-getting-started/03-a-higher-order-solver.ipynb"
+    ],
+    "M-3": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ]
+  },
+  "contracts": {
+    "params-record": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "case-index": [
+      "01-getting-started/01-the-problem-and-the-data.ipynb"
+    ],
+    "case-manifest": [
+      "01-getting-started/01-the-problem-and-the-data.ipynb",
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "trace": [
+      "01-getting-started/01-the-problem-and-the-data.ipynb",
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "surrogate-model": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "readiness": [
+      "01-getting-started/01-the-problem-and-the-data.ipynb",
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "api": [
+      "01-getting-started/01-the-problem-and-the-data.ipynb",
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ]
+  },
+  "stages": {
+    "preprocess": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "feature_extraction": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "train": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "infer": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "evaluate": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ],
+    "export": [
+      "02-threshold-and-final-size/03-what-r0-prediction-misses.ipynb"
+    ]
+  },
+  "packages": {}
+}

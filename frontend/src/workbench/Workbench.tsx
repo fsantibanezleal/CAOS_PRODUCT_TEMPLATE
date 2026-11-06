@@ -11,7 +11,7 @@ import { simulate } from '../engine/sir';
 import { caseAbsent } from '../readiness/readiness';
 import { useReadiness } from '../readiness/useReadiness';
 import { COVERAGE, type Selection } from './model';
-import { CompareView, ContextView, DynamicsView, UnavailableContext, ValidationView } from './views';
+import { CompareView, ContextView, DynamicsView, EulerStepView, SystemDiagramView, UnavailableContext, ValidationView } from './views';
 
 function LiveValues({ sel }: { sel: Selection | null }) {
   const stateKey = useWorkbenchState()?.stateKey;
@@ -22,8 +22,8 @@ function LiveValues({ sel }: { sel: Selection | null }) {
       provenance="synthetic"
       dataKey={stateKey}
       items={[
-        { label: { en: 'Basic reproduction number', es: 'Número reproductivo básico' }, value: sel ? sel.beta / sel.gamma : null, unitless: true, format: { decimals: 2 }, good: 1, bad: 1.5, better: 'lower' },
-        { label: { en: 'Peak infected', es: 'Pico de contagiados' }, value: sel ? sel.run.peakI : null, unit: { en: 'people', es: 'personas' }, format: { decimals: 0 } },
+        { label: { en: 'R₀', es: 'R₀' }, value: sel ? sel.beta / sel.gamma : null, unitless: true, format: { decimals: 2 }, good: 1, bad: 1.5, better: 'lower' },
+        { label: { en: 'Peak I', es: 'I máximo' }, value: sel ? sel.run.peakI : null, unit: { en: 'people', es: 'personas' }, format: { decimals: 0 } },
         { label: { en: 'Peak day', es: 'Día del pico' }, value: sel ? sel.run.tPeak : null, unit: 'd', format: { decimals: 1 } },
         { label: { en: 'Attack rate', es: 'Tasa de ataque' }, value: sel ? sel.run.attackRate : null, unitless: true, format: { percent: true, decimals: 1 } },
       ]}
@@ -126,10 +126,13 @@ export function Workbench() {
       controls={knobs ? { beta: knobs.beta, gamma: knobs.gamma } : {}}
       variants={{ variants: COVERAGE.map((v) => ({ id: v.id, label: v.label, note: v.note, lane: 'live' })), activeId: variant, onSelect: setVariant, title: { en: 'Immunisation', es: 'Inmunización' } }}
       rail={rail}
+      railWidth={186}
       focus
       groups={[
+        { id: 'system', label: { en: 'System', es: 'Sistema' }, lane: 'live', provenance: 'synthetic', content: <SystemDiagramView sel={sel} /> },
         { id: 'dynamics', label: { en: 'Dynamics', es: 'Dinámica' }, lane: 'live', provenance: 'synthetic', content: <DynamicsView sel={sel} /> },
         { id: 'validation', label: { en: 'Validation', es: 'Validación' }, lane: 'live', provenance: 'synthetic', content: <ValidationView sel={sel} /> },
+        { id: 'integration', label: { en: 'Integration step', es: 'Paso de integración' }, lane: 'live', provenance: 'synthetic', content: <EulerStepView sel={sel} /> },
       ]}
       compare={{ label: { en: 'Compare immunisation', es: 'Comparar inmunización' }, lane: 'live', provenance: 'synthetic', content: <CompareView sel={sel} /> }}
       context={{ content: <ContextView sel={sel} /> }}
