@@ -2,6 +2,15 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.000], 2026-11-05
+
+### Added
+
+- Adopt shared shell 0.23.0 exactly, including the bounded mobile story stage floor required to keep the live plot, controls and three evidence callouts visible together.
+- Keep all three data-derived callouts visible at phone widths and reserve their header band above the interactive drawing; the story uses the shared `StoryFrame.mobileStageMinHeight` API instead of a product-local height override.
+- Complete the example's numerical-method view with the actual forward-Euler step, adjacent compartment states, infection/recovery fluxes and population-balance residual, linked to the same case cursor.
+- Extend the guided case story to four direct routes and check method behavior on desktop and phone.
+
 ## [0.14.006], 2026-11-05
 
 ### Fixed
@@ -9,6 +18,7 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
 - Admit explicitly declared non-method research contributions without assigning false proposed-method identities.
 - Resolve custom readiness through the declared product provider before importing the template example engine; refuse invalid provider paths and interfaces.
 - Run notebooks in the external role environment created by setup, including custom runtime names, with actual kernel execution in the runner controls.
+
 
 ## [0.14.005], 2026-11-02
 

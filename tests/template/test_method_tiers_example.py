@@ -30,7 +30,8 @@ def test_the_template_is_marked_as_the_template() -> None:
 
 
 def test_the_example_ladder_fills_the_tier_column_with_a_classical_and_a_sota_method() -> None:
-    head = [c.strip().lower() for c in next(ln for ln in SDD.read_text(encoding="utf-8").splitlines() if ln.strip().startswith("| id")).strip("| ").split("|")]
+    section = SDD.read_text(encoding="utf-8").split("## Method ladder", 1)[1].split("\n## ", 1)[0]
+    head = [c.strip().lower() for c in next(ln for ln in section.splitlines() if ln.strip().startswith("| id")).strip("| ").split("|")]
     assert head[:2] == ["id", "tier"]
     tiers = {row[1] for row in ladder_rows()}
     assert {"classical", "sota"} <= tiers and tiers <= {"classical", "sota", "beyond"}
