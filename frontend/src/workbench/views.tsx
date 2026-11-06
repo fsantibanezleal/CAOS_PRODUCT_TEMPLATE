@@ -143,20 +143,20 @@ export function SystemDiagramView({ sel }: { sel: Selection | null }) {
   </g>;
   return <PlotCard fill title={{ en: 'SIR system and directed state transitions', es: 'Sistema SIR y transiciones de estado dirigidas' }} lane="live" provenance="synthetic">
     <Stage label={{ en: 'SIR compartments, infection and recovery flows', es: 'Compartimentos SIR, flujos de contagio y recuperación' }}>
-      {({ width, height }) => width < 520 ? <svg viewBox="0 0 360 410" width={width} height={height} role="group" aria-label={t('Vertical SIR process map and live flows', 'Mapa vertical del proceso SIR y flujos en vivo')} data-system-diagram="" data-layout="mobile">
+      {({ width, height }) => width < 520 ? <svg viewBox="0 0 360 260" width={width} height={height} role="group" aria-label={t('Vertical SIR process map and live flows', 'Mapa vertical del proceso SIR y flujos en vivo')} data-system-diagram="" data-layout="mobile">
         <defs><marker id="sir-mobile-infection-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L0,8 L8,4 z" fill="var(--color-accent)"/></marker><marker id="sir-mobile-recovery-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L0,8 L8,4 z" fill="var(--color-good)"/></marker></defs>
         {([['S', t('Susceptible', 'Susceptibles'), S, 'var(--color-accent)'], ['I', t('Infectious', 'Contagiados'), I, 'var(--color-bad)'], ['R', t('Recovered', 'Recuperados'), R, 'var(--color-good)']] as const).map(([symbol, name, value, tone], row) => {
-          const y = 35 + row * 113;
+          const y = 14 + row * 56;
           const chosen = (linkedSelection ?? 'I') === symbol;
           const fraction = value / sel.data.manifest.params.N * 100;
           return <g key={symbol} role="button" tabIndex={0} aria-label={`${name} ${formatNumber(value, lang, { decimals: 0 })}`} aria-pressed={chosen} data-linked-id={symbol} data-linked-view="scene" data-linked-selected={chosen ? 'true' : 'false'} onClick={() => select(symbol, 'scene')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(symbol, 'scene'); } }} style={{ cursor: 'pointer' }}>
-            <rect x="24" y={y} width="312" height="70" rx="12" fill={chosen ? 'var(--color-accent-soft)' : 'var(--color-surface)'} stroke={chosen ? tone : 'var(--color-border)'} strokeWidth={chosen ? 2.5 : 1.5}/><rect x="24" y={y} width="6" height="70" rx="3" fill={tone}/>
-            <text x="43" y={y + 23} fill="var(--color-fg-faint)" fontSize="11" fontWeight="700">{symbol}</text><text x="65" y={y + 24} fill="var(--color-fg)" fontSize="15" fontWeight="650">{name}</text><text x="65" y={y + 48} fill="var(--color-fg-subtle)" fontSize="11">{formatNumber(fraction, lang, { decimals: 2 })}% {t('of population', 'de población')}</text><text x="319" y={y + 38} textAnchor="end" fill="var(--color-fg)" fontSize="18" fontFamily="var(--font-mono)">{formatNumber(value, lang, { decimals: 0 })}</text>
+            <rect x="24" y={y} width="312" height="46" rx="10" fill={chosen ? 'var(--color-accent-soft)' : 'var(--color-surface)'} stroke={chosen ? tone : 'var(--color-border)'} strokeWidth={chosen ? 2.5 : 1.5}/><rect x="24" y={y} width="6" height="46" rx="3" fill={tone}/>
+            <text x="40" y={y + 15} fill="var(--color-fg-faint)" fontSize="10" fontWeight="700">{symbol}</text><text x="59" y={y + 16} fill="var(--color-fg)" fontSize="13" fontWeight="650">{name}</text><text x="59" y={y + 35} fill="var(--color-fg-subtle)" fontSize="9">{formatNumber(fraction, lang, { decimals: 2 })}% {t('of population', 'de población')}</text><text x="320" y={y + 29} textAnchor="end" fill="var(--color-fg)" fontSize="15" fontFamily="var(--font-mono)">{formatNumber(value, lang, { decimals: 0 })}</text>
           </g>;
         })}
-        <line x1="320" y1="106" x2="320" y2="125" stroke="var(--color-accent)" strokeWidth="3" markerEnd="url(#sir-mobile-infection-arrow)"/><text x="180" y="119" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="10">{t('INFECTION', 'CONTAGIO')} · βSI/N = {formatNumber(infections, lang, { decimals: 1 })} {t('people/day', 'personas/día')}</text>
-        <line x1="320" y1="219" x2="320" y2="238" stroke="var(--color-good)" strokeWidth="3" markerEnd="url(#sir-mobile-recovery-arrow)"/><text x="180" y="232" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="10">{t('RECOVERY', 'RECUPERACIÓN')} · γI = {formatNumber(recoveries, lang, { decimals: 1 })} {t('people/day', 'personas/día')}</text>
-        <text x="180" y="381" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="12">N = S + I + R = {formatNumber(S + I + R, lang, { decimals: 0 })} {t('people', 'personas')}</text><text x="180" y="400" textAnchor="middle" fill="var(--color-fg-faint)" fontSize="10">{t('Flows at selected day', 'Flujos en el día seleccionado')}</text>
+        <line x1="320" y1="60" x2="320" y2="70" stroke="var(--color-accent)" strokeWidth="2" markerEnd="url(#sir-mobile-infection-arrow)"/><text x="180" y="69" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="8">{t('INFECTION', 'CONTAGIO')} · βSI/N = {formatNumber(infections, lang, { decimals: 1 })}</text>
+        <line x1="320" y1="116" x2="320" y2="126" stroke="var(--color-good)" strokeWidth="2" markerEnd="url(#sir-mobile-recovery-arrow)"/><text x="180" y="125" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="8">{t('RECOVERY', 'RECUPERACIÓN')} · γI = {formatNumber(recoveries, lang, { decimals: 1 })}</text>
+        <text x="180" y="195" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="10">N = S + I + R = {formatNumber(S + I + R, lang, { decimals: 0 })}</text><text x="180" y="210" textAnchor="middle" fill="var(--color-fg-faint)" fontSize="8">βSI/N {formatNumber(infections, lang, { decimals: 1 })}/d · γI {formatNumber(recoveries, lang, { decimals: 1 })}/d</text>
       </svg> : <svg viewBox="0 0 960 520" width={width} height={height} role="img" aria-label={t('SIR compartments and equation-derived flows at the selected day', 'Compartimentos SIR y flujos derivados de las ecuaciones en el día seleccionado')} data-system-diagram="" data-layout="desktop">
         <title>{t('SIR system diagram', 'Diagrama del sistema SIR')}</title>
         <defs><marker id="sir-infection-arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0,0 L0,8 L9,4 z" fill="var(--color-accent)"/></marker><marker id="sir-recovery-arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0,0 L0,8 L9,4 z" fill="var(--color-good)"/></marker></defs>
@@ -216,12 +216,12 @@ export function EulerStepView({ sel }: { sel: Selection | null }) {
   ];
   return <PlotCard fill title={{ en: 'Forward Euler: one model step', es: 'Euler explícito: un paso del modelo' }} lane="live" provenance="synthetic">
     <Stage label={{ en: 'One quarter-day update of all three SIR compartments', es: 'Actualización de un cuarto de día de los tres compartimentos SIR' }}>
-      {({ width, height }) => width < 520 ? <svg viewBox="0 0 360 460" width={width} height={height} role="group" aria-label={t('Vertical forward-Euler update for the selected model step', 'Actualización vertical de Euler explícito para el paso seleccionado')} data-euler-step="" data-layout="mobile">
+      {({ width, height }) => width < 520 ? <svg viewBox="0 0 360 300" width={width} height={height} role="group" aria-label={t('Vertical forward-Euler update for the selected model step', 'Actualización vertical de Euler explícito para el paso seleccionado')} data-euler-step="" data-layout="mobile">
         <text x="180" y="24" textAnchor="middle" fill="var(--color-fg)" fontSize="13" fontWeight="700">t = {formatNumber(sel.run.t[index]!, lang, { decimals: 2 })} d → {formatNumber(sel.run.t[nextIndex]!, lang, { decimals: 2 })} d · Δt = {formatNumber(dt, lang, { decimals: 2 })} d</text>
-        {compartments.map((c, row) => { const y = 42 + row * 78; return <g key={c.key}><rect x="22" y={y} width="316" height="64" rx="10" fill="var(--color-surface)" stroke={c.tone} strokeWidth="1.5"/><text x="38" y={y + 23} fill="var(--color-fg)" fontSize="13" fontWeight="700">{c.key} · {c.label}</text><text x="38" y={y + 47} fill="var(--color-fg-subtle)" fontSize="11">{formatNumber(c.value, lang, { decimals: 1 })} → {formatNumber(c.after, lang, { decimals: 1 })} {t('people', 'personas')}</text></g>; })}
-        <text x="180" y="286" textAnchor="middle" fill="var(--color-accent)" fontSize="11">S → I · βSIΔt/N = {formatNumber(infections, lang, { decimals: 1 })} {t('new cases', 'contagios nuevos')}</text><text x="180" y="307" textAnchor="middle" fill="var(--color-good)" fontSize="11">I → R · γIΔt = {formatNumber(recoveries, lang, { decimals: 1 })} {t('recoveries', 'recuperaciones')}</text>
-        <text x="180" y="346" textAnchor="middle" fill="var(--color-fg)" fontFamily="var(--font-mono)" fontSize="10">Sₖ₊₁ = Sₖ − βSₖIₖΔt/N</text><text x="180" y="364" textAnchor="middle" fill="var(--color-fg)" fontFamily="var(--font-mono)" fontSize="10">Iₖ₊₁ = Iₖ + (βSₖIₖ/N − γIₖ)Δt</text><text x="180" y="382" textAnchor="middle" fill="var(--color-fg)" fontFamily="var(--font-mono)" fontSize="10">Rₖ₊₁ = Rₖ + γIₖΔt</text>
-        <text x="180" y="411" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="11">{t('population balance residual', 'residuo de balance poblacional')} = {formatNumber(residual, lang, { decimals: 6 })} {t('people', 'personas')}</text><line x1="35" x2="325" y1="438" y2="438" stroke="var(--color-border)" strokeWidth="2"/><circle cx={35 + index / Math.max(1, sel.run.t.length - 1) * 290} cy="438" r="6" fill="var(--color-accent)" data-linked-cursor-marker="" data-linked-cursor-position={index}/>
+        {compartments.map((c, row) => { const y = 28 + row * 44; return <g key={c.key}><rect x="22" y={y} width="316" height="38" rx="8" fill="var(--color-surface)" stroke={c.tone} strokeWidth="1.5"/><text x="38" y={y + 15} fill="var(--color-fg)" fontSize="11" fontWeight="700">{c.key} · {c.label}</text><text x="38" y={y + 30} fill="var(--color-fg-subtle)" fontSize="9">{formatNumber(c.value, lang, { decimals: 1 })} → {formatNumber(c.after, lang, { decimals: 1 })} {t('people', 'personas')}</text></g>; })}
+        <text x="180" y="170" textAnchor="middle" fill="var(--color-accent)" fontSize="9">S → I · βSIΔt/N = {formatNumber(infections, lang, { decimals: 1 })}</text><text x="180" y="184" textAnchor="middle" fill="var(--color-good)" fontSize="9">I → R · γIΔt = {formatNumber(recoveries, lang, { decimals: 1 })}</text>
+        <text x="180" y="210" textAnchor="middle" fill="var(--color-fg)" fontFamily="var(--font-mono)" fontSize="8">Sₖ₊₁ = Sₖ − infections</text><text x="180" y="224" textAnchor="middle" fill="var(--color-fg)" fontFamily="var(--font-mono)" fontSize="8">Iₖ₊₁ = Iₖ + infections − recoveries</text><text x="180" y="238" textAnchor="middle" fill="var(--color-fg)" fontFamily="var(--font-mono)" fontSize="8">Rₖ₊₁ = Rₖ + recoveries</text>
+        <text x="180" y="256" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="8">{t('Mass-balance residual', 'Residuo de balance de masa')}</text><text x="180" y="270" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="9">{formatNumber(residual, lang, { decimals: 6 })} {t('people', 'personas')}</text><line x1="35" x2="325" y1="286" y2="286" stroke="var(--color-border)" strokeWidth="2"/><circle cx={35 + index / Math.max(1, sel.run.t.length - 1) * 290} cy="286" r="6" fill="var(--color-accent)" data-linked-cursor-marker="" data-linked-cursor-position={index}/>
       </svg> : <svg viewBox="0 0 980 510" width={width} height={height} role="img" aria-label={t('Forward Euler update from the selected model step', 'Actualización de Euler explícito desde el paso seleccionado')} data-euler-step="" data-layout="desktop">
         <text x="490" y="34" textAnchor="middle" fill="var(--color-fg)" fontSize="18" fontWeight="700">t = {formatNumber(sel.run.t[index]!, lang, { decimals: 2 })} d → {formatNumber(sel.run.t[Math.min(sel.run.t.length - 1, index + 1)]!, lang, { decimals: 2 })} d · Δt = {formatNumber(dt, lang, { decimals: 2 })} d</text>
         {compartments.map((c) => <g key={c.key}><rect x={c.x} y="118" width="200" height="170" rx="16" fill="var(--color-surface)" stroke={c.tone} strokeWidth="2"/><text x={c.x + 18} y="151" fill="var(--color-fg-subtle)" fontSize="14">{c.key} · {c.label}</text><text x={c.x + 18} y="204" fill="var(--color-fg)" fontSize="25" fontFamily="var(--font-mono)">{formatNumber(c.value, lang, { decimals: 1 })}</text><text x={c.x + 18} y="233" fill="var(--color-fg-faint)" fontSize="13">{t('after step', 'después del paso')}</text><text x={c.x + 18} y="263" fill="var(--color-fg)" fontSize="19" fontFamily="var(--font-mono)">{formatNumber(c.after, lang, { decimals: 1 })}</text></g>)}
@@ -258,10 +258,10 @@ export function PhasePlaneView({ sel }: { sel: Selection | null }) {
     }
     const r = event.currentTarget.getBoundingClientRect();
     const mobile = event.currentTarget.dataset.layout === 'mobile';
-    const viewWidth = mobile ? 360 : 960, viewHeight = mobile ? 330 : 520;
+    const viewWidth = mobile ? 360 : 960, viewHeight = mobile ? 230 : 520;
     const px = ((event.clientX - r.left) / r.width) * viewWidth;
     const py = ((event.clientY - r.top) / r.height) * viewHeight;
-    const left = mobile ? 52 : 90, right = mobile ? 345 : 928, top = mobile ? 38 : 24, bottom = mobile ? 256 : 458;
+    const left = mobile ? 84 : 90, right = mobile ? 316 : 928, top = mobile ? 28 : 24, bottom = mobile ? 164 : 458;
     const maxI = Math.max(...sel.run.I) / n || 1;
     let best = 0, bestDistance = Infinity;
     for (let k = 0; k < sel.run.t.length; k += 1) {
@@ -277,8 +277,8 @@ export function PhasePlaneView({ sel }: { sel: Selection | null }) {
       {({ width, height }) => {
         const maxI = Math.max(...sel.run.I) / n || 1;
         const mobile = width < 520;
-        const viewWidth = mobile ? 360 : 960, viewHeight = mobile ? 330 : 520;
-        const left = mobile ? 52 : 90, right = mobile ? 345 : 928, top = mobile ? 38 : 24, bottom = mobile ? 256 : 458;
+        const viewWidth = mobile ? 360 : 960, viewHeight = mobile ? 230 : 520;
+        const left = mobile ? 84 : 90, right = mobile ? 316 : 928, top = mobile ? 28 : 24, bottom = mobile ? 164 : 458;
         const x = (s: number) => left + s * (right - left);
         const y = (i: number) => bottom - (i / maxI) * (bottom - top);
         const path = sel.run.S.map((value, k) => `${k ? 'L' : 'M'}${svgCoordinate(x(value / n))},${svgCoordinate(y(sel.run.I[k]! / n))}`).join(' ');
@@ -287,12 +287,12 @@ export function PhasePlaneView({ sel }: { sel: Selection | null }) {
         const px = x(current.s), py = y(current.i);
         return <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} width={width} height={height} role="img" aria-label={t('S-I phase plane. The vertical nullcline marks when infections stop growing.', 'Plano de fase S-I. La nulclina vertical marca cuándo dejan de crecer los contagios.')} tabIndex={0} onPointerMove={nearest} onFocus={() => scrub(peakIndex)} onKeyDown={nearest} data-phase-plane="" data-layout={mobile ? 'mobile' : 'desktop'}>
           <title>{t('S-I phase plane with live trajectory and threshold', 'Plano de fase S-I con trayectoria en vivo y umbral')}</title>
-          {[0, .25, .5, .75, 1].map((tick) => <g key={`x${tick}`}><line x1={x(tick)} x2={x(tick)} y1={top} y2={bottom} stroke="var(--color-border)"/><text x={x(tick)} y={mobile ? 278 : 482} textAnchor="middle" fill="var(--color-fg-subtle)" fontSize={mobile ? 10 : 13}>{formatNumber(tick * 100, lang, { decimals: 0 })}%</text></g>)}
+          {[0, .25, .5, .75, 1].map((tick) => <g key={`x${tick}`}><line x1={x(tick)} x2={x(tick)} y1={top} y2={bottom} stroke="var(--color-border)"/><text x={x(tick)} y={mobile ? 183 : 482} textAnchor="middle" fill="var(--color-fg-subtle)" fontSize={mobile ? 9 : 13}>{formatNumber(tick * 100, lang, { decimals: 0 })}%</text></g>)}
           {[0, .25, .5, .75, 1].map((tick) => <g key={`y${tick}`}><line x1={left} x2={right} y1={y(tick * maxI)} y2={y(tick * maxI)} stroke="var(--color-border)"/><text x={left - 7} y={y(tick * maxI) + 4} textAnchor="end" fill="var(--color-fg-subtle)" fontSize={mobile ? 10 : 13}>{formatNumber(tick * maxI * 100, lang, { decimals: 1 })}%</text></g>)}
-          <line x1={thresholdX} x2={thresholdX} y1={top} y2={bottom} stroke="var(--color-warn)" strokeWidth="2" strokeDasharray="7 5"/><text x={threshold > 1 ? thresholdX - 7 : thresholdX + 7} y={mobile ? 30 : 42} textAnchor={threshold > 1 ? 'end' : 'start'} fill="var(--color-warn)" fontSize={mobile ? 10 : 13}>{threshold > 1 ? 'S/N = γ/β (>100%)' : 'S/N = γ/β'}</text>
+          <line x1={thresholdX} x2={thresholdX} y1={top} y2={bottom} stroke="var(--color-warn)" strokeWidth="2" strokeDasharray="7 5"/><text x={threshold > 1 ? thresholdX - 7 : thresholdX + 7} y={mobile ? 22 : 42} textAnchor={threshold > 1 ? 'end' : 'start'} fill="var(--color-warn)" fontSize={mobile ? 9 : 13}>{threshold > 1 ? 'S/N = γ/β (>100%)' : 'S/N = γ/β'}</text>
           <path d={path} fill="none" stroke="var(--color-accent)" strokeWidth="3" strokeLinejoin="round"/>
           <circle cx={px} cy={py} r="8" fill="var(--color-bad)" stroke="var(--color-bg)" strokeWidth="3" data-linked-cursor-marker="" data-linked-cursor-position={index}/>
-          <text x={mobile ? 198 : 500} y={mobile ? 316 : 512} textAnchor="middle" fill="var(--color-fg)" fontSize={mobile ? 11 : 14}>{t('Susceptible fraction S/N', 'Fracción susceptible S/N')}</text>
+          <text x={mobile ? 200 : 500} y={mobile ? 218 : 512} textAnchor="middle" fill="var(--color-fg)" fontSize={mobile ? 9 : 14}>{t('Susceptible fraction S/N', 'Fracción susceptible S/N')}</text>
           {!mobile && <text transform="translate(18 242) rotate(-90)" textAnchor="middle" fill="var(--color-fg)" fontSize="14">{t('Infected fraction I/N', 'Fracción contagiada I/N')}</text>}
         </svg>;
       }}
@@ -395,39 +395,29 @@ function FinalSizeView({ sel }: { sel: Selection | null }) {
     return { r0s, theory, engine, r0, gap: Math.abs(sel.run.attackRate - finalSize(r0)) };
   }, [sel]);
   if (!sel || !curve) return <Pending label={LOADING} />;
-  const days = sel.data.manifest.params.days;
   const seeded = sel.data.manifest.params.I0 > 0;
+  const verdict = !seeded
+    ? { en: 'No seed; the relation assumes one', es: 'Sin semilla; la relación supone una' }
+    : sel.coverage > 0
+      ? { en: 'Immunisation changes S₀; relation assumes S₀ = N', es: 'La inmunización cambia S₀; la relación supone S₀ = N' }
+      : curve.gap <= 0.02
+        ? { en: `Run within ${formatNumber(curve.gap * 100, 'en', { decimals: 1 })} pp of the relation`, es: `Corrida a ${formatNumber(curve.gap * 100, 'es', { decimals: 1 })} pp de la relación` }
+        : { en: `Run ${formatNumber(curve.gap * 100, 'en', { decimals: 1 })} pp from the relation`, es: `Corrida a ${formatNumber(curve.gap * 100, 'es', { decimals: 1 })} pp de la relación` };
+  const chartTitle = { en: `Final-size relation · ${verdict.en}`, es: `Relación de tamaño final · ${verdict.es}` };
   return (
-    <>
-      {/* The verdict stands on its own above the chart: a titled card around one line would take the drawing's height. */}
-      <Verdict
-        compact
-        title={{ en: 'Against the final-size relation', es: 'Contra la relación de tamaño final' }}
-        tone={sel.coverage > 0 || !seeded ? 'neutral' : curve.gap <= 0.02 ? 'good' : 'warn'}
-        verdict={
-          !seeded
-            ? { en: 'No initial infection: nothing spreads, while the relation assumes a seed of infection.', es: 'Sin contagio inicial: nada se propaga, mientras la relación supone una semilla de contagio.' }
-            : sel.coverage > 0
-            ? { en: 'Immunisation changes the initial susceptible share; the relation below is for a fully susceptible population.', es: 'La inmunización cambia la fracción susceptible inicial; la relación de abajo es para una población totalmente susceptible.' }
-            : curve.gap <= 0.02
-              ? { en: `The run ends within ${formatNumber(curve.gap * 100, 'en', { decimals: 1 })} points of the final size.`, es: `La corrida termina a ${formatNumber(curve.gap * 100, 'es', { decimals: 1 })} puntos del tamaño final.` }
-              : { en: `The run is ${formatNumber(curve.gap * 100, 'en', { decimals: 1 })} points from the final size: the ${days}-day horizon ends first, or R0 is near 1.`, es: `La corrida está a ${formatNumber(curve.gap * 100, 'es', { decimals: 1 })} puntos del tamaño final: el horizonte de ${days} días termina antes, o R0 está cerca de 1.` }
-        }
-      />
-      <PlotCard fill title={{ en: 'Share ever infected against R0', es: 'Fracción alguna vez contagiada contra R0' }} lane="live" provenance="synthetic" dataKey={stateKey}>
+      <PlotCard fill title={chartTitle} lane="live" provenance="synthetic" dataKey={stateKey}>
         <UPlotChart
-          title={{ en: 'Share ever infected against R0', es: 'Fracción alguna vez contagiada contra R0' }}
+          title={chartTitle}
           height="fill"
           x={{ values: curve.r0s, label: { en: 'Basic reproduction number', es: 'Número reproductivo básico' } }}
           y={{ label: { en: 'Attack rate', es: 'Tasa de ataque' }, range: [0, 1] }}
           series={[
             { label: { en: 'Final-size relation', es: 'Relación de tamaño final' }, values: curve.theory, color: '--color-accent' },
-            { label: { en: `Engine at ${days} days`, es: `Motor a ${days} días` }, values: curve.engine, color: '--color-warn', dash: [5, 4] },
+            { label: { en: `Engine at ${sel.data.manifest.params.days} days`, es: `Motor a ${sel.data.manifest.params.days} días` }, values: curve.engine, color: '--color-warn', dash: [5, 4] },
           ]}
           marks={[{ x: curve.r0, label: { en: 'this case', es: 'este caso' } }]}
         />
       </PlotCard>
-    </>
   );
 }
 

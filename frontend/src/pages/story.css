@@ -1,8 +1,6 @@
-.caos-story.template-story { gap: .25rem; padding: 0 .25rem; }
-.template-story .caos-story-step { min-height: 28px; padding-block: 0; }
-.template-story .caos-story-layout { min-height: 80.5vh; }
+.template-story { min-width: 0; }
 .template-story-stage { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
-.template-story-callouts { height: 100%; }
+.template-story-callouts { height: 100%; pointer-events: none; }
 .template-story-drawing { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding-top: 86px; }
 .template-story-card { display: flex; flex: 1 1 0; min-height: 0; }
 .template-story-card > * { flex: 1 1 0; min-height: 0; }
@@ -20,12 +18,9 @@
 .template-story-metric button[aria-pressed="true"] { color: var(--color-accent); border-color: var(--color-accent); background: var(--color-accent-soft); }
 .template-story-state { max-width: 70rem; margin-inline: auto; padding: 1rem; }
 @media (max-width: 760px) {
-  .caos-story.template-story { min-height: 100%; padding: .5rem; }
-  .template-story-drawing { padding-top: 136px; }
-  .caos-story-layout { grid-template-rows: minmax(640px, auto) auto; }
-  .caos-story-stage { min-height: 640px; overflow: visible; }
-  .caos-story-panel { max-height: none; }
-  .template-story-callouts .caos-callout-leaders { display: none; }
+  .template-story-callouts { display: none; }
+  .template-story-drawing { padding-top: 0; }
+  .template-story-card { overflow: hidden; }
 }
 
 .template-phase-readout { margin: .2rem 0; padding: .4rem .65rem; border-left: 3px solid var(--color-accent); background: var(--color-surface-2); font-variant-numeric: tabular-nums; }
