@@ -136,7 +136,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
 | API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
 | API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
-| shell | @fasl-work/caos-app-shell | 0.20.0 | the shared app shell with ADR-0082 story framing and measured G21 gate (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| shell | @fasl-work/caos-app-shell | 0.22.0 | the shared app shell with ADR-0082 story framing and measured G21 gate (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
 | web | react | 19.3.0 | the UI | none: the shell requires it |
 | web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
 | web | react-router | 8.4.0 | the routes | none: the shell requires it |
@@ -155,14 +155,13 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | tests | vitest | 5.0.3 | the web unit tests | jest, rejected: needs a transform for the vite config |
 | gate | playwright | 1.63.0 | the measured UI gate (`npm run gate`), local only | cypress, rejected: heavier install |
 
-### Shell 0.20.0 adoption
+### Shell 0.22.0 adoption
 
-Template 0.15.000 adopts shell 0.20.0 exactly. Its example adds a fourth guided step that exposes the selected live
+Template 0.15.000 adopts shell 0.22.0 exactly. Its example adds a fourth guided step that exposes the selected live
 forward-Euler update, its equation-derived flows, the adjacent observed state and population balance. The pinned
 shell APIs supply the story frame, sourced callouts, reciprocal linked views, reduced-motion transitions and measured
 G21 gate; the product-specific browser check verifies all four distinct views and the same cursor across them. The
-shell package is being verified from its release candidate; the lockfile and data bake must match the published shell
-and this template version before release.
+published shell pin, lockfile and template version are validated together before release.
 
 ## Resources
 
@@ -270,6 +269,6 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0071 | the page is the viewport; one tab row; drawing at least 60% of the App viewport, 80% in Focus | the shell's `CaseWorkbench`; the gate (G5, G6, G18) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
-| ADR-0078 | rules live in the base | shell 0.20.0 (pinned exactly) and this template; no product re-implements them |
+| ADR-0078 | rules live in the base | shell 0.22.0 (pinned exactly) and this template; no product re-implements them |
 | ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |
 | ADR-0082 | every app records V1–V6 with product-specific data/interaction contracts; story mode has 3–6 directly linked finding steps, a dominant stage, docked panel, sourced in-stage callouts, accessible playback, linked interaction and measured motion/performance | `docs/design/SDD.md` catalog checked by `scripts/check_sdd.py`; shell primitives and G21 measure route, evidence, linkage, transitions, reduced motion, phone layout, LCP, frame rate and interaction latency; `frontend/scripts/check_story_mode.mjs` checks four distinct live views, shared cursor, pause/exit and phone clearance; V2 is explicitly replaced by the S→I and I→R transition view because this SIR example has no physical equipment; V5 is implemented as the selected forward-Euler update and tested against the live run |

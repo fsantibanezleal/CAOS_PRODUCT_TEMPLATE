@@ -22,8 +22,8 @@ function LiveValues({ sel }: { sel: Selection | null }) {
       provenance="synthetic"
       dataKey={stateKey}
       items={[
-        { label: { en: 'Basic reproduction number', es: 'Número reproductivo básico' }, value: sel ? sel.beta / sel.gamma : null, unitless: true, format: { decimals: 2 }, good: 1, bad: 1.5, better: 'lower' },
-        { label: { en: 'Peak infected', es: 'Pico de contagiados' }, value: sel ? sel.run.peakI : null, unit: { en: 'people', es: 'personas' }, format: { decimals: 0 } },
+        { label: { en: 'R₀', es: 'R₀' }, value: sel ? sel.beta / sel.gamma : null, unitless: true, format: { decimals: 2 }, good: 1, bad: 1.5, better: 'lower' },
+        { label: { en: 'Peak I', es: 'I máximo' }, value: sel ? sel.run.peakI : null, unit: { en: 'people', es: 'personas' }, format: { decimals: 0 } },
         { label: { en: 'Peak day', es: 'Día del pico' }, value: sel ? sel.run.tPeak : null, unit: 'd', format: { decimals: 1 } },
         { label: { en: 'Attack rate', es: 'Tasa de ataque' }, value: sel ? sel.run.attackRate : null, unitless: true, format: { percent: true, decimals: 1 } },
       ]}
