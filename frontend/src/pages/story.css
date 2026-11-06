@@ -18,8 +18,7 @@
 .template-story-metric button[aria-pressed="true"] { color: var(--color-accent); border-color: var(--color-accent); background: var(--color-accent-soft); }
 .template-story-state { max-width: 70rem; margin-inline: auto; padding: 1rem; }
 @media (max-width: 760px) {
-  .template-story-callouts { display: none; }
-  .template-story-drawing { padding-top: 0; }
+  .template-story-drawing { padding-top: 130px; }
   .template-story-card { overflow: hidden; }
 }
 

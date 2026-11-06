@@ -111,5 +111,5 @@ export function Story() {
     item.stage = <div className="template-story-stage"><SceneCallouts items={definitions[item.id]!} placement="header" className="template-story-callouts"/><div className="template-story-drawing">{views[i]}</div></div>;
     item.panel = <section className="template-story-evidence"><h2>{pick(item.verb, lang)}</h2>{panels[i]}<p><strong>{pick(sel.data.manifest.title, lang)}</strong> · {sel.data.manifest.case_id}</p><span className="badge" data-provenance="synthetic">{t('Synthetic case replay', 'Reproducción de caso sintético')}</span></section>;
   });
-  return <StoryFrame className="template-story" steps={steps} activeId={steps.some((item) => item.id === step) ? step : 'context'} onStepChange={(next) => navigate(`/story/${next}?${params.toString()}`)} onExit={() => navigate(safeFrom ?? fallback)}/>;
+  return <StoryFrame className="template-story" steps={steps} activeId={steps.some((item) => item.id === step) ? step : 'context'} mobileStageMinHeight={620} onStepChange={(next) => navigate(`/story/${next}?${params.toString()}`)} onExit={() => navigate(safeFrom ?? fallback)}/>;
 }
