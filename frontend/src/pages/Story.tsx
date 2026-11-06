@@ -1,13 +1,32 @@
-import { SceneCallouts, StoryFrame, formatNumber, pick, useLinkedView, useShellLang, type SceneCalloutDef, type StoryStep } from '@fasl-work/caos-app-shell';
+import { BarChart, PlotCard, SceneCallouts, StoryFrame, formatNumber, pick, useLinkedView, useShellLang, type SceneCalloutDef, type StoryStep } from '@fasl-work/caos-app-shell';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { loadCase, loadIndex, useArtifact } from '../api/artifacts';
 import { simulate } from '../engine/sir';
 import { caseAbsent } from '../readiness/readiness';
 import { useReadiness } from '../readiness/useReadiness';
-import { CompareView, EulerStepView, PhasePlaneView, SystemDiagramView } from '../workbench/views';
-import type { Selection } from '../workbench/model';
+import { EulerStepView, PhasePlaneView, SystemDiagramView } from '../workbench/views';
+import { COVERAGE, type Selection } from '../workbench/model';
 import './story.css';
+
+function StoryCompareView({ sel }: { sel: Selection }) {
+  const lang = useShellLang();
+  const [metric, setMetric] = useState<'attack' | 'peak'>('attack');
+  const t = (en: string, es: string) => lang === 'es' ? es : en;
+  const rows = useMemo(() => COVERAGE.map((variant) => {
+    const run = simulate({ ...sel.data.manifest.params, beta: sel.beta, gamma: sel.gamma, vaccinated: variant.share });
+    return { id: variant.id, label: variant.label, value: metric === 'attack' ? run.attackRate : run.peakI, highlight: variant.share === sel.coverage };
+  }), [metric, sel]);
+  return <div className="template-story-compare">
+    <div className="template-story-metric" role="group" aria-label={t('Choose comparison measure', 'Elegir medida de comparación')}>
+      <button type="button" aria-pressed={metric === 'attack'} onClick={() => setMetric('attack')}>{t('Attack rate', 'Tasa de ataque')}</button>
+      <button type="button" aria-pressed={metric === 'peak'} onClick={() => setMetric('peak')}>{t('Peak infections', 'Pico de contagios')}</button>
+    </div>
+    <PlotCard fill title={{ en: metric === 'attack' ? 'Attack rate by immunisation' : 'Peak infections by immunisation', es: metric === 'attack' ? 'Tasa de ataque por inmunización' : 'Pico de contagios por inmunización' }} lane="live" provenance="synthetic">
+      <BarChart height="fill" title={{ en: metric === 'attack' ? 'Attack rate by immunisation' : 'Peak infections by immunisation', es: metric === 'attack' ? 'Tasa de ataque por inmunización' : 'Pico de contagios por inmunización' }} axis={{ label: metric === 'attack' ? { en: 'Attack rate', es: 'Tasa de ataque' } : { en: 'Peak infections', es: 'Pico de contagios' }, ...(metric === 'attack' ? { format: { percent: true, decimals: 1 } } : { unit: { en: 'people', es: 'personas' }, format: { decimals: 0 } }) }} data={rows}/>
+    </PlotCard>
+  </div>;
+}
 
 function readout(sel: Selection, lang: 'en' | 'es') {
   const p = sel.data.manifest.params;
@@ -38,11 +57,11 @@ export function Story() {
   const fallback = `/app?case=${encodeURIComponent(caseId ?? '')}`;
   const t = (en: string, es: string) => lang === 'es' ? es : en;
 
-  if (!sel || absent) return <main className="page-body wide template-story-state" data-state={absent || unavailable ? 'unavailable' : 'loading'}>
+  if (!sel || absent) return <section className="template-story-state" data-state={absent || unavailable ? 'unavailable' : 'loading'}>
     <h1>{t('Guided case story', 'Recorrido guiado del caso')}</h1>
     <p>{unavailable ? pick(unavailable, lang) : absent ? t('This case is listed as not available in the release evidence.', 'Este caso figura como no disponible en la evidencia de la versión.') : t('Loading the selected case artifacts.', 'Cargando los artefactos del caso seleccionado.')}</p>
     <a href={fallback}>{t('Return to the workbench', 'Volver al banco de trabajo')}</a>
-  </main>;
+  </section>;
 
   const values = readout(sel, lang);
   const source = { en: `Live TypeScript run · ${sel.data.manifest.case_id}`, es: `Ejecución TypeScript en vivo · ${sel.data.manifest.case_id}` };
@@ -77,7 +96,7 @@ export function Story() {
   ];
   const params = new URLSearchParams({ case: sel.data.manifest.case_id });
   if (safeFrom) params.set('from', safeFrom);
-  const views = [<SystemDiagramView key="system" sel={sel}/>, <PhasePlaneView key="phase" sel={sel}/>, <CompareView key="compare" sel={sel}/>, <EulerStepView key="euler" sel={sel}/>];
+  const views = [<div className="template-story-card" key="system"><SystemDiagramView sel={sel}/></div>, <div className="template-story-card" key="phase"><PhasePlaneView sel={sel}/></div>, <div className="template-story-card" key="compare"><StoryCompareView sel={sel}/></div>, <div className="template-story-card" key="euler"><EulerStepView sel={sel}/></div>];
   const cursorIndex = Math.max(0, Math.min(sel.run.t.length - 1, sharedCursor ?? sel.run.I.reduce((best, value, index) => value > sel.run.I[best]! ? index : best, 0)));
   const scrubbed = { day: formatNumber(sel.run.t[cursorIndex]!, lang, { decimals: 2 }), susceptible: formatNumber(sel.run.S[cursorIndex]!, lang, { decimals: 0 }), infected: formatNumber(sel.run.I[cursorIndex]!, lang, { decimals: 0 }) };
   const statePicker = <div className="template-story-state-picker" aria-label={t('Select a compartment', 'Seleccionar un compartimento')}>{(['S', 'I', 'R'] as const).map((id) => <button key={id} type="button" data-linked-id={id} data-linked-view="panel" data-linked-selected={(selectedState ?? 'I') === id ? 'true' : 'false'} aria-pressed={(selectedState ?? 'I') === id} onClick={() => selectState(id, 'panel')}>{id} · {id === 'S' ? t('Susceptible', 'Susceptibles') : id === 'I' ? t('Infectious', 'Contagiados') : t('Recovered', 'Recuperados')}</button>)}</div>;
@@ -89,8 +108,8 @@ export function Story() {
   ];
   steps.forEach((item, i) => {
     item.href = `/story/${item.id}?${params.toString()}`;
-    item.stage = <div className="template-story-stage"><SceneCallouts items={definitions[item.id]!} placement="header"/><div className="template-story-drawing">{views[i]}</div></div>;
+    item.stage = <div className="template-story-stage"><SceneCallouts items={definitions[item.id]!} placement="header" className="template-story-callouts"/><div className="template-story-drawing">{views[i]}</div></div>;
     item.panel = <section className="template-story-evidence"><h2>{pick(item.verb, lang)}</h2>{panels[i]}<p><strong>{pick(sel.data.manifest.title, lang)}</strong> · {sel.data.manifest.case_id}</p><span className="badge" data-provenance="synthetic">{t('Synthetic case replay', 'Reproducción de caso sintético')}</span></section>;
   });
-  return <StoryFrame className="page-body wide template-story" steps={steps} activeId={steps.some((item) => item.id === step) ? step : 'context'} onStepChange={(next) => navigate(`/story/${next}?${params.toString()}`)} onExit={() => navigate(safeFrom ?? fallback)}/>;
+  return <StoryFrame className="template-story" steps={steps} activeId={steps.some((item) => item.id === step) ? step : 'context'} onStepChange={(next) => navigate(`/story/${next}?${params.toString()}`)} onExit={() => navigate(safeFrom ?? fallback)}/>;
 }

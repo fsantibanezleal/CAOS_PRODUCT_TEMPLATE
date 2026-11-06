@@ -126,6 +126,7 @@ export function Workbench() {
       controls={knobs ? { beta: knobs.beta, gamma: knobs.gamma } : {}}
       variants={{ variants: COVERAGE.map((v) => ({ id: v.id, label: v.label, note: v.note, lane: 'live' })), activeId: variant, onSelect: setVariant, title: { en: 'Immunisation', es: 'Inmunización' } }}
       rail={rail}
+      railWidth={186}
       focus
       groups={[
         { id: 'system', label: { en: 'System', es: 'Sistema' }, lane: 'live', provenance: 'synthetic', content: <SystemDiagramView sel={sel} /> },

@@ -51,6 +51,18 @@ try {
   await desktop.locator('[data-story-link="decision"]').click();
   await desktop.locator('[data-story-step="decision"]').waitFor({ state: 'visible' });
   assert.ok(await desktop.locator('.template-story-stage .caos-plot').count(), 'decision uses a separate comparison view');
+  const attackMeasure = desktop.getByRole('button', { name: 'Attack rate', exact: true });
+  const peakMeasure = desktop.getByRole('button', { name: 'Peak infections', exact: true });
+  assert.equal(await attackMeasure.getAttribute('aria-pressed'), 'true', 'attack rate is the initial comparison measure');
+  await peakMeasure.click();
+  assert.equal(await peakMeasure.getAttribute('aria-pressed'), 'true', 'the comparison measure selector changes the active measure');
+  const peakStage = await desktop.locator('.template-story-stage').innerText();
+  assert.match(peakStage, /Peak infections \(people\)/, 'the stage redraws peak infections with its own unit and scale');
+  assert.match(peakStage, /27,345/, 'the peak-infections view shows the computed scenario value');
+  await attackMeasure.click();
+  const attackStage = await desktop.locator('.template-story-stage').innerText();
+  assert.match(attackStage, /Attack rate by immunisation/, 'the attack-rate comparison can be restored');
+  assert.match(attackStage, /92\.4\s*%/, 'the attack-rate view shows its computed percentage values');
   await desktop.locator('[data-story-link="method"]').click();
   const eulerSvg = desktop.locator('svg[data-euler-step]').first();
   await eulerSvg.waitFor({ state: 'visible' });
