@@ -2,6 +2,64 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.001], 2026-11-07
+
+The defects that CAOS_ChancaDEM's adoption of 0.15.000 exposed (issue #102), with #101, #89 and #91. Each fix has an adversarial
+plant that fails on 0.15.000 (`tests/adversarial/test_adoption_defects_0_15_001.py`, the plants appended to
+`tests/test_bootstrap_regressions.py`, `frontend/src/gate-script.test.ts`).
+
+### Added
+
+- The guided story's routes are declared by the product in `product.json`, `"showcase": {"story_routes": ["/story/<step>", ...]}`
+  (3 to 6 distinct routes, in story order); the example declares its four. `frontend/scripts/gate.mjs` walks exactly `/app`, the
+  five documentation routes and the declared routes, prints that list (`--plan` prints it and stops), and refuses a malformed
+  declaration and a `--routes` list that names an undeclared route or leaves out a declared one. With no story declared it
+  measures `/app` and the documentation routes, says so and keeps `--require-showcase`. `scripts/check_sdd.py` fails a missing or
+  malformed declaration (ADR-0082).
+- `scripts/check_internal_names.py` reads the ids of the SDD's `## Method ladder` (the content-bar check's own inventory parse) and
+  fails on any of them as a word in notebook markdown, code strings and outputs, the notebook index, the manuscripts, the README,
+  `product.json` manuscript titles and the app's strings (#101).
+
+### Changed
+
+- `frontend/scripts/check_story_mode.mjs` checks only what every story owes, on every declared route: the shell's story frame with
+  that step active and numbered, a stepper that links every declared step and nothing else, playback paused by reader input and an
+  exit to the App with its state. The example's own assertions (its four views, linked selection, shared cursor, computed values,
+  exact return target, phone callout band) moved verbatim to `tests/template/story_example.mjs`, which instantiation removes.
+- `scripts/instantiate.py` keeps the example's `showcase` declaration with the example's story; the product replaces both.
+
+### Fixed
+
+- Stage admission: `scripts/check_readiness.py <judged root>` takes the readiness provider and the engine from the checkout that
+  holds the script (the product root) and judges the given root as data only, so an external generation stage of
+  `scripts/local/02_generate-data` is admitted, and a provider or a pipeline package planted in a stage is never loaded (#102, #91).
+- Prose `<` that starts no tag (`sum_{k<n}`, `i<j`) is text in `scripts/check_notebooks.py` `visible_markdown` (used by the notebook
+  and manuscript depth checks): only CommonMark raw HTML reaches the HTML parser, whose handling of an unterminated tag changed in
+  Python 3.12.11 and hid the rest of a document, the SDD's Method ladder included.
+- The base EARS rows ND-004 and ND-005 name "the coverage map", so the residue guard's pattern for the example's `COVERAGE`
+  constant no longer matches the base's own text; the constant is still residue.
+- `scripts/check_doc_paths.py` skips the code spans of the blueprints under `templates/` (they name destinations a product creates,
+  such as `manuscripts/shared/base.tex`); their links are still checked.
+- The codegen plant's dependency copy is bounded by the product's own install, not a fixed 256 MB: the install must be the lock's
+  (`node_modules/.package-lock.json` against `package-lock.json`) and the copy must leave 2 GiB free on its drive.
+- `tests/test_bootstrap_regressions.py` (#89): the readiness inventory is the product's catalog less `readiness_excludes`, never a
+  fixed 6 or 17 inferred from `registry.py`; the receipt test writes one readiness row per required path and gives its fixture
+  schemas their `$id` and dialect; the frontend isolation test reads the product's `frontend_environment` only when declared and
+  expects the no-overlay failure only from a `copy-data.mjs` that reads `CAOS_DATA_ROOT`.
+
+### Adoption note for products
+
+- Declare the story in `product.json`: `"showcase": {"story_routes": [...]}` with the product's own `/story/<step>` routes in story
+  order (ChancaDEM: its five steps). Take `frontend/scripts/gate.mjs` and `frontend/scripts/check_story_mode.mjs` verbatim; remove any
+  local edit of the runner's route list and any example assertion kept in the story check, and move the product's own story
+  assertions (its views, numbers, return state) into the product's tests.
+- Take `scripts/check_readiness.py`, `scripts/check_notebooks.py`, `scripts/check_internal_names.py`, `scripts/check_sdd.py`,
+  `scripts/check_doc_paths.py`, `tests/adversarial/planting.py` and `tests/test_bootstrap_regressions.py` verbatim, and drop the
+  local adaptations of the three bootstrap regression tests and of the readiness CLI tests (a product test that ran the template's
+  checker against another root now runs its own copy). Remove the ladder ids (`M-<n>`, `B-lin`, ...) from notebook text and outputs,
+  manuscripts, the README and the app's strings: `check_internal_names.py` now fails them.
+- Re-run `python data-pipeline/run.py readiness` after the version bump, and `scripts/local/02_generate-data` to admit a fresh stage.
+
 ## [0.15.000], 2026-11-05
 
 ### Added
