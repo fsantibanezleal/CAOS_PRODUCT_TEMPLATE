@@ -2,6 +2,29 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.002], 2026-11-07
+
+The internal-names guard tells a data key from a method name (the follow-up of #101, found by CAOS_ChancaDEM's adoption of 0.15.001:
+about a third of its findings were code reading the product's committed documents through their contract keys, such as
+`st["M0_backbone"]` and `cmp_["kW"]["M0"]`). The plants are in `tests/adversarial/test_ladder_keys_0_15_002.py`; requirement MT-012.
+
+### Changed
+
+- `scripts/check_internal_names.py`: a string literal that is exactly a key, at any depth, of a committed JSON document under
+  `data/derived/` or a property name of a schema under `docs/contracts/schemas/`, and that stands in the position of a key access
+  (a subscript, a key of a dict or object literal, the key argument of `.get`, `.pop` or `.setdefault`) in a notebook code cell,
+  a manuscript `.py` script or an app `.ts(x)` source, is an identifier of the data contract and not a finding. Nothing a reader
+  sees is exempt: a chart label, a legend entry, a list of labels, notebook prose and outputs, manuscript text, the README, JSX text,
+  an app label and a string that merely contains an id still fail, even when the same word is a key of a document. A product
+  with no committed document has no data key and the guard behaves as in 0.15.001.
+
+### Adoption note for products
+
+- Take `scripts/check_internal_names.py` and `tests/adversarial/test_ladder_keys_0_15_002.py` verbatim. A label or an id that a
+  figure script or a notebook keeps in a list or a tuple of identifiers (`for m in ("M0", "B_lin")`) is still a finding, because
+  a list of ids cannot be told from a list of labels without reading what the code does with it: iterate over the keys of the
+  document, show a method by its name, or, after review, mark the line `internal-name-ok`.
+
 ## [0.15.001], 2026-11-07
 
 The defects that CAOS_ChancaDEM's adoption of 0.15.000 exposed (issue #102), with #101, #89 and #91. Each fix has an adversarial
