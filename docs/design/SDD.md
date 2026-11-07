@@ -110,10 +110,12 @@ instantiated product must replace every example contract with its own domain res
 
 The example rows distinguish the physical-component view (inapplicable to this non-physical model, replaced by its
 named S→I and I→R transitions) from implemented behavior. The fourth story view derives its before/after values and
-fluxes from the exact selected live run; it does not animate a separate illustrative solver. The guided story's four
-distinct views, shared cursor, exact return route, pause-on-input and phone callout clearance are checked by
-`frontend/scripts/check_story_mode.mjs`; the template's shell gate separately checks route, stage, panel and callout
-geometry. This example has no real telemetry: all run values and comparisons are synthetic and recomputed locally.
+fluxes from the exact selected live run; it does not animate a separate illustrative solver. The story's four steps are
+declared in `product.json` (`showcase.story_routes`), the list the gate runner and the story check walk. The guided story's
+four distinct views, shared cursor, exact return route and phone callout clearance are checked by the example's own
+browser check, `tests/template/story_example.mjs`; `frontend/scripts/check_story_mode.mjs` checks what every story owes
+(each declared step framed and numbered, direct step links, pause on input, exit to the App with its state), and the
+template's shell gate separately checks route, stage, panel and callout geometry. This example has no real telemetry: all run values and comparisons are synthetic and recomputed locally.
 
 ## Technology and versions
 
@@ -273,4 +275,4 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
 | ADR-0078 | rules live in the base | shell 0.23.0 (pinned exactly) and this template; no product re-implements them |
 | ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |
-| ADR-0082 | every app records V1–V6 with product-specific data/interaction contracts; story mode has 3–6 directly linked finding steps, a dominant stage, docked panel, sourced in-stage callouts, accessible playback, linked interaction and measured motion/performance | `docs/design/SDD.md` catalog checked by `scripts/check_sdd.py`; shell primitives and G21 measure route, evidence, linkage, transitions, reduced motion, phone layout, LCP, frame rate and interaction latency; `frontend/scripts/check_story_mode.mjs` checks four distinct live views, shared cursor, pause/exit and phone clearance; V2 is explicitly replaced by the S→I and I→R transition view because this SIR example has no physical equipment; V5 is implemented as the selected forward-Euler update and tested against the live run |
+| ADR-0082 | every app records V1–V6 with product-specific data/interaction contracts; story mode has 3–6 directly linked finding steps, a dominant stage, docked panel, sourced in-stage callouts, accessible playback, linked interaction and measured motion/performance | `docs/design/SDD.md` catalog checked by `scripts/check_sdd.py`; shell primitives and G21 measure route, evidence, linkage, transitions, reduced motion, phone layout, LCP, frame rate and interaction latency; the story's steps are declared in `product.json` `showcase.story_routes` and `scripts/check_sdd.py` fails a missing or malformed list; `frontend/scripts/check_story_mode.mjs` checks each declared step framed and numbered, direct step links, pause on input and exit to the App; `tests/template/story_example.mjs` checks the example's four distinct live views, shared cursor, exact return and phone clearance; V2 is explicitly replaced by the S→I and I→R transition view because this SIR example has no physical equipment; V5 is implemented as the selected forward-Euler update and tested against the live run |

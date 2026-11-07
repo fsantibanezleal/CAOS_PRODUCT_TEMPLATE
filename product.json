@@ -22,5 +22,13 @@
     "pipeline.stages.train.predict",
     "pipeline.stages.infer.run",
     "pipeline.stages.evaluate.run"
-  ]
+  ],
+  "showcase": {
+    "story_routes": [
+      "/story/context",
+      "/story/phase",
+      "/story/decision",
+      "/story/method"
+    ]
+  }
 }
