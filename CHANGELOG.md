@@ -46,6 +46,13 @@ plant that fails on 0.15.000 (`tests/adversarial/test_adoption_defects_0_15_001.
   fixed 6 or 17 inferred from `registry.py`; the receipt test writes one readiness row per required path and gives its fixture
   schemas their `$id` and dialect; the frontend isolation test reads the product's `frontend_environment` only when declared and
   expects the no-overlay failure only from a `copy-data.mjs` that reads `CAOS_DATA_ROOT`.
+- The notebook runner tests of `tests/test_run_notebooks.py` and the five release-gate plants of
+  `tests/template/adversarial/test_notebooks_refuted.py` stopped at "initialize the declared notebook runtime" wherever they
+  ran since 0.14.006 (the runner resolves its declared external runtime first; the fixtures pointed it at a missing or local
+  environment). The runner tests now run in the running interpreter's environment, with a plant that keeps the refusal
+  without one; the release-gate plants resolve the runtime as the runner does and copy the workflow.
+- The example regenerated and promoted at 0.15.001 through `scripts/local/02_generate-data --release`: the index and the five
+  manifests record engine 0.15.001 and readiness reports the derived rows available (the traces and the model are unchanged).
 
 ### Adoption note for products
 
