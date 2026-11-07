@@ -27,6 +27,9 @@ plant that fails on 0.15.000 (`tests/adversarial/test_adoption_defects_0_15_001.
   exit to the App with its state. The example's own assertions (its four views, linked selection, shared cursor, computed values,
   exact return target, phone callout band) moved verbatim to `tests/template/story_example.mjs`, which instantiation removes.
 - `scripts/instantiate.py` keeps the example's `showcase` declaration with the example's story; the product replaces both.
+- `frontend/scripts/materialize-routes.mjs` writes the story pages from the same declaration instead of the example's four
+  routes, and stops the build on a malformed declaration, so a product's own steps answer a direct link (G4)
+  (`tests/adversarial/test_requirements_refuted.py::test_the_story_pages_are_the_routes_the_product_declares`).
 
 ### Fixed
 
