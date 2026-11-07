@@ -1,7 +1,34 @@
+// The guided story in a browser, on this build (ADR-0082, 0.15.001): what every story owes its reader, whatever its steps. The steps
+// are the routes the product declares in product.json, key "showcase": { "story_routes": ["/story/<step>", ...] } (the gate runner
+// walks the same list). For each declared route it checks that the route renders the shell's story frame with that step active and
+// its numbered marker, and that the stepper links directly to every declared step and to nothing else; then that playback pauses on
+// reader input and that the exit lands on the App with its state in the URL. What a product's story shows (its views, its numbers,
+// its linked selections) is the product's to test in its own tests; this file holds nothing of one product.
+// A product that declares no story is told so here and passes: scripts/check_sdd.py and the shell's G21 fail the missing story.
+//   node scripts/check_story_mode.mjs            serves dist/ on a free loopback port
+//   node scripts/check_story_mode.mjs <origin>   checks a running build (a preview or a deployed origin)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { createServer } from 'node:net';
-import { chromium } from 'playwright';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const product = JSON.parse(readFileSync(join(here, '..', '..', 'product.json'), 'utf8'));
+const STORY_ROUTE = /^\/story\/[A-Za-z0-9][A-Za-z0-9._~-]*$/;
+const APP_ROUTE = '/app';
+
+const declared = product.showcase?.story_routes;
+if (declared === undefined) {
+  console.log('check_story_mode: no story is declared in product.json (showcase.story_routes); nothing to check here (scripts/check_sdd.py and G21 fail the missing story, ADR-0082)');
+  process.exit(0);
+}
+if (!Array.isArray(declared) || declared.length === 0 || declared.some((r, i) => typeof r !== 'string' || !STORY_ROUTE.test(r) || declared.indexOf(r) !== i)) {
+  console.error(`check_story_mode: product.json showcase.story_routes must be a list of distinct "/story/<step>" routes; it is ${JSON.stringify(declared)}`);
+  process.exit(1);
+}
+const { chromium } = await import('playwright');
 
 let serverProcess;
 let base = process.argv[2] ? process.argv[2].replace(/\/+$/, '') : null;
@@ -13,7 +40,7 @@ if (!base) {
   const port = address.port;
   await new Promise((resolve) => portServer.close(resolve));
   base = `http://127.0.0.1:${port}`;
-  serverProcess = spawn(process.execPath, ['scripts/serve.mjs', '--host', '127.0.0.1', '--port', String(port)], { cwd: process.cwd(), stdio: 'ignore' });
+  serverProcess = spawn(process.execPath, [join(here, 'serve.mjs'), '--host', '127.0.0.1', '--port', String(port)], { cwd: join(here, '..'), stdio: 'ignore' });
   let ready = false;
   for (let attempt = 0; attempt < 60; attempt += 1) {
     if (serverProcess.exitCode !== null) throw new Error(`Story smoke server exited with ${serverProcess.exitCode}`);
@@ -22,74 +49,44 @@ if (!base) {
   }
   if (!ready) { serverProcess.kill(); throw new Error('Story smoke server did not become ready'); }
 }
+const basePath = new URL(base).pathname.replace(/\/+$/, '');
+/** The route a link or a URL addresses, without the origin, the base path and the query. */
+const routeOf = (href) => {
+  const path = new URL(href, `${base}/`).pathname.replace(/\/+$/, '') || '/';
+  return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
+};
+
 const errors = [];
 const browser = await chromium.launch({ headless: true });
 try {
-  const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  desktop.on('pageerror', (error) => errors.push(error.message));
-  const from = '/app?case=EX02_epidemic&view=system&focus=1';
-  await desktop.goto(`${base}/story/context?case=EX02_epidemic&from=${encodeURIComponent(from)}`, { waitUntil: 'domcontentloaded' });
-  await desktop.locator('[data-story-step="context"]').waitFor({ state: 'visible', timeout: 15000 });
-  assert.equal(await desktop.locator('[data-story-link]').count(), 4, 'four directly linked story steps, including the numerical method');
-  assert.equal(await desktop.locator('[data-system-diagram]').count(), 1, 'context is a distinct system diagram');
-  await desktop.locator('[data-system-diagram] g[role="button"]').first().click();
-  assert.match(await desktop.locator('[data-linked-selection]').innerText(), /S/);
-  assert.equal(await desktop.locator('[data-linked-view="panel"][data-linked-id="S"]').getAttribute('data-linked-selected'), 'true', 'scene selection updates the linked evidence panel');
-  await desktop.locator('[data-linked-view="panel"][data-linked-id="R"]').click();
-  assert.equal(await desktop.locator('[data-linked-view="scene"][data-linked-id="R"]').getAttribute('data-linked-selected'), 'true', 'panel selection updates the linked scene');
-  const slider = desktop.getByRole('slider', { name: 'Scrub model day' });
-  await slider.focus();
-  await slider.press('ArrowRight');
-  const sharedDay = await desktop.locator('.template-story-evidence').innerText();
-  await desktop.locator('[data-story-link="phase"]').click();
-  await desktop.locator('[data-phase-plane]').waitFor({ state: 'visible' });
-  assert.equal((await desktop.locator('.template-story-evidence').innerText()).match(/linked day\s+([\d.,]+)/i)?.[1], sharedDay.match(/linked day\s+([\d.,]+)/i)?.[1], 'system scrub is retained by the phase view and panel');
-  await desktop.locator('[data-phase-plane]').focus();
-  await desktop.keyboard.press('ArrowRight');
-  const scrubbedPanel = await desktop.locator('.template-story-evidence').innerText();
-  assert.ok(scrubbedPanel.includes('S ='), 'panel readout follows phase-plane keyboard scrub');
-  await desktop.locator('[data-story-link="decision"]').click();
-  await desktop.locator('[data-story-step="decision"]').waitFor({ state: 'visible' });
-  assert.ok(await desktop.locator('.template-story-stage .caos-plot').count(), 'decision uses a separate comparison view');
-  const attackMeasure = desktop.getByRole('button', { name: 'Attack rate', exact: true });
-  const peakMeasure = desktop.getByRole('button', { name: 'Peak infections', exact: true });
-  assert.equal(await attackMeasure.getAttribute('aria-pressed'), 'true', 'attack rate is the initial comparison measure');
-  await peakMeasure.click();
-  assert.equal(await peakMeasure.getAttribute('aria-pressed'), 'true', 'the comparison measure selector changes the active measure');
-  const peakStage = await desktop.locator('.template-story-stage').innerText();
-  assert.match(peakStage, /Peak infections \(people\)/, 'the stage redraws peak infections with its own unit and scale');
-  assert.match(peakStage, /27,345/, 'the peak-infections view shows the computed scenario value');
-  await attackMeasure.click();
-  const attackStage = await desktop.locator('.template-story-stage').innerText();
-  assert.match(attackStage, /Attack rate by immunisation/, 'the attack-rate comparison can be restored');
-  assert.match(attackStage, /92\.4\s*%/, 'the attack-rate view shows its computed percentage values');
-  await desktop.locator('[data-story-link="method"]').click();
-  const eulerSvg = desktop.locator('svg[data-euler-step]').first();
-  await eulerSvg.waitFor({ state: 'visible' });
-  assert.match(await eulerSvg.getAttribute('aria-label') ?? '', /Euler/i, 'method step renders the actual numerical update');
-  const play = desktop.locator('[data-story] button[aria-pressed]').first();
-  await play.click();
-  assert.equal(await play.getAttribute('aria-pressed'), 'true');
-  await desktop.locator('[data-story-link="phase"]').click();
-  assert.equal(await desktop.locator('[data-story] button[aria-pressed]').first().getAttribute('aria-pressed'), 'false', 'reader interaction pauses playback');
-  await desktop.locator('.caos-story-exit').click();
-  await desktop.waitForURL((url) => `${url.pathname}${url.search}` === from);
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page.on('pageerror', (error) => errors.push(error.message));
+  for (const route of declared) {
+    await page.goto(`${base}${route}`, { waitUntil: 'domcontentloaded' });
+    const frame = page.locator('[data-story]');
+    await frame.waitFor({ state: 'visible', timeout: 15000 });
+    const active = page.locator('[data-story-link][aria-current="step"]');
+    assert.equal(await active.count(), 1, `${route}: the story frame marks exactly one active step`);
+    assert.equal(routeOf(await active.getAttribute('href')), route, `${route}: the active step is the step this route addresses`);
+    assert.match(await active.locator('.caos-story-step-number').innerText(), /\d/, `${route}: the active step carries its number`);
+    const links = await page.locator('[data-story-link]').evaluateAll((items) => items.map((a) => a.getAttribute('href')));
+    assert.deepEqual(links.map(routeOf).sort(), [...declared].sort(), `${route}: the stepper links directly to every declared step and to nothing else`);
+  }
 
-  const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  phone.on('pageerror', (error) => errors.push(error.message));
-  await phone.goto(`${base}/story/context?case=EX02_epidemic`, { waitUntil: 'domcontentloaded' });
-  await phone.locator('[data-system-diagram]').waitFor({ state: 'visible' });
-  const geometry = await phone.evaluate(() => ({
-    width: document.documentElement.scrollWidth,
-    viewport: innerWidth,
-    stage: (() => { const r = document.querySelector('[data-stage]').getBoundingClientRect(); return { top: r.top, right: r.right, bottom: r.bottom }; })(),
-    drawing: (() => { const r = document.querySelector('.template-story-drawing .caos-plot').getBoundingClientRect(); return { top: r.top, right: r.right, bottom: r.bottom }; })(),
-    calls: [...document.querySelectorAll('[data-caos-callout]')].map((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; }),
-  }));
-  assert.ok(geometry.width <= geometry.viewport + 1, 'phone story has no page-level horizontal overflow');
-  assert.ok(geometry.calls.every((call) => call.left >= 0 && call.right <= geometry.viewport && call.bottom <= geometry.drawing.top + 1), 'phone callout band stays above the active drawing');
+  await page.goto(`${base}${declared[0]}`, { waitUntil: 'domcontentloaded' });
+  await page.locator('[data-story]').waitFor({ state: 'visible', timeout: 15000 });
+  const play = page.locator('.caos-story-controls button[aria-pressed]').first();
+  await play.click();
+  assert.equal(await play.getAttribute('aria-pressed'), 'true', 'play starts the story');
+  await page.locator(`[data-story-link]`).nth(declared.length > 1 ? 1 : 0).click();
+  assert.equal(await page.locator('.caos-story-controls button[aria-pressed]').first().getAttribute('aria-pressed'), 'false', 'reader input pauses playback');
+
+  await page.locator('.caos-story-exit').click();
+  await page.waitForURL((url) => routeOf(url.href) === APP_ROUTE, { timeout: 15000 });
+  const landed = new URL(page.url());
+  assert.ok(landed.search.length > 1 || landed.hash.length > 1, `the exit lands on the App with its state in the URL (landed on ${landed.pathname}${landed.search}${landed.hash})`);
   assert.deepEqual(errors, [], 'no uncaught page errors');
-  console.log('Four distinct story views, linked scene/panel scrubbing, pause/exit state, and desktop/phone callout clearance passed.');
+  console.log(`check_story_mode: ${declared.length} declared story steps (${declared.join(', ')}): each renders its numbered step and links every step directly; reader input pauses playback; the exit returns to the App with its state.`);
 } finally {
   await browser.close();
   serverProcess?.kill();
