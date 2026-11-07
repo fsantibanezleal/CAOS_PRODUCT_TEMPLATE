@@ -933,3 +933,50 @@ def test_adversarial_frontend_isolation_for_a_consumer_of_its_own_bake(workflow,
         ROOT / "frontend/scripts/copy-data.mjs").read_text(encoding="utf-8")
     monkeypatch.setattr(sys.modules[__name__], "ROOT", product)
     test_adversarial_frontend_environment_isolation(workflow, fixture_repo, monkeypatch)
+
+
+# ---- BD-10: the readiness checker runs in the generation environment, not in the bootstrap interpreter
+
+def generation_only_environment(base):
+    """A real, empty venv (no pip) whose site-packages holds one module the interpreter running the tests lacks: a stand-in
+    for a generation environment with numpy or jsonschema that the bootstrap interpreter does not have."""
+    import venv
+
+    env = base / "generation env"
+    venv.EnvBuilder(with_pip=False).create(env)
+    python = next(p for p in (env / "Scripts" / "python.exe", env / "bin" / "python") if p.is_file())
+    site = subprocess.run([str(python), "-c", "import sysconfig;print(sysconfig.get_paths()['purelib'])"],
+                          capture_output=True, text=True, check=True).stdout.strip()
+    write(Path(site) / "generation_only_dependency.py", "VALUE = 1\n")
+    return python
+
+
+def provider_product(root):
+    """A product whose declared provider imports a package of its generation environment only."""
+    write(root / "scripts/check_readiness.py", (ROOT / "scripts/check_readiness.py").read_text(encoding="utf-8"))
+    write(root / "scripts/local/provider.py",
+          "import generation_only_dependency\n\ndef validate(root):\n    return generation_only_dependency.VALUE == 1\n")
+    return {"readiness_provider": "scripts/local/provider.py", "readiness_check": "scripts/check_readiness.py",
+            "generation_environments": [".venv-pipeline"]}
+
+
+def test_adversarial_a_provider_with_generation_packages_is_admitted_by_the_bootstrap(workflow, tmp_path, monkeypatch):
+    import importlib.util as util
+
+    assert util.find_spec("generation_only_dependency") is None, "the bootstrap interpreter must lack the planted module"
+    root = tmp_path / "product"
+    config = provider_product(root)
+    write(root / "scripts/local/workflow.json", json.dumps(config))
+    python = generation_only_environment(tmp_path)
+    monkeypatch.setattr(workflow, "venv_python", lambda *_: python)
+    ready = {"contracts": [{"id": "a", "state": "available"}]}
+    workflow.check_readiness_states(root, config, ready, root)          # the generation interpreter resolved by the helper
+    workflow.check_readiness_states(root, config, ready, root, python)  # the interpreter a stage admission passes
+    # the bootstrap interpreter alone cannot run this provider: the guard is not stdlib-only
+    bootstrap = subprocess.run([sys.executable, "-B", str(root / "scripts/check_readiness.py"), str(root)], capture_output=True,
+                               text=True, cwd=root)
+    assert bootstrap.returncode == 1 and "generation_only_dependency" in bootstrap.stdout, bootstrap.stdout
+    # and a provider that fails in the generation environment still refuses
+    write(root / "scripts/local/provider.py", "import generation_only_dependency\n\ndef validate(root):\n    return False\n")
+    with pytest.raises(workflow.Failure, match="Command failed"):
+        workflow.check_readiness_states(root, config, ready, root)
