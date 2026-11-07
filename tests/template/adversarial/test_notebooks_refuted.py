@@ -3,7 +3,10 @@ committed example set, with the real guard run as a subprocess. The unplanted co
 fails proves the rule and not a broken copy. The tests need only the standard library and pytest, so CI runs them.
 
 The execution gate (``scripts/run_notebooks.py --check``) needs the notebook environment, which CI does not install: its two
-plants skip without ``.venv-notebooks``."""
+plants skip without the declared notebook runtime. Since 0.14.006 the runner resolves that runtime from
+``scripts/local/workflow.json`` (the external ``CAOS_VENVS_ROOT/<namespace>/<runtime>``); this file still looked for a local
+``.venv-notebooks`` and copied no workflow, so its five execution plants stopped at "initialize the declared notebook runtime"
+wherever the runtime existed (0.15.001). The runtime is now resolved as the runner resolves it, and the copy carries the workflow."""
 from __future__ import annotations
 
 import base64
@@ -21,7 +24,13 @@ from planting import ROOT, guard, make_tree
 
 TEMPLATE_ONLY = pytest.mark.skipif(not (ROOT / ".template-source").exists(),
                                    reason="the sentinel is removed from a copy of the template's example set (.template-source)")
-NOTEBOOK_PYTHON = next((p for p in (ROOT / ".venv-notebooks" / "Scripts" / "python.exe", ROOT / ".venv-notebooks" / "bin" / "python") if p.is_file()), None)
+_spec = importlib.util.spec_from_file_location("_refuted_runner", ROOT / "scripts" / "run_notebooks.py")
+_RUNNER = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_RUNNER)
+try:  # the runtime the runner itself resolves (declared external environment, or the local venv where none is declared)
+    NOTEBOOK_PYTHON = _RUNNER.venv_python()
+except (OSError, ValueError, KeyError, TypeError):
+    NOTEBOOK_PYTHON = None
 EN = "notebooks/en/02-threshold-and-final-size"
 ES = "notebooks/es/02-threshold-and-final-size"
 FOLDERS = ("frontend", "app", "data-pipeline", "notebooks", "data", "docs/contracts", "docs", "tests", "scripts", "deploy")
@@ -32,7 +41,7 @@ def base(tmp_path_factory: pytest.TempPathFactory) -> Path:
     dest = tmp_path_factory.mktemp("nb-base")
     make_tree(dest, "notebooks", "docs/design/SDD.md", ".github", "data/derived", "README.md", "data-pipeline",
               "scripts/check_notebooks.py", "scripts/notebook_bar.json", "scripts/check_readme_areas.py", "scripts/check_tech_matrix.py", "scripts/run_notebooks.py",
-              "scripts/instantiate.py", "scripts/check_template_residue.py", "VERSION", ".template-source", "product.json", "requirements*.txt", "frontend/package.json", "frontend/package-lock.json", "pyproject.toml",
+              "scripts/instantiate.py", "scripts/check_template_residue.py", "scripts/local/workflow.json", "scripts/local/workflow.py", "VERSION", ".template-source", "product.json", "requirements*.txt", "frontend/package.json", "frontend/package-lock.json", "pyproject.toml",
               "docs/contracts/api.openapi.json", "data/examples/params.csv", "models/surrogate.json",
               "docs/contracts/schemas/surrogate-model.schema.json")
     return dest

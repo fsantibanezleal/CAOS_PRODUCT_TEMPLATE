@@ -80,6 +80,34 @@ records no waiver. `npm run gate` reads the same two places and refuses to run w
 `--require-focus` otherwise, whatever extra arguments a run passes. While Focus is required it also refuses an argument that would make the check measure nothing: `--workbench`, `--app-route` on a workbench, or a `--routes` list that leaves out the App route. When `deploy/TARGET` is `vps`, the runner also passes
 `--spa-fallback`, so the build is served as nginx serves it (`try_files $uri $uri/ /index.html`).
 
+### The guided story's routes (`showcase.story_routes`)
+
+Since 0.15.001 `product.json` declares the steps of the product's guided story (ADR-0082), and nothing else in the base names them:
+
+```json
+"showcase": { "story_routes": ["/story/context", "/story/phase", "/story/decision", "/story/method"] }
+```
+
+| Field | Values | Meaning |
+|---|---|---|
+| `showcase.story_routes` | 3 to 6 distinct routes `/story/<step>`, in story order | The routes of the story's steps. The example declares its four; `instantiate.py` keeps the declaration with the example's story, and the product replaces both with its own (a five-step story declares five routes). |
+
+Three places read the list, and none holds a route of its own:
+
+- `npm run gate` (`frontend/scripts/gate.mjs`) walks `/app`, the five documentation routes and the declared story routes, and
+  prints that list (`gate: routes ...`; `npm run gate -- --plan` prints it with the arguments and stops before the shell gate). A
+  `--routes` list may name only those routes, and must name all of them (ADR-0082): an undeclared route is refused, and so is a
+  list that leaves a declared step out. A product that declares no story is measured on `/app` and the documentation routes and is
+  told so; `--require-showcase` stays on, so the shell's G21 reports the missing story.
+- `npm run check:story` (`frontend/scripts/check_story_mode.mjs`, the first half of `npm run gate`) checks what every story owes its
+  reader, on the build: each declared route renders the shell's story frame with that step active and numbered, the stepper links
+  directly to every declared step and to nothing else, reader input pauses playback, and the exit lands on the App with its state in
+  the URL. What the story shows (its views, its numbers, its linked selections) is tested in the product's own tests; the example's
+  are in `tests/template/story_example.mjs` (`cd frontend && node ../tests/template/story_example.mjs` after a build), removed with
+  `tests/template/` at instantiation.
+- `scripts/check_sdd.py` fails a `product.json` without the list, with fewer than 3 or more than 6 routes, a duplicate or an entry
+  that is not one `/story/<step>`: ADR-0082 requires the story, and the SDD guard is where its absence fails.
+
 ## 2. Write the specification area, then fix the contracts
 
 The map is [`docs/design/README.md`](../design/README.md). In this order, each step with its guard
@@ -237,6 +265,7 @@ handle `fsantibanezleal`, the repositories' owner identifier, may stand in a sou
 - `scripts/check_base_integrity.py`
 - `scripts/check_content_standards.py`
 - `frontend/scripts/gate.mjs`
+- `frontend/scripts/check_story_mode.mjs`
 
 Before a release that changes a method, a data source or a result, publish the new version of the product's technical report on
 Zenodo and run `python scripts/check_manuscripts.py --release` (`--zenodo` also reads the records online; a local step, never CI;
