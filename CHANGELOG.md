@@ -46,6 +46,10 @@ plant that fails on 0.15.000 (`tests/adversarial/test_adoption_defects_0_15_001.
   fixed 6 or 17 inferred from `registry.py`; the receipt test writes one readiness row per required path and gives its fixture
   schemas their `$id` and dialect; the frontend isolation test reads the product's `frontend_environment` only when declared and
   expects the no-overlay failure only from a `copy-data.mjs` that reads `CAOS_DATA_ROOT`.
+- `scripts/local/workflow.py` runs the readiness checker in the product's generation environment (`generation_python`), not in
+  the interpreter that started the bootstrap (BD-10, found running `01_init -Notebooks` on ChancaDEM: "No module named
+  'jsonschema'"). The checker loads the product's own provider and pipeline since this release, and they need the generation
+  packages; shipped-artifact checks and stage admission both pass that interpreter.
 - The notebook runner tests of `tests/test_run_notebooks.py` and the five release-gate plants of
   `tests/template/adversarial/test_notebooks_refuted.py` stopped at "initialize the declared notebook runtime" wherever they
   ran since 0.14.006 (the runner resolves its declared external runtime first; the fixtures pointed it at a missing or local
@@ -60,7 +64,7 @@ plant that fails on 0.15.000 (`tests/adversarial/test_adoption_defects_0_15_001.
   order (ChancaDEM: its five steps). Take `frontend/scripts/gate.mjs` and `frontend/scripts/check_story_mode.mjs` verbatim; remove any
   local edit of the runner's route list and any example assertion kept in the story check, and move the product's own story
   assertions (its views, numbers, return state) into the product's tests.
-- Take `scripts/check_readiness.py`, `scripts/check_notebooks.py`, `scripts/check_internal_names.py`, `scripts/check_sdd.py`,
+- Take `scripts/local/workflow.py`, `scripts/check_readiness.py`, `scripts/check_notebooks.py`, `scripts/check_internal_names.py`, `scripts/check_sdd.py`,
   `scripts/check_doc_paths.py`, `tests/adversarial/planting.py` and `tests/test_bootstrap_regressions.py` verbatim, and drop the
   local adaptations of the three bootstrap regression tests and of the readiness CLI tests (a product test that ran the template's
   checker against another root now runs its own copy). Remove the ladder ids (`M-<n>`, `B-lin`, ...) from notebook text and outputs,
