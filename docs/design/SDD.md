@@ -159,7 +159,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 
 ### Shell 0.25.0 adoption
 
-Template 0.15.006 adopts shell 0.25.0 exactly (through 0.23.1, 0.23.2 and 0.24.0). The callout cards carry their state word and glyph and G21 checks their geometry at every size, theme and language (0.24.0); the example's story places its callouts with the shell's header placement and computes no band of its own, so it reads the shell's measured band. Its variant list is short and keeps the chips; a product with a long or long-named list sets `layout: 'select'` (0.25.0). The chart readout no longer follows a scroll under a resting pointer (0.25.0); the example carried no workaround for it.
+Template 0.15.006 adopts shell 0.25.0 exactly (through 0.23.1, 0.23.2 and 0.24.0). The callout cards carry their state word and glyph and G21 checks their geometry at every size, theme and language (0.24.0); the example's story pads its drawing by the band the cards measure (`onLayout`) and maps its anchors into the drawing under it, so no card covers its own subject, and its phone stage floor is that band plus the 490 px the drawing needs, within the shell's 620 to 900 px (EX-018; the candidate's gate found eight G21 findings while the story padded a fixed band, then 76 label and reach findings at 390 px in Spanish while the floor stayed at 620 px). Its variant list is short and keeps the chips; a product with a long or long-named list sets `layout: 'select'` (0.25.0). The chart readout no longer follows a scroll under a resting pointer (0.25.0); the example carried no workaround for it.
 
 ### Shell 0.23.0 adoption
 
