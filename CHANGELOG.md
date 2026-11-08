@@ -2,6 +2,30 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.003], 2026-11-07
+
+The base tests under `frontend/src` reach the products (found by CAOS_ChancaDEM's adoption of 0.15.001: its copies of
+`frontend/src/gate-script.test.ts` and `frontend/src/lib/declared.test.ts` were byte-identical to 0.15.000, yet the adoption left
+them as product content, so the two story-route tests of 0.15.001 never arrived, and the copy named the example's four story
+routes, which a product declaring its own steps had to edit). The plants are in `tests/adversarial/test_base_tests_0_15_003.py`.
+
+### Fixed
+
+- `frontend/src/gate-script.test.ts`: the case "requires all documented and story routes when a custom route list is supplied"
+  builds the route list from the product's `product.json` `showcase.story_routes` (none declared: the documentation routes
+  only), never from the example's four routes. Every test of the file spawns node on the runner, so the file sets a 60 s test
+  timeout; the 5 s default timed out under a fully loaded CPU.
+- `frontend/src/gate-script.test.ts` and `frontend/src/lib/declared.test.ts`, the two tests of base scripts under `frontend/src`,
+  say "A product takes this file verbatim". CAOS_MANAGE `tools/git/template_adopt.py` (2026-11-07) adopts a file carrying that
+  sentence as a base file (VERBATIM, MERGED or CONFLICT) wherever it lives, and takes the release's change into any file under a
+  product path that is still byte-identical to the template's previous copy. A plant fails a test of a base script under
+  `frontend/src` that does not carry the sentence.
+
+### Adoption note for products
+
+- Take both files verbatim; a product that edited `gate-script.test.ts` to name its own routes drops that edit, since the base
+  copy now reads them. Run `template_adopt.py` from CAOS_MANAGE 2a6550688 or later so the two files are classified as base files.
+
 ## [0.15.002], 2026-11-07
 
 The internal-names guard tells a data key from a method name (the follow-up of #101, found by CAOS_ChancaDEM's adoption of 0.15.001:
