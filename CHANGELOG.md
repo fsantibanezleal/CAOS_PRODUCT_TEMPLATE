@@ -2,7 +2,7 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
-## [0.15.004], 2026-11-07
+## [0.15.004], 2026-11-08
 
 Two base scripts stop forcing a product to edit them (found by CEFOP_DinHot's promotion of its 0.02.003 bake and its adoption of
 0.15.003; issues #112 and #113). The plants are in `tests/adversarial/test_adoption_defects_0_15_004.py`; requirements CT-039 and CT-040.
