@@ -2,6 +2,28 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.006], 2026-11-08
+
+The template adopts shell 0.25.0 (through 0.23.1, 0.23.2 and 0.24.0), so a product created or adopting from it starts on the latest
+shell, as ADR-0078 section 4 requires of the template: built and gated against the shell it ships.
+
+### Changed
+
+- `frontend/package.json` pins `@fasl-work/caos-app-shell` exactly at 0.25.0 (was 0.23.0), with the lockfile. What the example
+  receives: callout cards with their state word and glyph, G21 on callout geometry at every size, theme and language, and the
+  measured header band (`layoutCalloutHeader`, `--caos-callout-band`, `onLayout`) from 0.24.0; the phone stepper's wrapped verbs
+  (0.24.0); the story row kept whole (0.23.2); the document walk on large documents (0.23.1); `VariantBar` `layout: 'select'` and a
+  chart readout that ignores the pointer events a scroll re-dispatches (0.25.0).
+- `docs/design/SDD.md`: the technology row, the ADR-0078 row and a "Shell 0.25.0 adoption" section; `executive.test.ts` checks the
+  new pin.
+
+### Adoption note for products
+
+- Pin `@fasl-work/caos-app-shell` at 0.25.0 and follow the shell's adoption notes of 0.23.001 to 0.25.000: a product that reserves a
+  callout header band of its own reads `--caos-callout-band` or `onLayout`; a product with a long or long-named variant list sets
+  `layout: 'select'`; a product that worked around the scroll-moved readout removes the workaround. Run the product's own gate on
+  the new pin. No base script changes in this release.
+
 ## [0.15.005], 2026-11-08
 
 A product hook in `copy-data.mjs`, and the 0.15.003 plant counts base scripts only (found by CEFOP_DinHot's adoption of 0.15.004: it
