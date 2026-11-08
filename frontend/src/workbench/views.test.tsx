@@ -22,6 +22,7 @@ describe('the example product visualization contract', () => {
     expect(html).toContain('Scrub model day');
   });
 
+
   it('adversarial: draws the phase trajectory, analytic growth nullcline and linked day readout', () => {
     const html = render(createElement(PhasePlaneView, { sel: selection }));
     expect(html).toContain('S-I trajectory and growth nullcline');

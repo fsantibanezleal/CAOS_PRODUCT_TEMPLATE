@@ -99,8 +99,22 @@ try {
   }));
   assert.ok(geometry.width <= geometry.viewport + 1, 'phone story has no page-level horizontal overflow');
   assert.ok(geometry.calls.every((call) => call.left >= 0 && call.right <= geometry.viewport && call.bottom <= geometry.drawing.top + 1), 'phone callout band stays above the active drawing');
+  // the shared day cursor on the phone: the context step's diagram carries its marker, and a scrub moves every linked marker to it
+  assert.ok(await phone.locator('[data-story] [data-linked-cursor-marker]').count(), 'phone context step shows the shared day cursor');
+  await phone.locator('[data-story] [data-linked-cursor]').first().evaluate((input) => {
+    const next = String(Math.round(Number(input.min || 0) + (Number(input.max || 100) - Number(input.min || 0)) * 0.63));
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, next);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await phone.waitForTimeout(150);
+  const scrub = await phone.evaluate(() => ({
+    value: document.querySelector('[data-story] [data-linked-cursor]').value,
+    markers: [...document.querySelectorAll('[data-story] [data-linked-cursor-marker]')].map((el) => el.getAttribute('data-linked-cursor-position')),
+  }));
+  assert.ok(scrub.markers.length && scrub.markers.every((position) => position === scrub.value), `phone scrub moves every linked marker to the cursor (${JSON.stringify(scrub)})`);
   assert.deepEqual(errors, [], 'no uncaught page errors');
-  console.log('story_example: four distinct story views, linked scene/panel scrubbing, pause/exit state, and desktop/phone callout clearance passed.');
+  console.log('story_example: four distinct story views, linked scene/panel scrubbing, pause/exit state, desktop/phone callout clearance and the phone day cursor passed.');
 } finally {
   await browser.close();
   serverProcess?.kill();

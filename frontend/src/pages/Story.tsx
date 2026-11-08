@@ -1,6 +1,6 @@
 import { BarChart, PlotCard, SceneCallouts, StoryFrame, formatNumber, pick, useLinkedView, useShellLang, type SceneCalloutDef, type StoryStep } from '@fasl-work/caos-app-shell';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { loadCase, loadIndex, useArtifact } from '../api/artifacts';
 import { simulate } from '../engine/sir';
 import { caseAbsent } from '../readiness/readiness';
@@ -8,6 +8,42 @@ import { useReadiness } from '../readiness/useReadiness';
 import { EulerStepView, PhasePlaneView, SystemDiagramView } from '../workbench/views';
 import { COVERAGE, type Selection } from '../workbench/model';
 import './story.css';
+
+/**
+ * A callout anchor written as a fraction of the drawing, moved to the fraction of the whole stage it falls on once the
+ * header band the cards take is measured: the drawing starts under the band, so an anchor never lands under a card.
+ */
+export function anchorInDrawing(anchor: { x: number; y: number }, band: number, stageHeight: number): { x: number; y: number } {
+  if (!(stageHeight > 0) || !(band > 0) || band >= stageHeight) return anchor;
+  return { x: anchor.x, y: (band + anchor.y * (stageHeight - band)) / stageHeight };
+}
+
+/** The height the drawing keeps on a phone under the callout band: the four views' controls and labels fit in it. */
+export const PHONE_DRAWING_FLOOR = 490;
+
+/** The phone stage floor: the measured band plus the drawing's floor, within the shell's bounds (620 px before the band is measured). */
+export function storyStageFloor(band: number): number {
+  return Math.min(900, Math.max(620, Math.round(band + PHONE_DRAWING_FLOOR)));
+}
+
+/** The story's stage: the callouts in the shell's header placement, and the drawing under the band they measure (shell 0.24.0). */
+function StoryStage({ items, children, onBand }: { items: SceneCalloutDef[]; children: ReactNode; onBand?: (band: number) => void }) {
+  const host = useRef<HTMLDivElement>(null);
+  const [band, setBand] = useState(0);
+  const [height, setHeight] = useState(0);
+  useLayoutEffect(() => {
+    const el = host.current;
+    if (!el) return undefined;
+    const measure = () => setHeight(el.clientHeight);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const placed = useMemo(() => items.map((item) => ({ ...item, anchor: anchorInDrawing(item.anchor, band, height) })), [items, band, height]);
+  return <div ref={host} className="template-story-stage"><SceneCallouts items={placed} placement="header" className="template-story-callouts" onLayout={({ bandHeight }) => { setBand(bandHeight); onBand?.(bandHeight); }}/><div className="template-story-drawing" style={band > 0 ? { paddingTop: band } : undefined}>{children}</div></div>;
+}
 
 function StoryCompareView({ sel }: { sel: Selection }) {
   const lang = useShellLang();
@@ -40,6 +76,8 @@ export function Story() {
   const { step = 'context' } = useParams();
   const [query] = useSearchParams();
   const navigate = useNavigate();
+  // the active step's measured callout band, which sets the phone stage floor (storyStageFloor)
+  const [stageBand, setStageBand] = useState(0);
   const sharedCursor = useLinkedView((state) => state.cursor);
   const selectedState = useLinkedView((state) => state.selectedId);
   const selectState = useLinkedView((state) => state.select);
@@ -108,8 +146,8 @@ export function Story() {
   ];
   steps.forEach((item, i) => {
     item.href = `/story/${item.id}?${params.toString()}`;
-    item.stage = <div className="template-story-stage"><SceneCallouts items={definitions[item.id]!} placement="header" className="template-story-callouts"/><div className="template-story-drawing">{views[i]}</div></div>;
+    item.stage = <StoryStage items={definitions[item.id]!} onBand={setStageBand}>{views[i]}</StoryStage>;
     item.panel = <section className="template-story-evidence"><h2>{pick(item.verb, lang)}</h2>{panels[i]}<p><strong>{pick(sel.data.manifest.title, lang)}</strong> · {sel.data.manifest.case_id}</p><span className="badge" data-provenance="synthetic">{t('Synthetic case replay', 'Reproducción de caso sintético')}</span></section>;
   });
-  return <StoryFrame className="template-story" steps={steps} activeId={steps.some((item) => item.id === step) ? step : 'context'} mobileStageMinHeight={620} onStepChange={(next) => navigate(`/story/${next}?${params.toString()}`)} onExit={() => navigate(safeFrom ?? fallback)}/>;
+  return <StoryFrame className="template-story" steps={steps} activeId={steps.some((item) => item.id === step) ? step : 'context'} mobileStageMinHeight={storyStageFloor(stageBand)} onStepChange={(next) => navigate(`/story/${next}?${params.toString()}`)} onExit={() => navigate(safeFrom ?? fallback)}/>;
 }

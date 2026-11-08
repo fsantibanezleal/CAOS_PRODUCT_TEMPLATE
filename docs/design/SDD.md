@@ -138,7 +138,7 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | contracts | openapi-spec-validator | 0.9.0 | validates `docs/contracts/api.openapi.json` | none: the only maintained validator for the OpenAPI 3.1 document |
 | API | fastapi | 0.143.0 | the dormant `app/`, run by the API contract tests | flask, rejected: no response models to compare with the OpenAPI document |
 | API | httpx | 0.28.1 | the test client of the dormant `app/` | requests, rejected: FastAPI's test client needs httpx |
-| shell | @fasl-work/caos-app-shell | 0.23.0 | the shared app shell with ADR-0082 story framing, the bounded mobile stage floor and measured G21 gate (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
+| shell | @fasl-work/caos-app-shell | 0.25.0 | the shared app shell with ADR-0082 story framing, the bounded mobile stage floor, the measured callout band and G21 at every size, and the variant select layout (pinned exactly, ADR-0078) | a hand-rolled shell, forbidden by ADR-0078 |
 | web | react | 19.3.0 | the UI | none: the shell requires it |
 | web | react-dom | 19.3.0 | the UI renderer | none: the shell requires it |
 | web | react-router | 8.4.0 | the routes | none: the shell requires it |
@@ -156,6 +156,10 @@ resolves it to. The runtimes are Python 3.12 (CI; the device's venv may be newer
 | build | @types/react-dom | 19.3.0 | types of React DOM | none |
 | tests | vitest | 5.0.3 | the web unit tests | jest, rejected: needs a transform for the vite config |
 | gate | playwright | 1.63.0 | the measured UI gate (`npm run gate`), local only | cypress, rejected: heavier install |
+
+### Shell 0.25.0 adoption
+
+Template 0.15.006 adopts shell 0.25.0 exactly (through 0.23.1, 0.23.2 and 0.24.0). The callout cards carry their state word and glyph and G21 checks their geometry at every size, theme and language (0.24.0); the example's story pads its drawing by the band the cards measure (`onLayout`) and maps its anchors into the drawing under it, so no card covers its own subject, and its phone stage floor is that band plus the 490 px the drawing needs, within the shell's 620 to 900 px (EX-018; the candidate's gate found eight G21 findings while the story padded a fixed band, then 76 label and reach findings at 390 px in Spanish while the floor stayed at 620 px). Its variant list is short and keeps the chips; a product with a long or long-named list sets `layout: 'select'` (0.25.0). The chart readout no longer follows a scroll under a resting pointer (0.25.0); the example carried no workaround for it.
 
 ### Shell 0.23.0 adoption
 
@@ -273,6 +277,6 @@ How the example meets the ADRs it is bound by, and where the base carries the ru
 | ADR-0071 | the page is the viewport; one tab row; drawing at least 60% of the App viewport, 80% in Focus | the shell's `CaseWorkbench`; the gate (G5, G6, G18) |
 | ADR-0074 | CI runs cheap checks only | `.github/workflows/ci.yml`, `scripts/check_ci_budget.py` |
 | ADR-0075 | every requirement names its gate | `docs/design/features/`, `scripts/check_sdd.py` |
-| ADR-0078 | rules live in the base | shell 0.23.0 (pinned exactly) and this template; no product re-implements them |
+| ADR-0078 | rules live in the base | shell 0.25.0 (pinned exactly) and this template; no product re-implements them |
 | ADR-0080 | contract-first parallel delivery: catalog, one schema per boundary, providers, declared states, readiness | `docs/contracts/`, `tests/contracts/`, `frontend/src/readiness/`, `scripts/check_contracts.py`, `scripts/check_readiness.py` |
 | ADR-0082 | every app records V1–V6 with product-specific data/interaction contracts; story mode has 3–6 directly linked finding steps, a dominant stage, docked panel, sourced in-stage callouts, accessible playback, linked interaction and measured motion/performance | `docs/design/SDD.md` catalog checked by `scripts/check_sdd.py`; shell primitives and G21 measure route, evidence, linkage, transitions, reduced motion, phone layout, LCP, frame rate and interaction latency; the story's steps are declared in `product.json` `showcase.story_routes` and `scripts/check_sdd.py` fails a missing or malformed list; `frontend/scripts/check_story_mode.mjs` checks each declared step framed and numbered, direct step links, pause on input and exit to the App; `tests/template/story_example.mjs` checks the example's four distinct live views, shared cursor, exact return and phone clearance; V2 is explicitly replaced by the S→I and I→R transition view because this SIR example has no physical equipment; V5 is implemented as the selected forward-Euler update and tested against the live run |
