@@ -2,6 +2,46 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.006], 2026-11-08
+
+The template adopts shell 0.25.0 (through 0.23.1, 0.23.2 and 0.24.0), so a product created or adopting from it starts on the latest
+shell, as ADR-0078 section 4 requires of the template: built and gated against the shell it ships.
+
+### Changed
+
+- `frontend/package.json` pins `@fasl-work/caos-app-shell` exactly at 0.25.0 (was 0.23.0), with the lockfile. What the example
+  receives: callout cards with their state word and glyph, G21 on callout geometry at every size, theme and language, and the
+  measured header band (`layoutCalloutHeader`, `--caos-callout-band`, `onLayout`) from 0.24.0; the phone stepper's wrapped verbs
+  (0.24.0); the story row kept whole (0.23.2); the document walk on large documents (0.23.1); `VariantBar` `layout: 'select'` and a
+  chart readout that ignores the pointer events a scroll re-dispatches (0.25.0).
+- `docs/design/SDD.md`: the technology row, the ADR-0078 row and a "Shell 0.25.0 adoption" section; `executive.test.ts` checks the
+  new pin.
+
+### Fixed
+
+- The example story's callouts covered their own subjects on the new shell (the full gate on the candidate: 8 G21 findings at
+  390 x 844 in both languages and themes, and at 768 x 1024 in Spanish). The story padded its drawing by a fixed band (86 px, 130 px
+  on a phone) sized for the old cards, and wrote its anchors as fractions of the whole stage; 0.24.0's cards carry their state and
+  are taller, so the band grew past the pad. `StoryStage` in `frontend/src/pages/Story.tsx` now pads the drawing by the band the
+  cards measure (`SceneCallouts` `onLayout`) and maps each anchor into the drawing under it (`anchorInDrawing`); the fixed pads
+  remain only for the first frame. The phone stage floor follows the band (`storyStageFloor`: the band plus the drawing's 490 px,
+  within the shell's 620 to 900 px), because the measured band left the Euler step view too short in Spanish at 390 x 844 (the
+  second gate run: labels outside the drawing and the step slider out of reach). Requirement EX-018, tests in
+  `frontend/src/pages/Story.test.tsx`.
+- The phone layout of the SIR system diagram had no day cursor, so the story's scrub on its first step moved no marker on a phone (G21:
+  "scrubbing does not move every linked-view marker to the same cursor" at 390 x 844). It now draws the time slice with the shared
+  cursor's marker, as the desktop layout does; `tests/template/story_example.mjs` checks the marker and the scrub on a phone.
+
+### Adoption note for products
+
+- Pin `@fasl-work/caos-app-shell` at 0.25.0 and follow the shell's adoption notes of 0.23.001 to 0.25.000: a product that reserves a
+  callout header band of its own reads `--caos-callout-band` or `onLayout`; a product with a long or long-named variant list sets
+  `layout: 'select'`; a product that worked around the scroll-moved readout removes the workaround. Run the product's own gate on
+  the new pin. No base script changes in this release.
+- A product whose story places callouts in the header over a fixed pad follows the example: pad the drawing by the measured band
+  and write the anchors as fractions of the drawing (`StoryStage`, `anchorInDrawing`), and set the phone stage floor from the band
+  (`storyStageFloor`) so the drawing keeps the height its controls need.
+
 ## [0.15.005], 2026-11-08
 
 A product hook in `copy-data.mjs`, and the 0.15.003 plant counts base scripts only (found by CEFOP_DinHot's adoption of 0.15.004: it
