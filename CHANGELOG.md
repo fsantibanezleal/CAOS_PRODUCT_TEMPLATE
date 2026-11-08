@@ -2,6 +2,30 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.004], 2026-11-08
+
+Two base scripts stop forcing a product to edit them (found by CEFOP_DinHot's promotion of its 0.02.003 bake and its adoption of
+0.15.003; issues #112 and #113). The plants are in `tests/adversarial/test_adoption_defects_0_15_004.py`; requirements CT-039 and CT-040.
+
+### Fixed
+
+- `scripts/local/workflow.py` (#112): `required_paths` no longer requires the documents of a contract that
+  `scripts/local/workflow.json` `readiness_exceptions` declares `training` or `missing`. `validate_stage` admitted no stage of a product
+  with an unreleased model (`Partial stage: models/warmstart.json, models/warmstart.onnx` although the readiness said
+  `warmstart-model=training`), and `initialize` reported the same documents as missing and started a generation. A contract declared
+  `partial`, declared with another state, or not declared still requires its documents; a product with no `readiness_exceptions`
+  behaves as in 0.15.003.
+- `frontend/scripts/declared.mjs` (#113): a case entry names its manifest by `manifest_path` or `path`; a refused case (`status`
+  `refused`, or a null manifest path) declares nothing and is not reported missing; an available case without its manifest is still
+  reported missing, and an entry that names neither key and is not refused is reported as a problem.
+- `frontend/src/lib/declared.test.ts` carries one case for each (it keeps "A product takes this file verbatim").
+
+### Adoption note for products
+
+- Take `scripts/local/workflow.py`, `frontend/scripts/declared.mjs` and `frontend/src/lib/declared.test.ts` verbatim. A product that
+  adapted `declared.mjs` (a `path` key, a refused case) drops its edit, and keeps its own tests of other scripts (`copy-data.mjs`, say)
+  in a product test file, never in `declared.test.ts`. Take `tests/adversarial/test_adoption_defects_0_15_004.py` verbatim.
+
 ## [0.15.003], 2026-11-07
 
 The base tests under `frontend/src` reach the products (found by CAOS_ChancaDEM's adoption of 0.15.001: its copies of
