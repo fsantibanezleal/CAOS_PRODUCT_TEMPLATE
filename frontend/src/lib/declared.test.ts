@@ -62,7 +62,7 @@ describe('the declared files of the site', () => {
     expect(missing).toEqual(['readiness.json', 'A/trace.json']);
     expect(problems).toEqual([]);
   });
-  it('declares nothing for a refused case, and does not report it missing', () => {
+  it('adversarial: declares nothing for a refused case, and does not report it missing', () => {
     const refused = join(root, 'refused');
     mkdirSync(join(refused, 'manifests'), { recursive: true });
     writeFileSync(
@@ -74,7 +74,7 @@ describe('the declared files of the site', () => {
     expect(missing).toEqual(['readiness.json']);
     expect(problems).toEqual([]);
   });
-  it('still reports an available case with no manifest file as missing, and an entry with no path as a problem', () => {
+  it('adversarial: still reports an available case with no manifest file as missing, and an entry with no path as a problem', () => {
     const open = join(root, 'open');
     mkdirSync(join(open, 'manifests'), { recursive: true });
     writeFileSync(
