@@ -24,7 +24,8 @@ routes, which a product declaring its own steps had to edit). The plants are in 
 ### Adoption note for products
 
 - Take both files verbatim; a product that edited `gate-script.test.ts` to name its own routes drops that edit, since the base
-  copy now reads them. Run `template_adopt.py` from CAOS_MANAGE 2a6550688 or later so the two files are classified as base files.
+  copy now reads them. Run CAOS_MANAGE `tools/git/template_adopt.py` of 2026-11-07 or later (the change "an unchanged copy under a
+  product path takes the release, and a file marked verbatim merges as a base file") so the two files are classified as base files.
 
 ## [0.15.002], 2026-11-07
 
