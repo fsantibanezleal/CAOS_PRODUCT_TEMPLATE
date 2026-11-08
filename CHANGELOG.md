@@ -2,6 +2,37 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.005], 2026-11-08
+
+A product hook in `copy-data.mjs`, and the 0.15.003 plant counts base scripts only (found by CEFOP_DinHot's adoption of 0.15.004: it
+adapted `copy-data.mjs` to ship a benchmark document, model metrics and released model cards, and the plant refused its test of
+that script). The plants are in `tests/adversarial/test_adoption_defects_0_15_005.py`; requirements CT-041 and CT-042.
+
+### Added
+
+- `frontend/scripts/copy-data.mjs` calls an optional, product-owned module `frontend/scripts/copy-data.product.mjs` once, after the
+  declared files are copied into the rebuilt overlay, with `{ derived, out, repo, readiness }` (`readiness` is the parsed readiness
+  document or `null`). It returns `{ copied, absent, problems }`, arrays of strings: the paths (relative to `public/data`) it
+  copied, the paths it leaves out as declared absent (each printed as a WARN line), and the problems that stop the build. The
+  build stops with exit 1 on a problem, on a throw, on a result of another shape, on a reported path that is absolute or leaves
+  `public/data`, and on a copied file that is not there; the summary line counts what the hook copied. A declared file that is
+  missing still stops the build before the hook runs. No module: the output is that of 0.15.004.
+- `frontend/src/lib/copy-data.test.ts`, a base test of the script (it says "A product takes this file verbatim"): one case per
+  behaviour above.
+
+### Changed
+
+- `tests/adversarial/test_base_tests_0_15_003.py`: a base script is a `frontend/scripts/*.mjs` that is not a `*.product.mjs`. A
+  `frontend/src` test of a product module needs no mark and is not counted; a test of a base script still needs it.
+
+### Adoption note for products
+
+- Take `frontend/scripts/copy-data.mjs`, `frontend/src/lib/copy-data.test.ts`, `tests/adversarial/test_base_tests_0_15_003.py` and
+  `tests/adversarial/test_adoption_defects_0_15_005.py` verbatim. A product that adapted `copy-data.mjs` moves its logic (the further
+  files it copies, their checks) into `frontend/scripts/copy-data.product.mjs` and keeps its tests of it in a product test file under
+  `frontend/src` (no verbatim mark), with its own `copy-data.test.ts` content dropped in favour of the base file. The hook writes
+  only under `out`; the base script refuses a reported path outside it.
+
 ## [0.15.004], 2026-11-08
 
 Two base scripts stop forcing a product to edit them (found by CEFOP_DinHot's promotion of its 0.02.003 bake and its adoption of
