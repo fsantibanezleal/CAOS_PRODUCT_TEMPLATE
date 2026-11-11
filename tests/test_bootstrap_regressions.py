@@ -604,6 +604,11 @@ TEMPLATE_ONLY = pytest.mark.skipif(not (ROOT / ".template-source").is_file(),
 @TEMPLATE_ONLY
 def test_adversarial_real_template_generation_admission(workflow, tmp_path, monkeypatch):
     config = workflow.settings(ROOT)
+    runtime = (ROOT / config["primary_environment"]).resolve(strict=True)
+    # Keep this real-template integration test independent of the developer's
+    # shell/.env while preserving the same external-runtime containment policy.
+    # The declared alias resolves to <CAOS_VENVS_ROOT>/<namespace>/<runtime>.
+    monkeypatch.setenv("CAOS_VENVS_ROOT", str(runtime.parents[1]))
     python = workflow.venv_python(ROOT, config["primary_environment"])
     root = tmp_path / "real template sources with spaces"
     # Production sources and authored inputs, unchanged; no fixture producer/validator substitutes.
