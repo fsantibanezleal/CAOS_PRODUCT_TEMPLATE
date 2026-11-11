@@ -2,6 +2,29 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.007], 2026-11-11
+
+The local workflow refuses a version-stamped stage input before the generation starts (#120), so a product finds the mistake in
+seconds instead of after a full bake.
+
+### Fixed
+
+- `scripts/local/workflow.py`: a `stage_inputs` entry that is a JSON document whose top-level object carries `engine_version` or
+  `product_version` is refused by name, with the advice to produce it in a generation step, in `authored_inputs`, the first call of
+  `generate` and of the admission (`--from-stage`), before any stage or generation command exists. Found by CAOS_ChancaDEM's
+  0.13.000 bake: it carried its trained models and `model-metrics.json` as stage inputs, and `validate_stage` refused the stale
+  stamp only after 97 minutes. A non-JSON input and JSON without those keys (a params CSV, a config) are never refused. Requirement
+  RP-030, plant `tests/adversarial/test_stamped_stage_inputs_0_15_007.py`; `docs/design/features/repository/design.md` says that
+  `stage_inputs` are authored inputs only.
+
+- `tests/adversarial/test_check_notebook_depth.py`: both subprocess calls wait up to 120 s (was 30 s), the limit `planting.guard()` uses. The check takes about 13 s alone and timed out on CAOS_ChancaDEM under another session's gate load. A load margin, not a behaviour change; products take the file verbatim.
+
+### Adoption
+
+Take `scripts/local/workflow.py`, `tests/adversarial/test_stamped_stage_inputs_0_15_007.py` and `tests/adversarial/test_check_notebook_depth.py` verbatim. A product that lists a
+stamped document (trained models' metrics, a manifest) in `stage_inputs` moves it into a generation step (for example the models
+step before the bake) and removes it from `scripts/local/workflow.json`.
+
 ## [0.15.006], 2026-11-08
 
 The template adopts shell 0.25.0 (through 0.23.1, 0.23.2 and 0.24.0), so a product created or adopting from it starts on the latest
