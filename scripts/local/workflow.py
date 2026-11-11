@@ -473,7 +473,7 @@ VERSION_KEYS = ("engine_version", "product_version")
 
 def stamped_input(path):
     """Whether a file is a version-stamped document: JSON whose top-level object carries a version key."""
-    if path.suffix != ".json":
+    if path.suffix.lower() != ".json":
         return False
     try:
         value = json.loads(path.read_text(encoding="utf-8-sig"))

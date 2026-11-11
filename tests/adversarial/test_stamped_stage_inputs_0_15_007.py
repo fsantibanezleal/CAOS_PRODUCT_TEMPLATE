@@ -75,6 +75,15 @@ def test_adversarial_a_product_version_stamp_is_refused_too(workflow, tmp_path, 
     assert not (tmp_path / MARKER).exists()
 
 
+def test_adversarial_json_suffix_is_case_insensitive(workflow, tmp_path, monkeypatch):
+    """Windows treats .JSON and .json as the same file type; the authored-input guard must do so on every platform."""
+    name = "data/derived/model-metrics.JSON"
+    root, config, env = plant(tmp_path, monkeypatch, workflow, {name: json.dumps({"engine_version": "an-older-release"})})
+    with pytest.raises(workflow.Failure, match="model-metrics.JSON"):
+        workflow.generate(root, config, env)
+    assert not (tmp_path / MARKER).exists(), "a version-stamped .JSON input reached the generation command"
+
+
 def test_adversarial_the_command_line_refuses_with_the_file_name_and_runs_nothing(workflow, tmp_path, monkeypatch, capsys):
     root, _, env = plant(tmp_path, monkeypatch, workflow, {STAMPED: json.dumps({"engine_version": "an-older-release"})})
     for key in ("CAOS_TEMP_ROOT",):
