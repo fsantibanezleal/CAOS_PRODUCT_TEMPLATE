@@ -2,6 +2,16 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.008], 2026-11-11
+
+The template adopts the published Shell 0.26.0 package and validates the SIR example against its corrected chart, callout and card behavior.
+
+### Changed
+
+- `frontend/package.json` and its lockfile pin `@fasl-work/caos-app-shell` exactly at 0.26.0. The source includes the natural PlotCard header height, moving chart marks, settled callout-band measurement, responsive callout values and fitted CardDeck semantics. The template already consumes these contracts; no product-side workaround was added.
+- `docs/design/SDD.md` records the current shell version and applicability of its time-axis and formatter changes. The SIR charts use elapsed model time and the shell's existing `formatNumber` function.
+- `frontend/src/content/executive.test.ts` asserts the exact shell pin. The template version advances to 0.15.008.
+
 ## [0.15.007], 2026-11-11
 
 The local workflow refuses a version-stamped stage input before the generation starts (#120), so a product finds the mistake in
