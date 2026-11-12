@@ -50,3 +50,9 @@ API/generation and the caller retain the global raw/model/temp roots; no storage
 declaration the environment values stay identical. The regression executes the actual Node copy-data consumer
 and compares frontend, real HTTP child and generation environments in external fixtures. Product adoption of
 this template-only follow-up waits for the owner's active smoke gate; no product file is changed here.
+
+When `readiness_provider` is declared, shipped and staged admission delegates the product-specific readiness shape to
+the guarded `readiness_check` in the product checkout. The provider receives the checkout or external stage being
+judged. Template-only manifest-index, `contracts` inventory and catalog-hash assumptions are skipped for that lane;
+required-path, source-identity, payload-hash, contract-metadata and configured validator checks remain active. The
+default template lane retains its strict manifest and contract inventory checks. RP-032 covers the integration.
