@@ -3,6 +3,7 @@
   "environment_namespace": "caos-product-template",
   "readiness_excludes": ["readiness"],
   "stage_inputs": ["data/examples/params.csv"],
+  "stage_engine_versions": {},
   "readiness_exceptions": {"params-record": "partial", "api": "missing"},
   "readiness_check": "scripts/check_readiness.py",
   "primary_environment": ".venv-pipeline",

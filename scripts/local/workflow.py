@@ -589,14 +589,28 @@ def validate_stage(root, config, stage, python, env, receipt=False):
     missing = [name for name in required_paths(root, config) if not list(stage.glob(name))]
     if missing:
         raise Failure("Partial stage: " + ", ".join(missing[:5]))
-    for name in payload_hashes(stage, config):
+    payload = payload_hashes(stage, config)
+    engine_versions = config.get("stage_engine_versions", {})
+    if (not isinstance(engine_versions, dict)
+            or any(not isinstance(name, str) or not isinstance(value, str) or not value.strip()
+                   for name, value in engine_versions.items())):
+        raise Failure("stage_engine_versions must map exact staged JSON paths to non-empty engine versions.")
+    undeclared = sorted(set(engine_versions) - set(payload))
+    if undeclared:
+        raise Failure("stage_engine_versions names files outside the promoted payload: " + ", ".join(undeclared))
+    for name in payload:
         path = stage / name
         if path.suffix == ".json":
             value = json_read(path)
             if isinstance(value, dict):
                 for key in ("engine_version", "product_version"):
-                    if key in value and value[key] != version:
+                    expected = engine_versions.get(name, version) if key == "engine_version" else version
+                    if key in value and value[key] != expected:
                         raise Failure(f"Mixed/stale version in {name}.")
+    for name in engine_versions:
+        value = json_read(stage / name)
+        if not isinstance(value, dict) or value.get("engine_version") != engine_versions[name]:
+            raise Failure(f"Configured engine version is absent or mismatched in {name}.")
     ready = json_read(stage / "data/derived/readiness.json")
     check_readiness_inventory(root, config, ready)
     check_readiness_states(root, config, ready, stage, python)
