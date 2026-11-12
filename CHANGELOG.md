@@ -2,6 +2,18 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.010], 2026-11-12
+
+The sequenced local workflow delegates shipped and staged readiness admission to an explicitly declared product provider.
+
+### Fixed
+
+- `scripts/local/workflow.py` no longer imposes the template's `contracts` readiness record and manifest index on products with a guarded custom readiness provider. The provider runs against both the shipped checkout and external candidate stage; required payload, source identity, contract metadata and configured scientific validators remain enforced. Products without a provider retain the strict template readiness path (issue #132, RP-032).
+
+### Adoption
+
+- Copy the matching `scripts/local/workflow.py`; set `readiness_provider` only when the product's `scripts/check_readiness.py` explicitly guards that provider and validates all required artifact, version, hash and schema rules. Keep `readiness_check` required. No provider code is loaded from the judged stage.
+
 ## [0.15.009], 2026-11-12
 
 The local admission workflow can retain an explicitly pinned package engine version without confusing it with the product release version.

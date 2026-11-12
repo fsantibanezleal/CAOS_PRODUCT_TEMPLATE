@@ -227,7 +227,7 @@ def test_adversarial_actual_readiness_inventory(workflow, tmp_path):
         workflow.check_readiness_inventory(ROOT, config, {**ready, "catalog_sha256": "0" * 64})
 
 
-def test_custom_product_provider_admits_shipped_readiness_shape(workflow, fixture_repo):
+def test_adversarial_custom_product_provider_admits_shipped_readiness_shape(workflow, fixture_repo):
     root, config, _ = fixture_repo
     config.update(
         readiness_provider="scripts/local/provider.py",
