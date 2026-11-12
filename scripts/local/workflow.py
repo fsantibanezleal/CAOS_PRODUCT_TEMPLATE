@@ -323,6 +323,14 @@ def required_paths(root, config):
 
 
 def check_shipped(root, config):
+    if config.get("readiness_provider"):
+        if not config.get("readiness_check"):
+            raise Failure("A custom readiness_provider requires the product's readiness_check.")
+        python = generation_python(root, config)
+        check_readiness_states(root, config, {}, root, python)
+        commands(root, config["validators"], substitutions(root, root, python), environment(root))
+        check_required_validation(root, config)
+        return
     version = (root / "VERSION").read_text().strip()
     index = json_read(root / "data/derived/manifests/index.json")
     ready = json_read(root / "data/derived/readiness.json")
@@ -343,14 +351,20 @@ def check_shipped(root, config):
         )
     else:
         check_readiness_states(root, config, ready, root)
-    if config.get("requires_validation"):
-        validation = json_read(root / "data/derived/validation.json")
-        if (
-            validation.get("engine_version") != version
-            or not validation.get("passed")
-            or validation.get("errors")
-        ):
-            raise Failure("Shipped whole-bake validation is missing, stale or failed.")
+    check_required_validation(root, config)
+
+
+def check_required_validation(root, config):
+    if not config.get("requires_validation"):
+        return
+    version = (root / "VERSION").read_text().strip()
+    validation = json_read(root / "data/derived/validation.json")
+    if (
+        validation.get("engine_version") != version
+        or not validation.get("passed")
+        or validation.get("errors")
+    ):
+        raise Failure("Shipped whole-bake validation is missing, stale or failed.")
 
 
 def initialize(root, config, gpu=False, notebooks=False):
@@ -520,6 +534,8 @@ def check_metadata_current(root, stage, config):
 
 
 def check_readiness_inventory(root, config, ready):
+    if config.get("readiness_provider"):
+        return
     catalog_ids = set()
     catalog = root / "docs/contracts/catalog.md"
     raw = catalog.read_bytes().replace(b"\r\n", b"\n")
@@ -550,6 +566,12 @@ def check_readiness_states(root, config, ready, view, python=None):
     interpreter running this helper does not have (BD-10)."""
     exceptions = config.get("readiness_exceptions", {})
     checker = config.get("readiness_check")
+    if config.get("readiness_provider"):
+        if not checker:
+            raise Failure("A custom readiness_provider requires the product's readiness_check.")
+        interpreter = python if python is not None else generation_python(root, config)
+        run([interpreter, "-B", relative(root, checker), view], root)
+        return
     if exceptions and not checker:
         raise Failure("Readiness exceptions require the actual current-readiness validator.")
     if not ready.get("contracts") or any(
