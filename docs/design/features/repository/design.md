@@ -35,6 +35,10 @@ validate_stage ends a full bake (CAOS_ChancaDEM 0.13.000, 97 minutes, #120). The
 and requires scripts/check_readiness.py to recompute the actual producer document. Both validate_stage and
 check_shipped use that same state admission and the template's real validator plan. Only read-only inventory
 validation may target the bridge's own checkout; write modes retain external-stage containment.
+
+Staged `product_version` values always match `VERSION`. Staged `engine_version` values do too unless one exact promoted
+JSON path is listed in `stage_engine_versions`; that mapping binds the field to the package's exact version, and the
+declared file must carry that stamp. The package-specific contract validator remains responsible for its other fields.
 The original four-row params CSV and its two deliberate rejected
 IDs remain intact; the five engine cases remain registry-derived. Missing manifests, artifacts or models cannot
 use those exceptions. OreFlow declares no stage_inputs/readiness exceptions and retains strict17-row admission.

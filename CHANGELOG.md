@@ -2,6 +2,18 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.009], 2026-11-12
+
+The local admission workflow can retain an explicitly pinned package engine version without confusing it with the product release version.
+
+### Fixed
+
+- `scripts/local/workflow.py` checks each staged `product_version` against `VERSION` and each staged `engine_version` against `VERSION` by default. A product may declare an exact path-to-version entry in `stage_engine_versions` for a document whose `engine_version` names a separately versioned package; that field remains required and must match the declared pin. Unlisted engine stamps remain strict. RP-031 and `tests/test_bootstrap_admission.py::test_adversarial_admission_accepts_only_an_explicit_engine_version_pin` cover the behavior.
+
+### Adoption
+
+- Copy `scripts/local/workflow.py` and `scripts/local/workflow.json` together. Keep `stage_engine_versions` empty unless a contract and its validator explicitly define an independent package version; declare only exact promoted JSON paths and exact versions.
+
 ## [0.15.008], 2026-11-11
 
 The template adopts the published Shell 0.26.0 package and validates the SIR example against its corrected chart, callout and card behavior.
