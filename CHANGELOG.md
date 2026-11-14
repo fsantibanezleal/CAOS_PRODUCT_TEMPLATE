@@ -14,10 +14,19 @@ The manuscript content gate measures the abstract.
   none. The same check runs in CAOS_MANAGE's publishers (`tools/zenodo/check_manuscript_depth.py`, 75675d715), where three
   CEFOP_DinHot papers had passed at 257, 259 and 314 words.
 
+### Fixed
+
+- `tests/test_bootstrap_regressions.py::test_adversarial_real_product_generation_admission` (it runs in products only) failed
+  outside a shell that exports `CAOS_VENVS_ROOT`: since 0.15.010 `check_readiness_states` runs the readiness provider in the primary
+  generation environment. The test now resolves that environment's external root from the declared alias, as the template's own
+  five-case integration control does. Found by CEFOP_DinHot adopting 0.15.010.
+
 ### Adoption
 
 - Copy `scripts/check_manuscript_depth.py` and `tests/adversarial/test_manuscript_depth.py`; shorten any abstract the gate refuses
   in the same change (a later version of the document on Zenodo carries the shorter abstract).
+- Take the fixed `test_adversarial_real_product_generation_admission`; a product test of its own that calls `check_readiness_states`
+  pins `CAOS_VENVS_ROOT` the same way.
 
 ## [0.15.010], 2026-11-12
 
