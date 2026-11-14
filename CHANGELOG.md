@@ -2,6 +2,22 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [Unreleased]
+
+### Fixed
+
+- Five readiness admission tests failed verbatim on a product that declares a `readiness_provider` (RP-032; found by CAOS_ChancaDEM's
+  adoption of 0.15.010) because they judged the template's strict path with a provider product's config:
+  `test_the_template_workflow_config_passes` asserted the template's literal `stage_inputs` (it now asserts the declared list, each file
+  present, and pins the literal list only where `.template-source` exists); `test_declared_producer_plan_keeps_all_outputs_external` kept the
+  product's `readiness_provider` while dropping its `readiness_check` (it now drops both); `test_adversarial_actual_readiness_inventory`,
+  `test_adversarial_real_product_generation_admission` and `test_adversarial_inventory_count_comes_from_the_products_catalog` planted faults
+  into functions that return at once or ignore the dict under a provider (the planted refusals now run on a provider-free copy of the
+  config when the product's record has the template shape, and are skipped with an RP-032 reason when it does not; the positive admission
+  through the provider still runs, and the documented delegation is asserted). The template's own path keeps every assertion. No production
+  file changed. Adoption: copy `tests/adversarial/test_stamped_stage_inputs_0_15_007.py`, `tests/test_local_bootstrap.py` and
+  `tests/test_bootstrap_regressions.py` verbatim.
+
 ## [0.15.011], 2026-11-14
 
 The manuscript content gate measures the abstract.
