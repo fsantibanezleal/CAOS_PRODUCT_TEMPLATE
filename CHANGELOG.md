@@ -2,6 +2,32 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.011], 2026-11-14
+
+The manuscript content gate measures the abstract.
+
+### Added
+
+- `scripts/check_manuscript_depth.py` refuses a manuscript whose abstract is outside 150 to 250 words, a technical report whose
+  abstract is outside 200 to 300 words, and a document without an abstract (MC-009; the content bar's sections 5 and 4). Words are
+  counted as they print: a number printed by a macro and an inline formula are one word each; citations, references and labels
+  none. The same check runs in CAOS_MANAGE's publishers (`tools/zenodo/check_manuscript_depth.py`, 75675d715), where three
+  CEFOP_DinHot papers had passed at 257, 259 and 314 words.
+
+### Fixed
+
+- `tests/test_bootstrap_regressions.py::test_adversarial_real_product_generation_admission` (it runs in products only) failed
+  outside a shell that exports `CAOS_VENVS_ROOT`: since 0.15.010 `check_readiness_states` runs the readiness provider in the primary
+  generation environment. The test now resolves that environment's external root from the declared alias, as the template's own
+  five-case integration control does. Found by CEFOP_DinHot adopting 0.15.010.
+
+### Adoption
+
+- Copy `scripts/check_manuscript_depth.py` and `tests/adversarial/test_manuscript_depth.py`; shorten any abstract the gate refuses
+  in the same change (a later version of the document on Zenodo carries the shorter abstract).
+- Take the fixed `test_adversarial_real_product_generation_admission`; a product test of its own that calls `check_readiness_states`
+  pins `CAOS_VENVS_ROOT` the same way.
+
 ## [0.15.010], 2026-11-12
 
 The sequenced local workflow delegates shipped and staged readiness admission to an explicitly declared product provider.

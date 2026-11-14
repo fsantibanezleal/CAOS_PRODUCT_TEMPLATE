@@ -622,10 +622,14 @@ def test_adversarial_locked_node_engines(workflow, tmp_path, monkeypatch, capsys
         workflow.compatible_node(tmp_path, (24, 14, 1))
 
 
-def test_adversarial_real_product_generation_admission(workflow):
+def test_adversarial_real_product_generation_admission(workflow, monkeypatch):
     if (ROOT / ".template-source").is_file():
         pytest.skip("The template example has a separate actual five-case generation control")
     config = workflow.settings(ROOT)
+    # The readiness provider runs in the primary generation environment (0.15.010); like the template's own integration
+    # control, the test resolves that environment's external root from the declared alias instead of the developer's shell.
+    runtime = (ROOT / config["primary_environment"]).resolve(strict=True)
+    monkeypatch.setenv("CAOS_VENVS_ROOT", str(runtime.parents[1]))
     ready = json.loads((ROOT / "data/derived/readiness.json").read_text(encoding="utf-8"))
     workflow.check_readiness_inventory(ROOT, config, ready)
     workflow.check_readiness_states(ROOT, config, ready, ROOT)
