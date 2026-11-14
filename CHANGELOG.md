@@ -2,6 +2,23 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.011], 2026-11-14
+
+The manuscript content gate measures the abstract.
+
+### Added
+
+- `scripts/check_manuscript_depth.py` refuses a manuscript whose abstract is outside 150 to 250 words, a technical report whose
+  abstract is outside 200 to 300 words, and a document without an abstract (MC-009; the content bar's sections 5 and 4). Words are
+  counted as they print: a number printed by a macro and an inline formula are one word each; citations, references and labels
+  none. The same check runs in CAOS_MANAGE's publishers (`tools/zenodo/check_manuscript_depth.py`, 75675d715), where three
+  CEFOP_DinHot papers had passed at 257, 259 and 314 words.
+
+### Adoption
+
+- Copy `scripts/check_manuscript_depth.py` and `tests/adversarial/test_manuscript_depth.py`; shorten any abstract the gate refuses
+  in the same change (a later version of the document on Zenodo carries the shorter abstract).
+
 ## [0.15.010], 2026-11-12
 
 The sequenced local workflow delegates shipped and staged readiness admission to an explicitly declared product provider.
