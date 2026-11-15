@@ -2,7 +2,9 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
-## [Unreleased]
+## [0.15.012], 2026-11-15
+
+The readiness admission tests judge a product with a declared readiness provider correctly, and the browser checks launch without a proxy.
 
 ### Fixed
 
@@ -17,6 +19,10 @@ All notable changes to this template. Versions are X.XX.XXX; VERSION is the sing
   through the provider still runs, and the documented delegation is asserted). The template's own path keeps every assertion. No production
   file changed. Adoption: copy `tests/adversarial/test_stamped_stage_inputs_0_15_007.py`, `tests/test_local_bootstrap.py` and
   `tests/test_bootstrap_regressions.py` verbatim.
+- `frontend/scripts/check_story_mode.mjs` and `tests/template/story_example.mjs` launch Chromium with `--no-proxy-server`: they talk only
+  to a loopback server, and on a machine that auto-detects its proxy the first request of each new browser context waited about 21 s
+  (measured on CAOS_ChancaDEM's story check: 21.1 to 22.3 s to commit the first navigation of a second context, 11 ms with the flag), past
+  a 30 s navigation limit under load. Adoption: copy both files verbatim; a product's own browser checks take the same flag.
 
 ## [0.15.011], 2026-11-14
 
