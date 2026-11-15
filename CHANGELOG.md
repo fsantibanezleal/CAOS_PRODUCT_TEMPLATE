@@ -2,6 +2,24 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.013], 2026-11-15
+
+The template pins shell 0.26.2.
+
+### Changed
+
+- The shared shell is pinned at 0.26.2 (ADR-0078 section 4: a shell release is carried by the template's next version). Since
+  0.26.1 a chart's readout wraps instead of cutting its text, so a chart narrower than its hint is read whole and counted by the
+  gate's document walk (shell known defect 45; found by CEFOP_DinHot, whose two robustness charts counted 0 at 390 px in Spanish),
+  and 0.26.2 keeps the keyboard's crosshair when the readout's growth rebuilds a filling chart (known defect 70). The shell's gate
+  reaches its own loopback server with no proxy (known defect 69). The example changes nothing; its full gate passes on the
+  published package.
+
+### Adoption
+
+- Pin `@fasl-work/caos-app-shell` at 0.26.2 exactly and run the full gate. A product that shortened a chart `hint` or `readout` to
+  fit one line may write it whole again.
+
 ## [0.15.012], 2026-11-15
 
 The readiness admission tests judge a product with a declared readiness provider correctly, and the browser checks launch without a proxy.
