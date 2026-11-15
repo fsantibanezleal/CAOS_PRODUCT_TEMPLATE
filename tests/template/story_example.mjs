@@ -34,7 +34,9 @@ if (!base) {
   if (!ready) { serverProcess.kill(); throw new Error('Story smoke server did not become ready'); }
 }
 const errors = [];
-const browser = await chromium.launch({ headless: true });
+// the check talks only to a loopback server: no proxy resolution, which on a machine that auto-detects its proxy stalls the first
+// request of every new browser context about 21 s (CAOS_ChancaDEM 0.13.000, CAOS_MANAGE shell known defect 69)
+const browser = await chromium.launch({ headless: true, args: ['--no-proxy-server'] });
 try {
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   desktop.on('pageerror', (error) => errors.push(error.message));
