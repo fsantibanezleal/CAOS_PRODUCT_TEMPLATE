@@ -15,9 +15,21 @@ The template pins shell 0.26.2.
   reaches its own loopback server with no proxy (known defect 69). The example changes nothing; its full gate passes on the
   published package.
 
+### Fixed
+
+- `scripts/local/workflow.py` refuses a version-stamped stage input only inside a promoted folder (RP-030). 0.15.007 refused every
+  stamped JSON stage input so that a product found a stale stamp before the bake rather than after it (CAOS_ChancaDEM carried
+  its models' metrics, #120); but `validate_stage` compares only the promoted payload's stamps with VERSION, so a stamped
+  document outside the payload was refused for nothing. CEFOP_DinHot carries its engine reference fixtures
+  (`tests/fixtures/engine/`, stamped with the engine version that wrote them) for its readiness provider to read in the stage;
+  its CI failed `test_the_template_workflow_config_passes` and its generation could not start. A stamped input under `data/derived`
+  or `models` (any promoted folder, at any depth) is still refused before the generation.
+
 ### Adoption
 
-- Pin `@fasl-work/caos-app-shell` at 0.26.2 exactly and run the full gate. A product that shortened a chart `hint` or `readout` to
+- Pin `@fasl-work/caos-app-shell` at 0.26.2 exactly and run the full gate.
+- Take `scripts/local/workflow.py` and `tests/adversarial/test_stamped_stage_inputs_0_15_007.py` verbatim. A product whose
+  stamped stage input lies outside its promoted folders may keep it; one inside them moves it into a generation step. A product that shortened a chart `hint` or `readout` to
   fit one line may write it whole again.
 
 ## [0.15.012], 2026-11-15
