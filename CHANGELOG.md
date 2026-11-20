@@ -2,6 +2,30 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.014], 2026-11-20
+
+The notebook runner copies `manuscripts/` into its check work tree, and the manuscript check measures an abstract as it prints.
+
+### Fixed
+
+- **The notebook runner copies `manuscripts/`** (base defect found by CAOS_ChancaDEM's notebook `08-crusherbayes/04`, which imports its
+  manuscript's analysis code and reads its committed summaries under `manuscripts/<slug>/`): `scripts/run_notebooks.py --check`
+  copied `data`, `data-pipeline`, `docs`, `content`, `models` and `notebooks` into its work tree, so that notebook failed with
+  `ModuleNotFoundError: No module named 'engines'` under `--check` while it ran in place. The work tree now holds `manuscripts/`
+  (without `__pycache__` and `.ipynb_checkpoints`) when the repository has one; an absent folder is skipped without a message, and
+  the repository is still never written (NB-092).
+- **The manuscript check counts the values an abstract prints** (found by CEFOP_DinHot, fixed first in the CAOS_MANAGE global tool,
+  ba4502217): `scripts/check_manuscript_depth.py` read every value written `\name{}` as a command with an empty argument, zero
+  words, so an abstract carrying 10 to 31 generated values passed the 250-word ceiling while it printed 252 and 254 words. The
+  check now expands the document's own zero-argument macros (`\newcommand`, `\renewcommand`, `\providecommand`, `\def`, nested)
+  to what they print, reads `\the\numexpr ... \relax` as one number, and counts a macro left with empty braces as one value;
+  three adversarial tests in `tests/adversarial/test_manuscript_depth.py`.
+
+### Adoption
+
+- Take `scripts/run_notebooks.py` and `scripts/check_manuscript_depth.py` verbatim; re-run the manuscript check, since an abstract
+  that passed may now print above its ceiling.
+
 ## [0.15.013], 2026-11-15
 
 The template pins shell 0.26.2.
