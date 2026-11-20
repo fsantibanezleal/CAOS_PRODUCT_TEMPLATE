@@ -2,6 +2,23 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.014], 2026-11-20
+
+The notebook runner copies `manuscripts/` into its check work tree.
+
+### Fixed
+
+- **The notebook runner copies `manuscripts/`** (base defect found by CAOS_ChancaDEM's notebook `08-crusherbayes/04`, which imports its
+  manuscript's analysis code and reads its committed summaries under `manuscripts/<slug>/`): `scripts/run_notebooks.py --check`
+  copied `data`, `data-pipeline`, `docs`, `content`, `models` and `notebooks` into its work tree, so that notebook failed with
+  `ModuleNotFoundError: No module named 'engines'` under `--check` while it ran in place. The work tree now holds `manuscripts/`
+  (without `__pycache__` and `.ipynb_checkpoints`) when the repository has one; an absent folder is skipped without a message, and
+  the repository is still never written (NB-092).
+
+### Adoption
+
+- Take `scripts/run_notebooks.py` verbatim.
+
 ## [0.15.013], 2026-11-15
 
 The template pins shell 0.26.2.
