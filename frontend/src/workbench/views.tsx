@@ -238,7 +238,7 @@ export function EulerStepView({ sel }: { sel: Selection | null }) {
         <line x1="90" x2="890" y1="435" y2="435" stroke="var(--color-border)" strokeWidth="3"/><circle cx={90 + index / Math.max(1, sel.run.t.length - 1) * 800} cy="435" r="9" fill="var(--color-accent)" data-linked-cursor-marker="" data-linked-cursor-position={index}/>
       </svg>}
     </Stage>
-    <label data-caos-plot-control="" data-euler-step="" data-linked-cursor-marker="" data-linked-cursor-position={index}>{t('Euler step', 'Paso de Euler')} {index + 1}/{sel.run.t.length - 1}<input aria-label={t('Scrub Euler step', 'Mover paso de Euler')} type="range" min={0} max={sel.run.t.length - 1} value={index} data-linked-cursor="" onChange={(event) => scrub(Number(event.currentTarget.value))}/></label>
+    <label data-caos-plot-control="" data-euler-step="" data-linked-cursor-marker="" data-linked-cursor-position={index}>{t('Euler step', 'Paso de Euler')} {index}/{sel.run.t.length - 1}<input aria-label={t('Scrub Euler step', 'Mover paso de Euler')} type="range" min={0} max={sel.run.t.length - 1} value={index} data-linked-cursor="" onChange={(event) => scrub(Number(event.currentTarget.value))}/></label>
     <p className="caos-plot-note">{t('population balance residual', 'residuo de balance poblacional')}: {formatNumber(residual, lang, { decimals: 6 })} {t('people', 'personas')} · {t('The before/after values come from the same live forward-Euler run.', 'Los valores antes/después vienen de la misma corrida Euler explícita en vivo.')}</p>
   </PlotCard>;
 }

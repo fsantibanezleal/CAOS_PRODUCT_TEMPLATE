@@ -5,7 +5,7 @@ import { loadCase, loadIndex, useArtifact } from '../api/artifacts';
 import { simulate } from '../engine/sir';
 import { caseAbsent } from '../readiness/readiness';
 import { useReadiness } from '../readiness/useReadiness';
-import { EulerStepView, PhasePlaneView, SystemDiagramView } from '../workbench/views';
+import { EulerStepView, eulerStepAt, PhasePlaneView, SystemDiagramView } from '../workbench/views';
 import { COVERAGE, type Selection } from '../workbench/model';
 import './story.css';
 
@@ -103,6 +103,8 @@ export function Story() {
 
   const values = readout(sel, lang);
   const source = { en: `Live TypeScript run · ${sel.data.manifest.case_id}`, es: `Ejecución TypeScript en vivo · ${sel.data.manifest.case_id}` };
+  const methodStep = eulerStepAt(sel, sharedCursor ?? 0);
+  const newInfections = -methodStep.derivative.S * methodStep.dt;
   const definitions: Record<string, SceneCalloutDef[]> = {
     context: [
       { id: 'r0', eyebrow: { en: 'BASIC R₀', es: 'R₀ BÁSICO' }, value: values.r0, unit: { en: 'ratio', es: 'razón' }, state: sel.beta > sel.gamma ? 'warning' : 'normal', anchor: { x: .72, y: .42 }, source },
@@ -120,9 +122,9 @@ export function Story() {
       { id: 'coverage', eyebrow: { en: 'SCENARIOS', es: 'ESCENARIOS' }, value: '3', unit: { en: 'immunisation levels', es: 'niveles de inmunización' }, state: 'selected', anchor: { x: .78, y: .55 }, source: { en: 'Re-run from identical initial case', es: 'Reejecución desde el mismo caso inicial' } },
     ],
     method: [
-      { id: 'step', eyebrow: { en: 'MODEL STEP', es: 'PASO DEL MODELO' }, value: formatNumber(sharedCursor ?? 0, lang, { decimals: 0 }), unit: { en: 'Euler updates', es: 'pasos de Euler' }, state: 'selected', anchor: { x: .5, y: .86 }, source: { en: 'Live engine · Δt = 0.25 day', es: 'Motor en vivo · Δt = 0,25 días' } },
-      { id: 'infections', eyebrow: { en: 'NEW INFECTIONS', es: 'NUEVOS CONTAGIOS' }, value: formatNumber(sel.beta * sel.run.S[Math.min(sel.run.S.length - 1, sharedCursor ?? 0)]! * sel.run.I[Math.min(sel.run.I.length - 1, sharedCursor ?? 0)]! / sel.data.manifest.params.N * .25, lang, { decimals: 2 }), unit: { en: 'people / step', es: 'personas / paso' }, state: 'warning', anchor: { x: .31, y: .37 }, source: { en: 'βSIΔt/N · forward Euler', es: 'βSIΔt/N · Euler explícito' } },
-      { id: 'balance', eyebrow: { en: 'MASS BALANCE', es: 'BALANCE POBLACIONAL' }, value: '0', unit: { en: 'people residual', es: 'residuo de personas' }, state: 'normal', anchor: { x: .72, y: .61 }, source: { en: 'S + I + R conserved by the update', es: 'S + I + R conservado por la actualización' } },
+      { id: 'step', eyebrow: { en: 'MODEL STEP', es: 'PASO DEL MODELO' }, value: formatNumber(methodStep.index, lang, { decimals: 0 }), unit: { en: 'Euler updates', es: 'pasos de Euler' }, state: 'selected', anchor: { x: .5, y: .86 }, source: { en: 'Live engine · Δt = 0.25 day', es: 'Motor en vivo · Δt = 0,25 días' } },
+      { id: 'infections', eyebrow: { en: 'NEW INFECTIONS', es: 'NUEVOS CONTAGIOS' }, value: formatNumber(newInfections, lang, { decimals: 2 }), unit: { en: 'people / step', es: 'personas / paso' }, state: 'warning', anchor: { x: .31, y: .37 }, source: { en: 'βSIΔt/N · forward Euler', es: 'βSIΔt/N · Euler explícito' } },
+      { id: 'balance', eyebrow: { en: 'MASS BALANCE', es: 'BALANCE POBLACIONAL' }, value: formatNumber(methodStep.massBalance, lang, { decimals: 6 }), unit: { en: 'people residual', es: 'residuo de personas' }, state: 'normal', anchor: { x: .72, y: .61 }, source: { en: 'S + I + R conserved by the update', es: 'S + I + R conservado por la actualización' } },
     ],
   };
 
@@ -142,7 +144,7 @@ export function Story() {
     <><p>{t('The case starts with', 'El caso comienza con')} <strong>{values.population} {t('people', 'personas')}</strong> {t('and a basic reproduction ratio of', 'y una razón de reproducción básica de')} <strong>{values.r0}</strong>.</p><p>{t('At the linked day', 'En el día enlazado')} <strong>{scrubbed.day}</strong>: S = <strong>{scrubbed.susceptible}</strong>, I = <strong>{scrubbed.infected}</strong>.</p>{statePicker}<small>{t('Source: case manifest and synthetic replay trace.', 'Fuente: manifiesto del caso y traza de reproducción sintética.')}</small></>,
     <><p>{t('The trajectory turns when susceptible fraction crosses', 'La trayectoria gira cuando la fracción susceptible cruza')} <strong>S/N = γ/β = {formatNumber(sel.gamma / sel.beta * 100, lang, { decimals: 2 })}%</strong>.</p><p>{t('At the linked day', 'En el día enlazado')} <strong>{scrubbed.day}</strong>: S = <strong>{scrubbed.susceptible}</strong>, I = <strong>{scrubbed.infected}</strong>.</p>{statePicker}<small>{t('Threshold is derived from the model equation; the trajectory is a live synthetic calculation.', 'El umbral se deriva de la ecuación del modelo; la trayectoria es un cálculo sintético en vivo.')}</small></>,
     <><p>{t('Compare zero, 30% and 60% immunisation using the same initial case parameters.', 'Compare 0%, 30% y 60% de inmunización con los mismos parámetros iniciales.')}</p><p>{t('The current case reaches', 'El caso actual alcanza')} <strong>{values.attack}% {t('attack rate', 'de tasa de ataque')}</strong> {t('and', 'y')} <strong>{values.peak} {t('peak infections', 'contagios máximos')}</strong> {t('without immunisation.', 'sin inmunización.')}</p><p>{t('The shared cursor remains on day', 'El cursor compartido permanece en el día')} <strong>{scrubbed.day}</strong>.</p>{statePicker}<small>{t('Scenarios are recomputed by the live TypeScript engine; all inputs are synthetic.', 'Los escenarios se recalculan con el motor TypeScript en vivo; todos los datos son sintéticos.')}</small></>,
-    <><p>{t('The shared cursor selects step', 'El cursor compartido selecciona el paso')} <strong>{cursorIndex}</strong> {t('of the live forward-Euler trace.', 'de la traza Euler explícita en vivo.')}</p><p>ΔS = −βSIΔt/N · ΔI = βSIΔt/N − γIΔt · ΔR = γIΔt</p><p>{t('Euler is first order; this view displays the exact discrete update and its balance residual from the same selected run.', 'Euler es de primer orden; esta vista muestra la actualización discreta exacta y su residuo de balance del mismo cálculo.')}</p>{statePicker}<small>{t('Source: live TypeScript engine, DT = 0.25 day; synthetic case values are recomputed in the browser.', 'Fuente: motor TypeScript en vivo, DT = 0,25 días; los valores sintéticos se recalculan en el navegador.')}</small></>,
+    <><p>{t('The shared cursor selects step', 'El cursor compartido selecciona el paso')} <strong>{methodStep.index}</strong> {t('of the live forward-Euler trace.', 'de la traza Euler explícita en vivo.')}</p><p>ΔS = −βSIΔt/N · ΔI = βSIΔt/N − γIΔt · ΔR = γIΔt</p><p>{t('Euler is first order; this view displays the exact discrete update and its balance residual from the same selected run.', 'Euler es de primer orden; esta vista muestra la actualización discreta exacta y su residuo de balance del mismo cálculo.')}</p>{statePicker}<small>{t('Source: live TypeScript engine, DT = 0.25 day; synthetic case values are recomputed in the browser.', 'Fuente: motor TypeScript en vivo, DT = 0,25 días; los valores sintéticos se recalculan en el navegador.')}</small></>,
   ];
   steps.forEach((item, i) => {
     item.href = `/story/${item.id}?${params.toString()}`;

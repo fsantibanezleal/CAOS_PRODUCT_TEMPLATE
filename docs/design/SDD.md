@@ -110,7 +110,9 @@ instantiated product must replace every example contract with its own domain res
 
 The example rows distinguish the physical-component view (inapplicable to this non-physical model, replaced by its
 named S→I and I→R transitions) from implemented behavior. The fourth story view derives its before/after values and
-fluxes from the exact selected live run; it does not animate a separate illustrative solver. The story's four steps are
+fluxes from the exact selected live run. Its direct route starts at sample zero when no cursor is selected.
+The panel, callouts, drawing and slider show the same sample index. The final sample has no following update
+and contributes no new infections. The story's four steps are
 declared in `product.json` (`showcase.story_routes`), the list the gate runner and the story check walk. The guided story's
 four distinct views, shared cursor, exact return route and phone callout clearance are checked by the example's own
 browser check, `tests/template/story_example.mjs`; `frontend/scripts/check_story_mode.mjs` checks what every story owes

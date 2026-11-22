@@ -25,6 +25,27 @@ try {
   // the check talks only to a loopback server: no proxy resolution, which on a machine that auto-detects its proxy stalls the first
   // request of every new browser context about 21 s (CAOS_ChancaDEM 0.13.000, CAOS_MANAGE shell known defect 69)
   browser = await chromium.launch({ headless: true, args: ['--no-proxy-server'] });
+  const directMethod = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  directMethod.on('pageerror', (error) => errors.push(error.message));
+  await directMethod.goto(`${base}/story/method?case=EX02_epidemic`, { waitUntil: 'domcontentloaded' });
+  const methodSlider = directMethod.getByRole('slider', { name: 'Scrub Euler step' });
+  const methodPanelStep = directMethod.locator('.template-story-evidence p').first().locator('strong');
+  const methodCallout = directMethod.locator('[data-caos-callout="step"] strong');
+  const methodDrawing = directMethod.locator('svg[data-euler-step] [data-linked-cursor-marker]');
+  const assertMethodStep = async (expected) => {
+    assert.equal(await methodSlider.inputValue(), expected, 'method slider selects the expected sample');
+    assert.equal(await methodPanelStep.innerText(), expected, 'method prose reports the selected sample');
+    assert.equal(await methodCallout.innerText(), `${expected} Euler updates`, 'method callout reports the selected sample');
+    assert.equal(await methodDrawing.getAttribute('data-linked-cursor-position'), expected, 'Euler drawing uses the selected sample');
+    assert.match(await methodSlider.locator('..').innerText(), new RegExp(`Euler step ${expected}/`), 'slider text displays the selected step index');
+  };
+  await assertMethodStep('0');
+  await methodSlider.press('ArrowRight');
+  await assertMethodStep('1');
+  await methodSlider.press('End');
+  await assertMethodStep(await methodSlider.getAttribute('max'));
+  assert.equal(await directMethod.locator('[data-caos-callout="infections"] strong').innerText(), '0.00 people / step', 'the terminal sample has no next Euler update');
+  await directMethod.close();
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   desktop.on('pageerror', (error) => errors.push(error.message));
   const from = '/app?case=EX02_epidemic&view=system&focus=1';
@@ -73,12 +94,14 @@ try {
   await desktop.locator('[data-story-link="phase"]').click();
   assert.equal(await desktop.locator('[data-story] button[aria-pressed]').first().getAttribute('aria-pressed'), 'false', 'reader interaction pauses playback');
   await desktop.locator('.caos-story-exit').click();
-  await desktop.waitForURL((url) => `${url.pathname}${url.search}` === from);
+  await desktop.waitForURL((url) => `${url.pathname}${url.search}` === `${new URL(base).pathname.replace(/\/+$/, '')}${from}`);
 
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
   phone.on('pageerror', (error) => errors.push(error.message));
   await phone.goto(`${base}/story/context?case=EX02_epidemic`, { waitUntil: 'domcontentloaded' });
   await phone.locator('[data-system-diagram]').waitFor({ state: 'visible' });
+  await phone.evaluate(() => document.fonts.ready);
+  await phone.waitForFunction(() => Number.parseFloat(document.querySelector('.template-story-drawing')?.style.paddingTop) > 0);
   const geometry = await phone.evaluate(() => ({
     width: document.documentElement.scrollWidth,
     viewport: innerWidth,
@@ -87,6 +110,7 @@ try {
     calls: [...document.querySelectorAll('[data-caos-callout]')].map((el) => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; }),
   }));
   assert.ok(geometry.width <= geometry.viewport + 1, 'phone story has no page-level horizontal overflow');
+  assert.equal(geometry.calls.length, 3, 'the phone draws each sourced callout');
   assert.ok(geometry.calls.every((call) => call.left >= 0 && call.right <= geometry.viewport && call.bottom <= geometry.drawing.top + 1), 'phone callout band stays above the active drawing');
   // the shared day cursor on the phone: the context step's diagram carries its marker, and a scrub moves every linked marker to it
   assert.ok(await phone.locator('[data-story] [data-linked-cursor-marker]').count(), 'phone context step shows the shared day cursor');
@@ -103,7 +127,7 @@ try {
   }));
   assert.ok(scrub.markers.length && scrub.markers.every((position) => position === scrub.value), `phone scrub moves every linked marker to the cursor (${JSON.stringify(scrub)})`);
   assert.deepEqual(errors, [], 'no uncaught page errors');
-  console.log('story_example: four distinct story views, linked scene/panel scrubbing, pause/exit state, desktop/phone callout clearance and the phone day cursor passed.');
+  console.log('story_example: four distinct story views, linked scene/panel scrubbing, pause/exit state, desktop/phone callout clearance and the phone day cursor, and matching Method step readouts at direct load, ArrowRight and End passed.');
 } finally {
   try {
     await browser?.close();
