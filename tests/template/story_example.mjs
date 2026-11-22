@@ -46,6 +46,25 @@ try {
   await assertMethodStep(await methodSlider.getAttribute('max'));
   assert.equal(await directMethod.locator('[data-caos-callout="infections"] strong').innerText(), '0.00 people / step', 'the terminal sample has no next Euler update');
   await directMethod.close();
+
+  for (const [lang, expected] of [['en', '0.000000 people'], ['es', '0,000000 personas']]) {
+    const methodPhone = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    methodPhone.on('pageerror', (error) => errors.push(error.message));
+    await methodPhone.addInitScript((locale) => {
+      localStorage.setItem('caos.lang', locale);
+      localStorage.setItem('caos.theme', 'dark');
+    }, lang);
+    await methodPhone.goto(`${base}/story/method?case=EX02_epidemic`, { waitUntil: 'domcontentloaded' });
+    const balance = methodPhone.locator('[data-caos-callout="balance"] strong');
+    await balance.waitFor({ state: 'visible' });
+    await methodPhone.evaluate(() => document.fonts.ready);
+    const bounds = await balance.evaluate((el) => ({
+      text: el.innerText, available: el.clientWidth, required: el.scrollWidth,
+    }));
+    assert.ok(bounds.available > 0 && bounds.required <= bounds.available + 1, `${lang} mobile population-balance value and unit fit: ${JSON.stringify(bounds)}`);
+    assert.equal(bounds.text, expected, `${lang} mobile callout keeps the full physical unit and six-decimal residual`);
+    await methodPhone.close();
+  }
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   desktop.on('pageerror', (error) => errors.push(error.message));
   const from = '/app?case=EX02_epidemic&view=system&focus=1';
