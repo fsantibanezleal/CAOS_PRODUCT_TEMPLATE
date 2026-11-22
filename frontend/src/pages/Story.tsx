@@ -124,7 +124,7 @@ export function Story() {
     method: [
       { id: 'step', eyebrow: { en: 'MODEL STEP', es: 'PASO DEL MODELO' }, value: formatNumber(methodStep.index, lang, { decimals: 0 }), unit: { en: 'Euler updates', es: 'pasos de Euler' }, state: 'selected', anchor: { x: .5, y: .86 }, source: { en: 'Live engine · Δt = 0.25 day', es: 'Motor en vivo · Δt = 0,25 días' } },
       { id: 'infections', eyebrow: { en: 'NEW INFECTIONS', es: 'NUEVOS CONTAGIOS' }, value: formatNumber(newInfections, lang, { decimals: 2 }), unit: { en: 'people / step', es: 'personas / paso' }, state: 'warning', anchor: { x: .31, y: .37 }, source: { en: 'βSIΔt/N · forward Euler', es: 'βSIΔt/N · Euler explícito' } },
-      { id: 'balance', eyebrow: { en: 'MASS BALANCE', es: 'BALANCE POBLACIONAL' }, value: formatNumber(methodStep.massBalance, lang, { decimals: 6 }), unit: { en: 'people residual', es: 'residuo de personas' }, state: 'normal', anchor: { x: .72, y: .61 }, source: { en: 'S + I + R conserved by the update', es: 'S + I + R conservado por la actualización' } },
+      { id: 'balance', eyebrow: { en: 'MASS BALANCE', es: 'BALANCE POBLACIONAL' }, value: formatNumber(methodStep.massBalance, lang, { decimals: 6 }), unit: { en: 'people', es: 'personas' }, state: 'normal', anchor: { x: .72, y: .61 }, source: { en: 'S + I + R conserved by the update', es: 'S + I + R conservado por la actualización' } },
     ],
   };
 
