@@ -669,8 +669,8 @@ def test_adversarial_real_product_generation_admission(workflow, monkeypatch):
         pytest.skip("The template example has a separate actual five-case generation control")
     config = workflow.settings(ROOT)
     # The readiness provider runs in the primary generation environment (0.15.010); like the template's own integration
-    # control, the test resolves that environment's external root from the declared alias instead of the developer's shell.
-    runtime = (ROOT / config["primary_environment"]).resolve(strict=True)
+    # control, the test uses the workflow's actual runtime resolver, including a newly initialized external runtime without a repository alias.
+    runtime = workflow.environment_directory(ROOT, config["primary_environment"]).resolve(strict=True)
     monkeypatch.setenv("CAOS_VENVS_ROOT", str(runtime.parents[1]))
     ready = json.loads((ROOT / "data/derived/readiness.json").read_text(encoding="utf-8"))
     # the positive admission runs with the real config: under a provider (RP-032) it runs the product's checker on the shipped files
@@ -700,7 +700,7 @@ TEMPLATE_ONLY = pytest.mark.skipif(not (ROOT / ".template-source").is_file(),
 @TEMPLATE_ONLY
 def test_adversarial_real_template_generation_admission(workflow, tmp_path, monkeypatch):
     config = workflow.settings(ROOT)
-    runtime = (ROOT / config["primary_environment"]).resolve(strict=True)
+    runtime = workflow.environment_directory(ROOT, config["primary_environment"]).resolve(strict=True)
     # Keep this real-template integration test independent of the developer's
     # shell/.env while preserving the same external-runtime containment policy.
     # The declared alias resolves to <CAOS_VENVS_ROOT>/<namespace>/<runtime>.
