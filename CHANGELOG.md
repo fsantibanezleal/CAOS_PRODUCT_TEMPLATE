@@ -2,6 +2,18 @@
 
 All notable changes to this template. Versions are X.XX.XXX; VERSION is the single source; every release is tagged.
 
+## [0.15.015], 2026-11-22
+
+The template carries Shell 0.26.3, including the product-controlled scientific Focus stage, URL-restored navigation, and stable filling-chart geometry during zoom and readout reflow.
+
+### Changed
+
+- Pin `@fasl-work/caos-app-shell` at 0.26.3. `CaseFocusConfig.stage` lets a product keep its selected App context while Focus presents a separate visualization; `railLayout: 'disclosure'` gives that visualization the full viewport while preserving parameter controls behind a localized disclosure. Same-document Back and Forward now restore Focus and the selected sub-view from the URL. The shell measures stage layout size, waits for settled callout dimensions before drawing, and sizes filling bar charts before zoom and readout reflow paint.
+
+### Adoption
+
+- Products with a Focus visualization separate from their current App context may supply `focus.stage` and `focus.railLayout: 'disclosure'`. Run the complete installed-package gate, inspect the subject and control interactions at desktop and phone sizes, and verify browser Back and Forward.
+
 ## [0.15.014], 2026-11-20
 
 The notebook runner copies `manuscripts/` into its check work tree, and the manuscript check measures an abstract as it prints.
