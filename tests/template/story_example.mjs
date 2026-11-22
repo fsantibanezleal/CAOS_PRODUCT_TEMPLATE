@@ -5,8 +5,6 @@
 // is frontend/scripts/check_story_mode.mjs, and the shell's G21 measures the rest.
 //   cd frontend && npm run build && node ../tests/template/story_example.mjs [origin]
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,30 +12,19 @@ import { fileURLToPath } from 'node:url';
 const frontend = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'frontend');
 const { chromium } = createRequire(join(frontend, 'package.json'))('playwright');
 
-let serverProcess;
-let base = process.argv[2] ? process.argv[2].replace(/\/+$/, '') : null;
-if (!base) {
-  const portServer = createServer();
-  await new Promise((resolve, reject) => { portServer.once('error', reject); portServer.listen(0, '127.0.0.1', resolve); });
-  const address = portServer.address();
-  if (!address || typeof address === 'string') throw new Error('Could not allocate the story smoke server port');
-  const port = address.port;
-  await new Promise((resolve) => portServer.close(resolve));
-  base = `http://127.0.0.1:${port}`;
-  serverProcess = spawn(process.execPath, [join(frontend, 'scripts', 'serve.mjs'), '--host', '127.0.0.1', '--port', String(port)], { cwd: frontend, stdio: 'ignore' });
-  let ready = false;
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    if (serverProcess.exitCode !== null) throw new Error(`Story smoke server exited with ${serverProcess.exitCode}`);
-    try { const response = await fetch(base); if (response.ok) { ready = true; break; } } catch { /* wait for startup */ }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  if (!ready) { serverProcess.kill(); throw new Error('Story smoke server did not become ready'); }
-}
-const errors = [];
-// the check talks only to a loopback server: no proxy resolution, which on a machine that auto-detects its proxy stalls the first
-// request of every new browser context about 21 s (CAOS_ChancaDEM 0.13.000, CAOS_MANAGE shell known defect 69)
-const browser = await chromium.launch({ headless: true, args: ['--no-proxy-server'] });
+let server;
+let browser;
 try {
+  let base = process.argv[2] ? process.argv[2].replace(/\/+$/, '') : null;
+  if (!base) {
+    const { servePages } = createRequire(join(frontend, 'package.json'))('@fasl-work/caos-app-shell/serve');
+    server = await servePages(join(frontend, 'dist'), process.env.VITE_BASE || '/', 0);
+    base = server.url.replace(/\/+$/, '');
+  }
+  const errors = [];
+  // the check talks only to a loopback server: no proxy resolution, which on a machine that auto-detects its proxy stalls the first
+  // request of every new browser context about 21 s (CAOS_ChancaDEM 0.13.000, CAOS_MANAGE shell known defect 69)
+  browser = await chromium.launch({ headless: true, args: ['--no-proxy-server'] });
   const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   desktop.on('pageerror', (error) => errors.push(error.message));
   const from = '/app?case=EX02_epidemic&view=system&focus=1';
@@ -118,6 +105,9 @@ try {
   assert.deepEqual(errors, [], 'no uncaught page errors');
   console.log('story_example: four distinct story views, linked scene/panel scrubbing, pause/exit state, desktop/phone callout clearance and the phone day cursor passed.');
 } finally {
-  await browser.close();
-  serverProcess?.kill();
+  try {
+    await browser?.close();
+} finally {
+    await server?.close();
+  }
 }
